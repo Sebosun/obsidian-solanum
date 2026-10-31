@@ -3,6 +3,7 @@ import type { SolanumHost, Action } from "@/types/host";
 import type { TimerDraft } from "@/types/timer-ui";
 import type { TimerState } from "@/lib/timer/types";
 import type { CropId } from "@/lib/crops/catalog";
+import type { SeasonChoice } from "@/lib/scene/seasons";
 
 export interface HarvestCelebration {
   id: string;
@@ -19,12 +20,14 @@ export interface AppState extends TimerState {
   busy: boolean;
   error: string;
   celebration: HarvestCelebration | null;
+  season: SeasonChoice;
   activeViews: number;
   registerView(): () => void;
   claimCelebration(id: string): boolean;
   run: Action;
   startFocus(): Promise<void>;
   updateDraft(patch: Partial<TimerDraft>): void;
+  setSeason(season: SeasonChoice): void;
   selectSession(id: string): void;
   revealControls(id: string): void;
   hideControls(): void;

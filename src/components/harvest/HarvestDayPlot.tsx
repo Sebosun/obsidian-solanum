@@ -2,13 +2,16 @@ import { Html } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { HarvestDay } from "@/lib/harvest/model";
 import { cropStage } from "@/lib/crops/growth";
+import { Color } from "three";
 import { HARVEST_GRID } from "@/lib/scene/constants";
+import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { Plant } from "@/components/scene/Plant";
 
 interface HarvestDayPlotProps {
   day: HarvestDay;
   hovered: boolean;
   selected: boolean;
+  season: SeasonId;
   onHover(key: string | null): void;
   onSelect(key: string): void;
 }
@@ -28,20 +31,33 @@ const SOIL_COLOR = { empty: "#58594b", light: "#7b5b3d", rich: "#936a43" };
 /** Focused minutes per day at which the soil switches to its richest shade. */
 const RICH_SOIL_MINUTES = 100;
 
-function soilColor(day: HarvestDay): string {
-  if (day.items.length === 0) return SOIL_COLOR.empty;
-  if (day.minutes >= RICH_SOIL_MINUTES) return SOIL_COLOR.rich;
-  return SOIL_COLOR.light;
+/** Blends a colour towards the season's ground tint, e.g. snow in winter. */
+function seasonal(hex: string, season: SeasonId): string {
+  const { color, amount } = SEASON_THEMES[season].groundTint;
+  return `#${new Color(hex).lerp(new Color(color), amount).getHexString()}`;
 }
 
-function baseColor(day: HarvestDay, hovered: boolean, selected: boolean): string {
+function soilColor(day: HarvestDay, season: SeasonId): string {
+  if (day.items.length === 0) return seasonal(SOIL_COLOR.empty, season);
+  if (day.minutes >= RICH_SOIL_MINUTES) return seasonal(SOIL_COLOR.rich, season);
+  return seasonal(SOIL_COLOR.light, season);
+}
+
+function baseColor(day: HarvestDay, hovered: boolean, selected: boolean, season: SeasonId) {
   if (selected) return BASE_COLOR.selected;
   if (hovered) return BASE_COLOR.hovered;
-  if (day.items.length === 0) return BASE_COLOR.empty;
-  return BASE_COLOR.harvested;
+  if (day.items.length === 0) return seasonal(BASE_COLOR.empty, season);
+  return seasonal(BASE_COLOR.harvested, season);
 }
 
-export function HarvestDayPlot({ day, hovered, selected, onHover, onSelect }: HarvestDayPlotProps) {
+export function HarvestDayPlot({
+  day,
+  hovered,
+  selected,
+  season,
+  onHover,
+  onSelect,
+}: HarvestDayPlotProps) {
   const lift = hovered || selected ? HOVER_LIFT : 0;
   const soilSize = HARVEST_GRID.plotSize - SOIL_INSET;
   let labelClass = "solanum-plot-date";
@@ -69,11 +85,11 @@ export function HarvestDayPlot({ day, hovered, selected, onHover, onSelect }: Ha
     >
       <mesh name={`base-${day.key}`}>
         <boxGeometry args={[HARVEST_GRID.plotSize, BASE_HEIGHT, HARVEST_GRID.plotSize]} />
-        <meshStandardMaterial color={baseColor(day, hovered, selected)} roughness={1} />
+        <meshStandardMaterial color={baseColor(day, hovered, selected, season)} roughness={1} />
       </mesh>
       <mesh name={`soil-${day.key}`} position={[0, (SOIL_HEIGHT - BASE_HEIGHT) / 2, 0]}>
         <boxGeometry args={[soilSize, SOIL_HEIGHT, soilSize]} />
-        <meshStandardMaterial color={soilColor(day)} roughness={1} />
+        <meshStandardMaterial color={soilColor(day, season)} roughness={1} />
       </mesh>
       {day.items.map((item) => (
         <group key={item.key} position={item.position}>

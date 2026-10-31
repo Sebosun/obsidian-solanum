@@ -50,6 +50,7 @@ function mountScene(selectedKey: string | null) {
         days={days}
         selectedKey={selectedKey}
         hoverKey={null}
+        season="summer"
         onHover={vi.fn()}
         onSelect={onSelect}
         onClear={onClear}

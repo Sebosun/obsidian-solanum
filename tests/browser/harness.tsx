@@ -2,7 +2,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "@/components/app/App";
 import { TimerService } from "@/lib/timer/TimerService";
 import { seedMonth } from "@/lib/debug/seeder";
-import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { DEFAULT_SETTINGS, readSettings } from "@/lib/settings";
 import type { SolanumHost, Screen } from "@/types/host";
 
 const month = new Date(2026, 9, 1);
@@ -22,7 +22,7 @@ let screen: Screen = "harvest";
 if (parameters.get("view") === "timer") screen = "timer";
 const host: SolanumHost = {
   timer,
-  settings: { ...DEFAULT_SETTINGS },
+  settings: readSettings({ ...DEFAULT_SETTINGS, season: parameters.get("season") }),
   saveSettings: async (settings) => {
     host.settings = settings;
   },

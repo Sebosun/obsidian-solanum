@@ -181,6 +181,19 @@ describe("Obsidian lifecycle integration", () => {
     plugin.onunload();
   });
 
+  it("changes the season theme live from the native preferences", async () => {
+    vi.useFakeTimers();
+    const { app } = vaultFixture();
+    const plugin = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+    await plugin.onload();
+    vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+    expect(getAppStore(plugin).getState().season).toBe("auto");
+    await nativeSettings.get("Season theme")!("winter");
+    expect(plugin.settings.season).toBe("winter");
+    expect(getAppStore(plugin).getState().season).toBe("winter");
+    plugin.onunload();
+  });
+
   it("opens its own sidebar leaf without replacing a user's existing view", async () => {
     vi.useFakeTimers();
     const { app } = vaultFixture();

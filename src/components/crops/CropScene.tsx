@@ -1,7 +1,9 @@
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Canvas } from "@react-three/fiber";
 import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
+import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
+import { SeasonScenery } from "@/components/scene/SeasonScenery";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
@@ -11,12 +13,18 @@ import { formatTime } from "@/lib/time";
 import { CompletionFlourish } from "@/components/scene/CompletionFlourish";
 import { TimerCamera } from "@/components/scene/TimerCamera";
 
+interface SeasonStyle extends CSSProperties {
+  "--season-glow": string;
+  "--season-sun": string;
+}
+
 interface CropSceneProps {
   crop?: CropId;
   progress: number;
   running: boolean;
   immersive?: boolean;
   remaining: number;
+  season: SeasonId;
 }
 
 export function CropScene({
@@ -25,6 +33,7 @@ export function CropScene({
   running,
   immersive = false,
   remaining,
+  season,
 }: CropSceneProps) {
   const container = useRef<HTMLDivElement>(null);
   const color = useSceneColor(container);
@@ -44,33 +53,31 @@ export function CropScene({
   }, []);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
+  // Weather keeps drifting while the scene is on screen, even before a crop is planted.
+  const animate = visible && !reduced;
+  const theme = SEASON_THEMES[season];
+  const seasonStyle: SeasonStyle = {
+    "--season-glow": theme.css.glow,
+    "--season-sun": theme.css.sun,
+  };
   const fallback = <CropFallback crop={crop} progress={progress} remaining={remaining} />;
-  const classes = ["solanum-scene"];
+  const classes = ["solanum-scene", `is-${season}`];
   if (progress >= 1) classes.push("is-mature");
   if (immersive) classes.push("is-immersive");
   return (
-    <div ref={container} className={classes.join(" ")}>
+    <div ref={container} className={classes.join(" ")} style={seasonStyle}>
       <SceneBoundary key={crop} fallback={fallback}>
         <Suspense fallback={fallback}>
           <Canvas
             orthographic
             dpr={[1, 1.5]}
-            frameloop={moving ? "always" : "demand"}
+            frameloop={animate ? "always" : "demand"}
             fallback={fallback}
             aria-label="Growing crop"
           >
             <TimerCamera />
-            <ambientLight intensity={1.8} />
-            <directionalLight position={[3, 5, 2]} intensity={3} color="#fff0ce" />
             <SceneCountdown remaining={remaining} color={color} />
-            <mesh position={[0, -0.68, 0]}>
-              <cylinderGeometry args={[0.95, 0.8, 0.25, 8]} />
-              <meshStandardMaterial color="#77513a" roughness={1} />
-            </mesh>
-            <mesh position={[0, -0.54, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <circleGeometry args={[0.9, 8]} />
-              <meshStandardMaterial color="#493324" />
-            </mesh>
+            <SeasonScenery season={season} animate={animate} />
             <CompletionFlourish reduced={reduced}>
               <GrowingCrop key={crop} crop={crop} stage={stage} moving={moving} reduced={reduced} />
             </CompletionFlourish>

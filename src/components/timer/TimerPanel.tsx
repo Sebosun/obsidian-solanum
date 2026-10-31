@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 import { isActive } from "@/lib/timer/selectors";
+import { resolveSeason } from "@/lib/scene/seasons";
 import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
 import { CropScene } from "@/components/crops/CropScene";
@@ -15,6 +16,7 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
   const sessions = useAppStore((state) => state.sessions);
   const draft = useAppStore((state) => state.draft);
   const session = useAppStore(selectCurrentSession);
+  const seasonChoice = useAppStore((state) => state.season);
   const selectSession = useAppStore((state) => state.selectSession);
   const revealControls = useAppStore((state) => state.revealControls);
   const active = sessions.filter(isActive);
@@ -56,6 +58,7 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
         running={session?.status === "running"}
         remaining={remaining}
         immersive={immersive}
+        season={resolveSeason(seasonChoice, new Date())}
       />
       {!immersive && controls}
       {immersive && (

@@ -40,3 +40,13 @@ describe("session folder setting", () => {
     expect(readSettings(null).sessionFolder).toBe(DEFAULT_SETTINGS.sessionFolder);
   });
 });
+
+describe("season theme setting", () => {
+  it("accepts known choices and falls back to automatic", () => {
+    expect(DEFAULT_SETTINGS.season).toBe("auto");
+    expect(readSettings({ season: "winter" }).season).toBe("winter");
+    expect(readSettings({ season: "monsoon" }).season).toBe("auto");
+    expect(readSettings({ season: 3 }).season).toBe("auto");
+    expect(readSettings(undefined).season).toBe("auto");
+  });
+});

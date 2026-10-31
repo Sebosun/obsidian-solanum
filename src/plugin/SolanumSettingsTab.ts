@@ -7,6 +7,7 @@ import {
   type Plugin,
 } from "obsidian";
 import { PRESETS, type Settings } from "@/lib/settings";
+import { SEASON_CHOICES, SEASON_THEMES } from "@/lib/scene/seasons";
 import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import type { MovePlan } from "@/lib/storage/migration";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
@@ -47,6 +48,19 @@ export class SolanumSettingsTab extends PluginSettingTab {
       PRESETS.map((minutes) => [String(minutes), `${minutes} min`]),
     );
 
+    const seasonOptions = Object.fromEntries(
+      SEASON_CHOICES.map((choice) => [
+        choice,
+        choice === "auto" ? "Automatic" : SEASON_THEMES[choice].label,
+      ]),
+    );
+    new Setting(this.containerEl)
+      .setName("Season theme")
+      .setDesc("Automatic follows the calendar for the northern hemisphere.")
+      .addDropdown((control) => {
+        control.addOptions(seasonOptions).setValue(this.host.settings.season);
+        control.onChange(this.changeSeason);
+      });
     new Setting(this.containerEl).setName("Focus duration").addDropdown((control) => {
       control.addOptions(focusOptions).setValue(String(this.host.settings.defaultMinutes));
       control.onChange(this.changeFocus);
@@ -137,6 +151,10 @@ export class SolanumSettingsTab extends PluginSettingTab {
     new Notice(message);
   }
 
+  private changeSeason = (value: string) => {
+    const season = SEASON_CHOICES.find((choice) => choice === value);
+    if (season) return this.save({ season });
+  };
   private changeFocus = (value: string) => this.save({ defaultMinutes: Number(value) });
   private changeAutoBreak = (value: boolean) => this.save({ autoBreak: value });
   private changeSound = (value: boolean) => this.save({ sound: value });

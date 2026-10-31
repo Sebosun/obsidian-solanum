@@ -40,7 +40,9 @@
 .solanum-scene {
   @apply sol:relative sol:h-[300px] sol:rounded-xl sol:overflow-hidden;
   background:
-    radial-gradient(ellipse at 50% 65%, #8eaf7f29, transparent 70%), var(--background-secondary);
+    radial-gradient(circle at 82% 10%, var(--season-sun, transparent), transparent 46%),
+    radial-gradient(ellipse at 50% 65%, var(--season-glow, #8eaf7f29), transparent 70%),
+    var(--background-secondary);
 }
 .solanum-scene canvas {
   @apply sol:touch-pan-y;
@@ -270,7 +272,10 @@
 }
 .solanum-focus-mode .solanum-scene.is-immersive {
   @apply sol:h-full sol:min-h-[400px] sol:rounded-none;
-  background: var(--background-primary);
+  background:
+    radial-gradient(circle at 82% 10%, var(--season-sun, transparent), transparent 46%),
+    radial-gradient(ellipse at 50% 60%, var(--season-glow, transparent), transparent 70%),
+    var(--background-primary);
 }
 .solanum-toolbar-actions {
   @apply sol:flex sol:items-center sol:gap-0.5;
@@ -288,7 +293,9 @@
 .solanum-harvest-scene {
   @apply sol:relative sol:rounded-xl sol:overflow-hidden sol:outline-none;
   background:
-    radial-gradient(ellipse at 50% 55%, #8eaf7f24, transparent 75%), var(--background-secondary);
+    radial-gradient(circle at 85% 8%, var(--season-sun, transparent), transparent 42%),
+    radial-gradient(ellipse at 50% 55%, var(--season-glow, #8eaf7f24), transparent 75%),
+    var(--background-secondary);
 }
 .solanum-harvest-scene:focus-visible {
   @apply sol:shadow-[inset_0_0_0_2px_var(--crop-green)];

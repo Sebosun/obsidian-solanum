@@ -1,4 +1,4 @@
-import { Suspense, useState, type KeyboardEvent } from "react";
+import { Suspense, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
 import type { HarvestDay } from "@/lib/harvest/model";
@@ -13,11 +13,18 @@ import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 import { HarvestWeekdays } from "@/components/harvest/HarvestWeekdays";
 import { getCropAssets } from "@/state/cropAssets";
 import { HARVEST_SCENE } from "@/lib/scene/constants";
+import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
+
+interface SeasonStyle extends CSSProperties {
+  "--season-glow": string;
+  "--season-sun": string;
+}
 
 interface HarvestSceneProps {
   days: HarvestDay[];
   selectedKey: string | null;
   hoverKey: string | null;
+  season: SeasonId;
   onHover(key: string | null): void;
   onSelect(key: string): void;
   onClear(): void;
@@ -27,6 +34,7 @@ export function HarvestScene({
   days,
   selectedKey,
   hoverKey,
+  season,
   onHover,
   onSelect,
   onClear,
@@ -34,6 +42,7 @@ export function HarvestScene({
   const services = useServices();
   const [attempt, setAttempt] = useState(0);
   const rows = days[days.length - 1].row + 1;
+  const theme = SEASON_THEMES[season];
 
   function retry() {
     getCropAssets(services).retry();
@@ -59,7 +68,12 @@ export function HarvestScene({
       <HarvestDayList days={days} selectedKey={selectedKey} onSelect={onSelect} />
     </div>
   );
-  let className = "solanum-harvest-scene";
+  const sceneStyle: SeasonStyle = {
+    aspectRatio: harvestAspectRatio(rows),
+    "--season-glow": theme.css.glow,
+    "--season-sun": theme.css.sun,
+  };
+  let className = `solanum-harvest-scene is-${season}`;
   if (hoverKey) className += " is-hovering";
 
   return (
@@ -69,7 +83,7 @@ export function HarvestScene({
         role="group"
         aria-label="Monthly harvest calendar"
         tabIndex={0}
-        style={{ aspectRatio: harvestAspectRatio(rows) }}
+        style={sceneStyle}
         onKeyDown={navigate}
       >
         <Suspense fallback={<HarvestLoading onRetry={retry} />}>
@@ -82,8 +96,12 @@ export function HarvestScene({
             onPointerMissed={clearHover}
             aria-label="3D monthly harvest calendar"
           >
-            <ambientLight intensity={2} />
-            <directionalLight position={[2, 8, 4]} intensity={2.8} color="#fff2d6" />
+            <ambientLight color={theme.ambient.color} intensity={theme.ambient.intensity} />
+            <directionalLight
+              position={[2, 8, 4]}
+              intensity={theme.sun.intensity}
+              color={theme.sun.color}
+            />
             <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>
               <group>
                 <HarvestWeekdays z={weekdayHeaderOffset(rows)} />
@@ -93,6 +111,7 @@ export function HarvestScene({
                     day={day}
                     hovered={day.key === hoverKey}
                     selected={day.key === selectedKey}
+                    season={season}
                     onHover={onHover}
                     onSelect={onSelect}
                   />

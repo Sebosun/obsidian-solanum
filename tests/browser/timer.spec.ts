@@ -27,3 +27,14 @@ test("a light, reduced-motion sidebar keeps keyboard controls accessible", async
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
   await page.screenshot({ path: "/tmp/opencode/solanum-timer-light.png" });
 });
+
+for (const season of ["winter", "spring", "summer", "autumn"] as const) {
+  test(`the crop scene renders its ${season} theme without errors`, async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(`/?view=timer&season=${season}`);
+    await expect(page.locator(`.solanum-scene.is-${season} canvas`)).toBeVisible();
+    await page.waitForTimeout(1200);
+    expect(errors).toEqual([]);
+  });
+}

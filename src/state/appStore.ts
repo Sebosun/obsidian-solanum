@@ -1,6 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import type { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
+import type { SeasonChoice } from "@/lib/scene/seasons";
 import { normalizeTags } from "@/lib/timer/selectors";
 import type { SolanumHost } from "@/types/host";
 import type { AppState, AppStore } from "@/state/types";
@@ -37,6 +38,7 @@ export function getAppStore(services: SolanumHost): AppStore {
     busy: false,
     error: "",
     celebration: null,
+    season: services.settings.season,
     activeViews: 0,
     registerView() {
       set({ activeViews: get().activeViews + 1 });
@@ -55,6 +57,9 @@ export function getAppStore(services: SolanumHost): AppStore {
     updateDraft(patch) {
       if (patch.tags) tagsChosen = true;
       set({ draft: { ...get().draft, ...patch } });
+    },
+    setSeason(season) {
+      set({ season });
     },
     selectSession(id) {
       set({ selectedSessionId: id });
@@ -128,6 +133,10 @@ export function getAppStore(services: SolanumHost): AppStore {
 export function releaseAppStore(timer: TimerService): void {
   stores.get(timer)?.unsubscribe();
   stores.delete(timer);
+}
+
+export function updateSeason(timer: TimerService, season: SeasonChoice): void {
+  stores.get(timer)?.store.getState().setSeason(season);
 }
 
 export function updateDefaultMinutes(timer: TimerService, minutes: number): void {

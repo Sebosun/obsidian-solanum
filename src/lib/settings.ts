@@ -1,3 +1,4 @@
+import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
 import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 
 export interface Settings {
@@ -8,6 +9,8 @@ export interface Settings {
   volume: number;
   /** Vault-relative folder holding session revision files. */
   sessionFolder: string;
+  /** Scene theme: follow the calendar (northern hemisphere) or force a season. */
+  season: SeasonChoice;
 }
 
 export const PRESETS = [5, 10, 25, 50, 60, 90, 120];
@@ -18,6 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   sound: true,
   volume: 0.4,
   sessionFolder: DEFAULT_SESSION_FOLDER,
+  season: "auto",
 };
 
 export function readSettings(value: unknown): Settings {
@@ -32,6 +36,7 @@ export function readSettings(value: unknown): Settings {
     sound: typeof s.sound === "boolean" ? s.sound : true,
     volume: Number.isFinite(s.volume) ? Math.max(0, Math.min(1, s.volume!)) : 0.4,
     sessionFolder: readSessionFolder(s.sessionFolder),
+    season: SEASON_CHOICES.find((choice) => choice === s.season) ?? "auto",
   };
 }
 

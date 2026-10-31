@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from "react";
 import { useAppStore, useServices } from "@/state/hooks";
 import { buildHarvestMonth } from "@/lib/harvest/model";
+import { resolveSeason } from "@/lib/scene/seasons";
 import { HarvestScene } from "@/components/harvest/HarvestScene";
 import { HarvestDetails } from "@/components/harvest/HarvestDetails";
 import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
@@ -13,6 +14,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   const services = useServices();
   const history = useAppStore((state) => state.sessions);
   const conflicts = useAppStore((state) => state.conflicts);
+  const seasonChoice = useAppStore((state) => state.season);
   const sessions = history.filter(
     (session) => !conflicts.some((conflict) => conflict.sessionId === session.sessionId),
   );
@@ -62,6 +64,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
       days={days}
       selectedKey={selectedKey}
       hoverKey={hoverKey}
+      season={resolveSeason(seasonChoice, month)}
       onHover={setHover}
       onSelect={setSelected}
       onClear={clearSelection}

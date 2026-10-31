@@ -8,10 +8,20 @@ import { DEFAULT_SETTINGS } from "@/lib/settings";
 import type { SolanumHost } from "@/types/host";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { formatTime } from "@/lib/time";
+import { seasonOf } from "@/lib/scene/seasons";
+import { updateSeason } from "@/state/appStore";
 
 vi.mock("@/components/crops/CropScene", () => ({
-  CropScene: ({ progress, remaining }: { progress: number; remaining: number }) => (
-    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`}>
+  CropScene: ({
+    progress,
+    remaining,
+    season,
+  }: {
+    progress: number;
+    remaining: number;
+    season: string;
+  }) => (
+    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} data-season={season}>
       <span role="timer">{formatTime(remaining)}</span>
     </figure>
   ),
@@ -186,6 +196,16 @@ describe("sidebar workflows backed by the real timer service", () => {
     }
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
     expect(await screen.findByRole("button", { name: "Resume" })).toBeTruthy();
+  });
+
+  it("themes the crop scene by the current season, and follows a chosen season live", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    expect(screen.getByRole("figure").getAttribute("data-season")).toBe(seasonOf(new Date()));
+    act(() => updateSeason(f.host.timer, "winter"));
+    expect(screen.getByRole("figure").getAttribute("data-season")).toBe("winter");
+    act(() => updateSeason(f.host.timer, "auto"));
+    expect(screen.getByRole("figure").getAttribute("data-season")).toBe(seasonOf(new Date()));
   });
 
   it("returns to the immersive view from the revealed controls, by button or Escape", async () => {

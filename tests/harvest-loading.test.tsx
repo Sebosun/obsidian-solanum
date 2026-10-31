@@ -51,6 +51,7 @@ describe("farm loading recovery", () => {
           days={days}
           selectedKey={null}
           hoverKey={null}
+          season="summer"
           onHover={vi.fn()}
           onSelect={vi.fn()}
           onClear={vi.fn()}
