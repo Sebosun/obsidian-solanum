@@ -1,0 +1,9 @@
+{
+  "id": "solanum",
+  "name": "Solanum",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "A tomato timer in your sidebar.",
+  "author": "Solanum",
+  "isDesktopOnly": false
+}
