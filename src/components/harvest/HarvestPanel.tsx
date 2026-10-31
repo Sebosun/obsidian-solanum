@@ -70,9 +70,18 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
     setNotePath("");
   }
 
-  let content = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
-  if (total > 0 && view === "year") {
+  const filtered = !!tag || !!notePath;
+  let content = <HarvestEmpty filtered={filtered} onClearFilters={clearFilters} />;
+  if (view === "year") {
+    // An empty year still shows its twelve crates, just empty ones.
     const busiest = yearLayout.stacks.find((stack) => stack.busiest);
+    let caption = `Each crate stands for ${formatFocus(yearLayout.crateMinutes)} of focus.`;
+    if (busiest) {
+      const name = yearMonths[busiest.index].date.toLocaleDateString(undefined, { month: "long" });
+      caption += ` Busiest: ${name}, ${formatFocus(busiest.minutes)}.`;
+    } else {
+      caption = filtered ? "No matching harvests this year." : `No harvests in ${year} yet.`;
+    }
     content = (
       <>
         <HarvestYearScene
@@ -82,9 +91,15 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           onOpenMonth={openMonth}
         />
         <p className="solanum-hint solanum-scene-caption">
-          Each crate stands for {formatFocus(yearLayout.crateMinutes)} of focus.
-          {busiest &&
-            ` Busiest: ${yearMonths[busiest.index].date.toLocaleDateString(undefined, { month: "long" })}, ${formatFocus(busiest.minutes)}.`}
+          {caption}
+          {!busiest && filtered && (
+            <>
+              {" "}
+              <button className="solanum-subtle" onClick={clearFilters}>
+                Clear filters
+              </button>
+            </>
+          )}
         </p>
       </>
     );

@@ -613,20 +613,31 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByRole("heading", { name: "2026" })).toBeTruthy();
     });
 
-    it("moves between years and respects the tag filter", async () => {
+    it("moves between years and keeps showing empty crates when there is nothing to show", async () => {
       const f = await plantedFixture();
       render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
       fireEvent.click(screen.getByRole("button", { name: "Year" }));
       fireEvent.click(screen.getByRole("button", { name: "Next year" }));
       expect(screen.getByRole("heading", { name: "2027" })).toBeTruthy();
-      expect(screen.getByText("No harvests yet")).toBeTruthy();
+      expect(monthButtons()).toHaveLength(12);
+      expect(screen.getByText("No harvests in 2027 yet.")).toBeTruthy();
+      expect(screen.queryByText("No harvests yet")).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
+      expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
+    });
+
+    it("applies the tag filter to the year, with a way back when it matches nothing", async () => {
+      const f = await plantedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
       fireEvent.change(screen.getByLabelText("Filter by tag"), {
         target: { value: "work/client" },
       });
-      expect(screen.getByText("No matching harvests")).toBeTruthy();
-      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
       expect(monthButtons()).toHaveLength(12);
+      expect(screen.getByText(/No matching harvests this year/)).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
+      expect(screen.getByText(/Busiest: October/)).toBeTruthy();
     });
   });
 
