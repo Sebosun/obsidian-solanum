@@ -57,6 +57,22 @@ export class TimerService {
     return result;
   }
 
+  /**
+   * Runs `action` once queued timer work finishes and holds back later timer actions until it
+   * ends. Storage changes (such as moving the session folder) use this so nothing writes
+   * mid-change; state is reloaded afterwards.
+   */
+  exclusive<T>(action: () => Promise<T>): Promise<T> {
+    return this.serial(async () => {
+      try {
+        return await action();
+      } finally {
+        await this.load();
+        await this.reconcile();
+      }
+    });
+  }
+
   private publish() {
     this.state = selectState([...this.revisions.values()]);
     this.listeners.forEach((listener) => listener());
