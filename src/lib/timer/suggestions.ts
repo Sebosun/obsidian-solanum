@@ -1,6 +1,7 @@
 import type { Suggestion } from "@/components/ui/SuggestionList";
 
-const MAX_SUGGESTIONS = 8;
+/** Notes are searched, so a few best matches will do; tags are few enough to all be shown. */
+const MAX_NOTE_SUGGESTIONS = 8;
 
 /** Strips Obsidian's leading "#" so tags read as plain names everywhere in the UI. */
 export const cleanTag = (value: string) => value.trim().replace(/^#+/, "");
@@ -10,7 +11,6 @@ export function tagSuggestions(known: string[], chosen: string[], query: string)
   const matches = known
     .filter((tag) => !chosen.includes(tag) && tag.toLowerCase().includes(needle))
     .sort()
-    .slice(0, MAX_SUGGESTIONS)
     .map((tag) => ({ value: tag, label: tag }));
   if (matches.length === 0 && needle !== "" && !chosen.includes(cleanTag(query)))
     return [{ value: cleanTag(query), label: cleanTag(query) }];
@@ -26,7 +26,7 @@ export function noteSuggestions(notes: string[], query: string): Suggestion[] {
     .filter((path) => path.toLowerCase().includes(needle))
     .map((path) => ({ path, byName: noteName(path).toLowerCase().includes(needle) }))
     .sort((a, b) => Number(b.byName) - Number(a.byName) || a.path.localeCompare(b.path));
-  return scored.slice(0, MAX_SUGGESTIONS).map(({ path }) => ({
+  return scored.slice(0, MAX_NOTE_SUGGESTIONS).map(({ path }) => ({
     value: path,
     label: noteName(path),
     detail: noteFolder(path),

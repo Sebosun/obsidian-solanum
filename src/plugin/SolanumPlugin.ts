@@ -397,6 +397,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   }
 
   tags = () => this.noteIndex.tags();
+  noteTags = (path: string) => this.noteIndex.tagsOf(path);
   openSettings = () => {
     // Obsidian exposes its settings controller at runtime, outside the public App types.
     const app = this.app as SettingsApp;

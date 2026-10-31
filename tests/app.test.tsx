@@ -131,6 +131,7 @@ function fixture(debug = false) {
       host.settings = settings;
     }),
     tags: () => ["work/client", "study"],
+    noteTags: () => [],
     notes: () => ["Project.md", "Other.md"],
     activeNote: () => "Project.md",
     openNote: vi.fn(),
@@ -436,6 +437,61 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(options()).toEqual(["study", "work/client"]);
       fireEvent.change(tagInput(), { target: { value: "#WORK" } });
       expect(options()).toEqual(["work/client"]);
+    });
+
+    it("offers every tag in the vault, not just the first few", async () => {
+      const f = fixture();
+      const all = Array.from({ length: 40 }, (_, i) => `topic-${String(i).padStart(2, "0")}`);
+      f.host.tags = () => all;
+      render(<App host={f.host} screen="timer" />);
+      fireEvent.focus(tagInput());
+      expect(options()).toEqual(all);
+      fireEvent.change(tagInput(), { target: { value: "topic-3" } });
+      expect(options()).toEqual(all.filter((tag) => tag.includes("topic-3")));
+    });
+
+    describe("from the active note", () => {
+      const addFromNote = () => screen.queryByRole("button", { name: "Add active note's tags" });
+
+      it("adds all the active note's tags with one button, then has nothing left to offer", async () => {
+        const f = fixture();
+        f.host.noteTags = (path) => (path === "Project.md" ? ["work/client", "focus"] : []);
+        render(<App host={f.host} screen="timer" />);
+        fireEvent.click(addFromNote()!);
+        expect(chips()).toEqual(["work/client", "focus"]);
+        expect(addFromNote()).toBeNull();
+      });
+
+      it("keeps the tags already chosen and offers only the ones still missing", async () => {
+        const f = fixture();
+        f.host.noteTags = () => ["work/client", "focus"];
+        render(<App host={f.host} screen="timer" />);
+        fireEvent.focus(tagInput());
+        fireEvent.mouseDown(screen.getByRole("option", { name: "study" }));
+        fireEvent.click(addFromNote()!);
+        expect(chips()).toEqual(["study", "work/client", "focus"]);
+      });
+
+      it("is not offered when the note has no tags, or there is no active note", async () => {
+        const none = fixture();
+        none.host.noteTags = () => [];
+        const first = render(<App host={none.host} screen="timer" />);
+        expect(addFromNote()).toBeNull();
+        first.unmount();
+        const nothing = fixture();
+        nothing.host.activeNote = () => null;
+        nothing.host.noteTags = () => ["work"];
+        render(<App host={nothing.host} screen="timer" />);
+        expect(addFromNote()).toBeNull();
+      });
+
+      it("shows tags that are new to the vault as chips, without the #", async () => {
+        const f = fixture();
+        f.host.noteTags = () => ["fresh-idea"];
+        render(<App host={f.host} screen="timer" />);
+        fireEvent.click(addFromNote()!);
+        expect(chips()).toEqual(["fresh-idea"]);
+      });
     });
 
     it("adds a suggestion by click or arrow keys, a typed tag by Enter, and removes the last on Backspace", async () => {

@@ -23,6 +23,7 @@ function fixture() {
     tags: () => [],
     notes: () => [],
     activeNote: () => null,
+    noteTags: () => [],
     openNote: vi.fn(),
     navigate: vi.fn(),
     assetUrl: (file) => file,

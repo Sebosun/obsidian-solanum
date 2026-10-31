@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import { useEffect, useRef, type MouseEvent } from "react";
 
 export interface Suggestion {
   value: string;
@@ -17,13 +17,19 @@ interface SuggestionListProps {
 
 /** Obsidian-style dropdown. Picks on mouse-down so the input keeps focus. */
 export function SuggestionList({ id, items, activeIndex, onPick }: SuggestionListProps) {
+  const list = useRef<HTMLUListElement>(null);
+  // With a long list the highlighted row can be out of sight: keep it in view as it moves.
+  useEffect(() => {
+    const row = list.current?.children[activeIndex];
+    if (row && typeof row.scrollIntoView === "function") row.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
   function pick(event: MouseEvent<HTMLLIElement>) {
     event.preventDefault();
     const value = event.currentTarget.dataset.value;
     if (value !== undefined) onPick(value);
   }
   return (
-    <ul role="listbox" id={id} className="solanum-suggest">
+    <ul ref={list} role="listbox" id={id} className="solanum-suggest">
       {items.map((item, index) => (
         <li
           key={item.value}

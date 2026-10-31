@@ -17,6 +17,8 @@ export interface SolanumHost {
   settings: Settings;
   saveSettings(settings: Settings): Promise<void>;
   tags(): string[];
+  /** The tags of one note, inline and in its frontmatter, without the leading #. */
+  noteTags(path: string): string[];
   notes(): string[];
   activeNote(): string | null;
   openNote(path: string): void;

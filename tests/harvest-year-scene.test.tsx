@@ -45,6 +45,7 @@ function mount() {
     tags: () => [],
     notes: () => [],
     activeNote: () => null,
+    noteTags: () => [],
     openNote: vi.fn(),
     openSettings: vi.fn(),
     navigate: vi.fn(),

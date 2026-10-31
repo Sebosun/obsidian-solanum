@@ -78,6 +78,7 @@ const host: SolanumHost = {
   tags: () => ["demo", "study"],
   notes: () => ["Projects/Alpha.md", "Projects/Beta.md", "Inbox.md"],
   activeNote: () => "Projects/Alpha.md",
+  noteTags: () => [],
   assetUrl: (name) => `${location.origin}/assets/${name}`,
   openNote() {},
   openSettings() {},

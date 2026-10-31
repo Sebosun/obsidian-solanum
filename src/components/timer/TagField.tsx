@@ -15,11 +15,19 @@ export function TagField() {
   const listId = useId();
   const inputId = useId();
   const known = [...new Set([...host.tags(), ...sessions.flatMap((session) => session.tags)])];
+  const activeNote = host.activeNote();
+  // Only what the note has that is not already chosen is worth offering.
+  const fromNote = activeNote
+    ? normalizeTags(host.noteTags(activeNote)).filter((tag) => !chosen.includes(tag))
+    : [];
   const available = tagSuggestions(known, chosen, query);
   const items = open ? available : [];
 
   function addTags(tags: string[]) {
     updateDraft({ tags: normalizeTags([...chosen, ...tags]) });
+  }
+  function addFromNote() {
+    addTags(fromNote);
   }
   function commitQuery() {
     if (cleanTag(query)) addTags([query]);
@@ -71,7 +79,14 @@ export function TagField() {
 
   return (
     <div className="solanum-field solanum-combo">
-      <label htmlFor={inputId}>Tags</label>
+      <div className="solanum-field-header">
+        <label htmlFor={inputId}>Tags</label>
+        {fromNote.length > 0 && (
+          <button type="button" className="solanum-subtle" onClick={addFromNote}>
+            Add active note's tags
+          </button>
+        )}
+      </div>
       <div className="solanum-chip-input">
         {chosen.map((tag) => (
           <span className="solanum-chip" key={tag}>

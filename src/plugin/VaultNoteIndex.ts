@@ -1,4 +1,4 @@
-import type { MetadataCache, Vault } from "obsidian";
+import { TFile, type CachedMetadata, type MetadataCache, type Vault } from "obsidian";
 
 /** Cache suggestions between metadata events, rather than scanning every timer tick. */
 export class VaultNoteIndex {
@@ -18,20 +18,17 @@ export class VaultNoteIndex {
   tags(): string[] {
     if (this.tagCache) return this.tagCache;
     const tags = new Set<string>();
-    for (const file of this.vault.getMarkdownFiles()) {
-      const cache = this.metadata.getFileCache(file);
-      for (const tag of cache?.tags ?? []) tags.add(tag.tag.replace(/^#/, ""));
-      const frontmatter = cache?.frontmatter?.tags;
-      for (const tag of Array.isArray(frontmatter)
-        ? frontmatter
-        : typeof frontmatter === "string"
-          ? frontmatter.split(/[,\s]+/)
-          : []) {
-        if (typeof tag === "string" && tag.trim()) tags.add(tag.trim().replace(/^#/, ""));
-      }
-    }
+    for (const file of this.vault.getMarkdownFiles())
+      for (const tag of tagsIn(this.metadata.getFileCache(file))) tags.add(tag);
     this.tagCache = [...tags].sort();
     return this.tagCache;
+  }
+
+  /** The tags of one note, in the order it has them: inline ones first, then its frontmatter's. */
+  tagsOf(path: string): string[] {
+    const file = this.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) return [];
+    return [...tagsIn(this.metadata.getFileCache(file))];
   }
 
   notes(): string[] {
@@ -41,4 +38,19 @@ export class VaultNoteIndex {
       .sort();
     return this.noteCache;
   }
+}
+
+/** Every tag a note's cached metadata holds, inline or in frontmatter, without the leading #. */
+function tagsIn(cache: CachedMetadata | null | undefined): Set<string> {
+  const tags = new Set<string>();
+  for (const tag of cache?.tags ?? []) tags.add(tag.tag.replace(/^#/, ""));
+  const frontmatter: unknown = cache?.frontmatter?.tags;
+  const listed = Array.isArray(frontmatter)
+    ? frontmatter
+    : typeof frontmatter === "string"
+      ? frontmatter.split(/[,\s]+/)
+      : [];
+  for (const tag of listed)
+    if (typeof tag === "string" && tag.trim()) tags.add(tag.trim().replace(/^#/, ""));
+  return tags;
 }
