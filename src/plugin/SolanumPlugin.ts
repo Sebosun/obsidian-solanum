@@ -167,7 +167,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     let leaf = workspace.getLeavesOfType(type)[0];
 
     if (!leaf) {
-      const rightLeaf = workspace.getRightLeaf(false);
+      const rightLeaf = workspace.getRightLeaf(true);
       if (!rightLeaf) return;
 
       await rightLeaf.setViewState({ type, active: true });

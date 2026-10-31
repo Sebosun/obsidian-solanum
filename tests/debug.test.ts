@@ -40,6 +40,39 @@ const options = {
 };
 
 describe("debug controls and seeded history", () => {
+  it("never force-finishes real work even when debug tools are enabled", async () => {
+    const real = fixture(false);
+    const id = await real.timer.start(options);
+    const debug = new TimerService(real.store, {
+      now: () => new Date(2026, 9, 20, 18, 0, 1).getTime(),
+      id: () => "new-edit",
+      debug: true,
+    });
+    await debug.refresh();
+    await expect(debug.debugFinish(id)).rejects.toThrow(/simulated/i);
+    expect(debug.getState().sessions[0].source).toBeUndefined();
+    expect(debug.getState().sessions[0].phase).toBe("focus");
+  });
+
+  it("emits a debug completion notification only after the transition is saved", async () => {
+    const f = fixture();
+    const signals: string[] = [];
+    const timer = new TimerService(f.store, {
+      now: () => new Date(2026, 9, 20, 18).getTime(),
+      id: () => crypto.randomUUID(),
+      debug: true,
+      notify: (phase) => signals.push(phase),
+    });
+    const id = await timer.start(options);
+    await timer.debugFinish(id);
+    expect(signals).toEqual(["focus"]);
+    f.store.append = async () => {
+      throw new Error("read-only vault");
+    };
+    await expect(timer.debugFinish(id)).rejects.toThrow("read-only vault");
+    expect(signals).toEqual(["focus"]);
+  });
+
   it("requires explicit opt-in and disables debug in a normal production build", () => {
     expect(readDebugConfig({}, false)).toEqual({ enabled: false, autoFinishSeconds: 0 });
     expect(

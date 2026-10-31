@@ -1,6 +1,7 @@
 import { isCropId } from "../crops/catalog";
 import { isActive, normalizeTags, selectState } from "./selectors";
 import type { Revision, SessionStore, StartOptions, TimerState } from "./types";
+import { completePhase } from "./transitions";
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
 export class TimerService {
@@ -170,25 +171,16 @@ export class TimerService {
     });
   }
 
-  debugFinish(sessionId: string) {
-    if (!this.env.debug) return Promise.reject(new Error("Debug mode is disabled."));
-    return this.transition(sessionId, (s) => {
+  async debugFinish(sessionId: string) {
+    if (!this.env.debug) throw new Error("Debug mode is disabled.");
+    let phase: "focus" | "break" | null = null;
+    await this.transition(sessionId, (s) => {
       if (s.source !== "debug" || !isActive(s))
         throw new Error("Only simulated debug sessions can be force-finished.");
-      if (s.phase === "focus") {
-        if (s.status === "running") s.intervals[s.intervals.length - 1].end = this.env.now();
-        s.focusEndedAt = this.env.now();
-        s.phase = "break";
-        s.status = s.autoBreak ? "running" : "waiting";
-        s.remainingMs = s.breakMs;
-        s.deadline = s.autoBreak ? this.env.now() + s.breakMs : null;
-      } else {
-        s.phase = "done";
-        s.status = "completed";
-        s.remainingMs = 0;
-        s.deadline = null;
-      }
+      phase = s.phase === "focus" ? "focus" : "break";
+      completePhase(s, this.env.now());
     });
+    if (phase) this.env.notify?.(phase);
   }
 
   resolve(sessionId: string, revisionId: string) {
@@ -234,19 +226,7 @@ export class TimerService {
         const next = this.next(s, deadline);
         // Deterministic expiry revisions deduplicate recovery on multiple devices.
         next.id = `${s.id}-elapsed`;
-        if (phase === "focus") {
-          next.intervals[next.intervals.length - 1].end = deadline;
-          next.focusEndedAt = deadline;
-          next.phase = "break";
-          next.status = s.autoBreak ? "running" : "waiting";
-          next.remainingMs = s.breakMs;
-          next.deadline = s.autoBreak ? deadline + s.breakMs : null;
-        } else {
-          next.phase = "done";
-          next.status = "completed";
-          next.remainingMs = 0;
-          next.deadline = null;
-        }
+        completePhase(next, deadline);
         await this.save(next);
         if (notify && this.env.now() - deadline < 10_000 && phase !== "done")
           this.env.notify?.(phase);

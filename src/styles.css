@@ -213,3 +213,8 @@
 .solanum-day-list summary {
   @apply sol:cursor-pointer;
 }
+@media (hover: none) {
+  .solanum-app .solanum-reveal-controls {
+    @apply sol:opacity-40;
+  }
+}

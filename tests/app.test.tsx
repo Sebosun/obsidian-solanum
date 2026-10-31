@@ -6,6 +6,7 @@ import { TimerService } from "../src/lib/timer/TimerService";
 import type { Revision } from "../src/lib/timer/types";
 import { DEFAULT_SETTINGS } from "../src/lib/settings";
 import type { SolanumHost } from "../src/types/host";
+import { DebugTools } from "../src/lib/debug/DebugTools";
 
 vi.mock("../src/components/crops/CropScene", () => ({
   CropScene: ({ progress }: { progress: number }) => (
@@ -43,7 +44,7 @@ async function revealControls() {
   fireEvent.click(await screen.findByRole("button", { name: "Show timer controls" }));
 }
 
-function fixture() {
+function fixture(debug = false) {
   let now = new Date(2026, 9, 31, 12).getTime();
   let sequence = 0;
   const files = new Map<string, Revision>();
@@ -53,7 +54,7 @@ function fixture() {
       files.set(r.id, structuredClone(r));
     },
   };
-  const env = { now: () => now, id: () => `ui-${++sequence}` };
+  const env = { now: () => now, id: () => `ui-${++sequence}`, debug };
   const host: SolanumHost = {
     timer: new TimerService(store, env),
     settings: { ...DEFAULT_SETTINGS },
@@ -69,6 +70,13 @@ function fixture() {
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
   };
+  if (debug)
+    host.debug = new DebugTools(
+      host.timer,
+      store,
+      { enabled: true, autoFinishSeconds: 0 },
+      env.now,
+    );
   return {
     host,
     store,
@@ -80,6 +88,53 @@ function fixture() {
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
+  it("seeds demo history and finishes an active simulated crop from the debug panel", async () => {
+    const f = fixture(true);
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByText("Debug tools · simulated data"));
+    fireEvent.change(screen.getByLabelText("Seed month"), { target: { value: "2026-10" } });
+    fireEvent.click(screen.getByRole("button", { name: "Seed demo harvests" }));
+    await waitFor(() => expect(f.host.timer.getState().sessions.length).toBeGreaterThan(10));
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await revealControls();
+    fireEvent.click(screen.getByText("Debug tools · simulated data"));
+    fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
+    await screen.findByRole("button", { name: "Start break" });
+    expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe("break");
+  });
+
+  it("does not hide reconciliation controls when independent offline crops are active", async () => {
+    const f = fixture();
+    await f.host.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: [],
+      notePath: null,
+    });
+    const original = f.host.timer.getState().sessions[0];
+    await f.store.append({
+      ...original,
+      id: "offline-root",
+      sessionId: "offline-root",
+      crop: "corn",
+    });
+    await f.host.timer.refresh();
+    render(<App host={f.host} screen="timer" />);
+    expect(screen.getByLabelText("Active crop")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Show timer controls" })).toBeNull();
+    fireEvent.change(screen.getByLabelText("Active crop"), { target: { value: "offline-root" } });
+    fireEvent.click(screen.getByRole("button", { name: "End focus" }));
+    await waitFor(() =>
+      expect(
+        f.host.timer.getState().sessions.find((s) => s.sessionId === "offline-root")?.status,
+      ).toBe("cancelled"),
+    );
+    expect(
+      f.host.timer.getState().sessions.find((s) => s.sessionId === original.sessionId)?.status,
+    ).toBe("running");
+  });
+
   it("persists crop choice and hides the normal interface while focusing", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);

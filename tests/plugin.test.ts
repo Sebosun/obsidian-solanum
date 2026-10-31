@@ -75,6 +75,22 @@ function vaultFixture() {
 }
 
 describe("Obsidian lifecycle integration", () => {
+  it("opens its own sidebar leaf without replacing a user's existing view", async () => {
+    vi.useFakeTimers();
+    const { app } = vaultFixture();
+    const setViewState = vi.fn(async () => {});
+    const getRightLeaf = vi.fn(() => ({ setViewState }));
+    app.workspace.getRightLeaf = getRightLeaf as unknown as typeof app.workspace.getRightLeaf;
+    app.workspace.revealLeaf = vi.fn(async () => {});
+    const plugin = new SolanumPlugin(app, {} as PluginManifest);
+    await plugin.onload();
+    plugin.navigate("harvest");
+    await Promise.resolve();
+    expect(getRightLeaf).toHaveBeenCalledWith(true);
+    expect(setViewState).toHaveBeenCalledWith({ type: "solanum-harvest", active: true });
+    plugin.onunload();
+  });
+
   it("caches tag suggestions instead of scanning the vault each countdown render", async () => {
     vi.useFakeTimers();
     const { app } = vaultFixture();
