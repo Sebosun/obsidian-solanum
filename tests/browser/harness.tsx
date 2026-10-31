@@ -5,9 +5,31 @@ import { seedMonth } from "@/lib/debug/seeder";
 import { DEFAULT_SETTINGS, readSettings } from "@/lib/settings";
 import type { SolanumHost, Screen } from "@/types/host";
 
+const parameters = new URLSearchParams(window.location.search);
 const month = new Date(2026, 9, 1);
 const history = seedMonth(month, new Date(2026, 9, 31, 18).getTime());
 const files = new Map(history.map((session) => [session.id, session]));
+// ?elapsed=<minutes> opens the timer already that far into a 25 minute focus.
+const elapsedMinutes = Number(parameters.get("elapsed"));
+if (elapsedMinutes > 0) {
+  const startedAt = Date.now() - elapsedMinutes * 60_000;
+  files.set("harness-running", {
+    ...history[0],
+    id: "harness-running",
+    sessionId: "harness-running",
+    source: undefined,
+    startedAt,
+    updatedAt: startedAt,
+    durationMs: 25 * 60_000,
+    phase: "focus",
+    status: "running",
+    deadline: startedAt + 25 * 60_000,
+    remainingMs: 25 * 60_000,
+    focusEndedAt: null,
+    intervals: [{ start: startedAt, end: null }],
+    crop: "tomato",
+  });
+}
 const timer = new TimerService(
   {
     readAll: async () => [...files.values()],
@@ -17,7 +39,6 @@ const timer = new TimerService(
   },
   { now: Date.now, id: () => crypto.randomUUID() },
 );
-const parameters = new URLSearchParams(window.location.search);
 let screen: Screen = "harvest";
 if (parameters.get("view") === "timer") screen = "timer";
 const host: SolanumHost = {

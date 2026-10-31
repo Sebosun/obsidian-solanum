@@ -3,12 +3,13 @@ import { Canvas } from "@react-three/fiber";
 import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
+import { sunState } from "@/lib/scene/sunClock";
 import { SeasonScenery } from "@/components/scene/SeasonScenery";
 import { CropSwap } from "@/components/scene/CropSwap";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
-import { SceneCountdown } from "@/components/scene/SceneCountdown";
+import { SunClock } from "@/components/scene/SunClock";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useSceneColor } from "@/hooks/useSceneColor";
 import { formatTime } from "@/lib/time";
@@ -18,6 +19,7 @@ import { TimerCamera } from "@/components/scene/TimerCamera";
 interface SeasonStyle extends CSSProperties {
   "--season-glow": string;
   "--season-sun": string;
+  "--dusk": number;
 }
 
 interface CropSceneProps {
@@ -26,6 +28,8 @@ interface CropSceneProps {
   running: boolean;
   immersive?: boolean;
   remaining: number;
+  /** How far through the running phase the clock is, from 0 to 1: where the sun sits. */
+  clockProgress: number;
   season: SeasonId;
 }
 
@@ -35,6 +39,7 @@ export function CropScene({
   running,
   immersive = false,
   remaining,
+  clockProgress,
   season,
 }: CropSceneProps) {
   const container = useRef<HTMLDivElement>(null);
@@ -51,9 +56,11 @@ export function CropScene({
   // Weather keeps drifting while the scene is on screen, even before a crop is planted.
   const animate = visible && !reduced;
   const theme = SEASON_THEMES[season];
+  const sun = sunState(clockProgress);
   const seasonStyle: SeasonStyle = {
     "--season-glow": theme.css.glow,
     "--season-sun": theme.css.sun,
+    "--dusk": sun.dusk,
   };
   const fallback = <CropFallback crop={crop} progress={progress} remaining={remaining} />;
   const classes = ["solanum-scene", `is-${season}`];
@@ -71,8 +78,8 @@ export function CropScene({
             aria-label="Growing crop"
           >
             <TimerCamera />
-            <SceneCountdown remaining={remaining} color={color} />
-            <SeasonScenery season={season} animate={animate} />
+            <SunClock progress={clockProgress} remaining={remaining} color={color} />
+            <SeasonScenery season={season} animate={animate} daylight={sun} />
             <CompletionFlourish reduced={reduced}>
               <CropSwap crop={crop} reduced={reduced}>
                 {(planted) => (

@@ -1,22 +1,52 @@
 export const TIMER_SCENE = {
   direction: [3, 2.4, 4],
+  /** Centre of the plot and crop, which the camera looks at before the clock is added to the frame. */
+  target: [0, 0.25, 0],
   bounds: { min: [-1.05, -0.85, -1.05], max: [1.05, 1.35, 1.05] },
-  padding: 1.16,
+  padding: 1.08,
   cameraDistance: 10,
   near: 0.1,
   far: 100,
-  clockReservedPixels: 90,
 } as const;
 
+/** Countdown text: size is in world units, set by the sun clock. */
 export const CLOCK_TYPOGRAPHY = {
-  minimumPixels: 28,
-  maximumPixels: 42,
-  widthRatio: 0.13,
-  baselinePixels: 42,
-  curveSegments: 8,
   depth: 0,
-  renderPriority: 1,
-  cameraPosition: [0, 0, 100] as [number, number, number],
+  curveSegments: 8,
+} as const;
+
+/**
+ * The clock that hangs behind the crop: a sun crossing an arc, with the time as large faint digits.
+ * Lengths are world units; the board is measured in the camera's own screen plane.
+ */
+export const SUN_CLOCK = {
+  arcRadiusX: 3.8,
+  arcRadiusY: 3.2,
+  /** Where the arc's base line sits, above the plot's centre. */
+  baseY: -0.3,
+  /** How far behind the plot, along the line of sight. Only the order in front matters. */
+  depth: 3.5,
+  /** Everything the clock draws, relative to the plot's centre on screen, for framing the camera. */
+  boardHalfWidth: 4.3,
+  boardBottom: -0.5,
+  boardTop: 3.9,
+  digitSize: 1.35,
+  digitY: 1.5,
+  arcDots: 40,
+  /** Layers of the sun disc: radius and opacity at full brightness. */
+  sunLayers: [
+    { radius: 0.34, opacity: 0.95 },
+    { radius: 0.62, opacity: 0.22 },
+    { radius: 0.95, opacity: 0.09 },
+  ],
+  /** What is left of the sun's strength as time runs out. */
+  endBrightness: 0.08,
+  endScale: 0.72,
+  endLight: 0.12,
+  endAmbient: 0.42,
+  /** Colour of the sun at the start, halfway and at the end. */
+  colors: [0xffe9a8, 0xffb86b, 0xff8a3d],
+  digitOpacity: { start: 0.34, end: 0.22 },
 } as const;
 
 export const HARVEST_SCENE = {

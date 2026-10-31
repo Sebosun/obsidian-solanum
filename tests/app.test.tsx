@@ -17,12 +17,18 @@ vi.mock("@/components/crops/CropScene", () => ({
     progress,
     remaining,
     season,
+    clockProgress,
   }: {
     progress: number;
     remaining: number;
     season: string;
+    clockProgress: number;
   }) => (
-    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} data-season={season}>
+    <figure
+      aria-label={`Crop growth ${Math.round(progress * 100)}%`}
+      data-season={season}
+      data-clock={clockProgress.toFixed(3)}
+    >
       <span role="timer">{formatTime(remaining)}</span>
     </figure>
   ),
@@ -241,6 +247,27 @@ describe("sidebar workflows backed by the real timer service", () => {
     const tags = screen.getByRole("combobox", { name: "Tags" });
     expect(start.compareDocumentPosition(presets) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(start.compareDocumentPosition(tags) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("moves the sun with the running phase: dawn in setup, across the focus, again for the break", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const clock = () => Number(screen.getByRole("figure").getAttribute("data-clock"));
+    expect(clock()).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    f.advance(10 * 60_000);
+    await act(() => f.host.timer.tick());
+    expect(clock()).toBeCloseTo(0.4, 2);
+    f.advance(15 * 60_000);
+    await act(() => f.host.timer.tick());
+    // Focus is over and the break has not started: the sun is back at dawn.
+    expect(clock()).toBe(0);
+    fireEvent.click(await screen.findByRole("button", { name: "Start break" }));
+    await waitFor(() => expect(f.host.timer.getState().sessions[0].status).toBe("running"));
+    f.advance(2 * 60_000);
+    await act(() => f.host.timer.tick());
+    expect(clock()).toBeCloseTo(0.4, 2); // 2 of the 5 break minutes
   });
 
   it("returns to the immersive view from the revealed controls, by button or Escape", async () => {

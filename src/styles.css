@@ -39,10 +39,11 @@
 }
 .solanum-scene {
   @apply sol:relative sol:h-[300px] sol:rounded-xl sol:overflow-hidden;
+  /* The sky darkens as the sun sets: --dusk runs from 0 at the start of a phase to 1 at its end. */
   background:
     radial-gradient(circle at 82% 10%, var(--season-sun, transparent), transparent 46%),
     radial-gradient(ellipse at 50% 65%, var(--season-glow, #8eaf7f29), transparent 70%),
-    var(--background-secondary);
+    color-mix(in srgb, var(--background-secondary) calc(100% - var(--dusk, 0) * 55%), #0b0b08);
 }
 .solanum-scene canvas {
   @apply sol:touch-pan-y;
@@ -318,7 +319,7 @@
   background:
     radial-gradient(circle at 82% 10%, var(--season-sun, transparent), transparent 46%),
     radial-gradient(ellipse at 50% 60%, var(--season-glow, transparent), transparent 70%),
-    var(--background-primary);
+    color-mix(in srgb, var(--background-primary) calc(100% - var(--dusk, 0) * 55%), #0b0b08);
 }
 .solanum-toolbar-actions {
   @apply sol:flex sol:items-center sol:gap-0.5;
