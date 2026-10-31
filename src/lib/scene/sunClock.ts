@@ -3,6 +3,8 @@ import { Object3D, Vector3 } from "three";
 import { SUN_CLOCK, TIMER_SCENE } from "@/lib/scene/constants";
 
 export interface SunState {
+  /** How far through the phase this state is, clamped to 0 to 1. */
+  progress: number;
   /** Position on the arc, in the clock's own plane. */
   x: number;
   y: number;
@@ -49,6 +51,7 @@ export function sunState(progress: number): SunState {
   const y = Math.sin(angle) * SUN_CLOCK.arcRadiusY;
   const color = sunColor(p);
   return {
+    progress: p,
     x,
     y,
     brightness: lerp(1, SUN_CLOCK.endBrightness, p ** BRIGHTNESS_CURVE),

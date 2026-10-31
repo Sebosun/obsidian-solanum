@@ -24,6 +24,7 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
   let progress = 0;
   let crop = draft.crop;
   let clockProgress = 0;
+  let clockRate = 0;
   if (session) {
     remaining = services.timer.remaining(session);
     crop = session.crop;
@@ -33,6 +34,8 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
     if (session.phase === "focus") clockProgress = progress;
     else if (session.phase === "break" && session.status !== "waiting")
       clockProgress = 1 - remaining / session.breakMs;
+    const phaseMs = session.phase === "focus" ? session.durationMs : session.breakMs;
+    if (session.status === "running" && session.phase !== "done") clockRate = 1000 / phaseMs;
   }
   function changeSession(event: ChangeEvent<HTMLSelectElement>) {
     selectSession(event.target.value);
@@ -64,6 +67,7 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
         remaining={remaining}
         immersive={immersive}
         clockProgress={Math.max(0, Math.min(1, clockProgress))}
+        clockRate={clockRate}
         season={resolveSeason(seasonChoice, new Date())}
       />
       {!immersive && controls}

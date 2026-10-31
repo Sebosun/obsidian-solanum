@@ -18,16 +18,19 @@ vi.mock("@/components/crops/CropScene", () => ({
     remaining,
     season,
     clockProgress,
+    clockRate,
   }: {
     progress: number;
     remaining: number;
     season: string;
     clockProgress: number;
+    clockRate: number;
   }) => (
     <figure
       aria-label={`Crop growth ${Math.round(progress * 100)}%`}
       data-season={season}
       data-clock={clockProgress.toFixed(3)}
+      data-rate={clockRate.toFixed(5)}
     >
       <span role="timer">{formatTime(remaining)}</span>
     </figure>
@@ -268,6 +271,20 @@ describe("sidebar workflows backed by the real timer service", () => {
     f.advance(2 * 60_000);
     await act(() => f.host.timer.tick());
     expect(clock()).toBeCloseTo(0.4, 2); // 2 of the 5 break minutes
+  });
+
+  it("keeps the sun moving only while a phase is actually running", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const rate = () => Number(screen.getByRole("figure").getAttribute("data-rate"));
+    expect(rate()).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(rate()).toBeCloseTo(1 / (25 * 60), 5); // across the 25 minute focus
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+    await screen.findByRole("button", { name: "Resume" });
+    expect(rate()).toBe(0);
   });
 
   it("returns to the immersive view from the revealed controls, by button or Escape", async () => {

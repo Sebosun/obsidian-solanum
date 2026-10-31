@@ -37,7 +37,14 @@
 .solanum-tabs button[aria-current="page"] {
   @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
 }
+/* Registered, so the sky can ease between the once-a-second updates instead of stepping. */
+@property --dusk {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
 .solanum-scene {
+  transition: --dusk 1.1s linear;
   @apply sol:relative sol:h-[300px] sol:rounded-xl sol:overflow-hidden;
   /* The sky darkens as the sun sets: --dusk runs from 0 at the start of a phase to 1 at its end. */
   background:

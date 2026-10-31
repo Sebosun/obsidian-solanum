@@ -4,12 +4,11 @@ import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { sunState } from "@/lib/scene/sunClock";
-import { SeasonScenery } from "@/components/scene/SeasonScenery";
 import { CropSwap } from "@/components/scene/CropSwap";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
-import { SunClock } from "@/components/scene/SunClock";
+import { TimerSky } from "@/components/scene/TimerSky";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useSceneColor } from "@/hooks/useSceneColor";
 import { formatTime } from "@/lib/time";
@@ -30,6 +29,8 @@ interface CropSceneProps {
   remaining: number;
   /** How far through the running phase the clock is, from 0 to 1: where the sun sits. */
   clockProgress: number;
+  /** How fast the clock advances, per second: 0 while paused or waiting. */
+  clockRate: number;
   season: SeasonId;
 }
 
@@ -40,6 +41,7 @@ export function CropScene({
   immersive = false,
   remaining,
   clockProgress,
+  clockRate,
   season,
 }: CropSceneProps) {
   const container = useRef<HTMLDivElement>(null);
@@ -78,8 +80,15 @@ export function CropScene({
             aria-label="Growing crop"
           >
             <TimerCamera />
-            <SunClock progress={clockProgress} remaining={remaining} color={color} />
-            <SeasonScenery season={season} animate={animate} daylight={sun} />
+            <TimerSky
+              season={season}
+              animate={animate}
+              reduced={reduced}
+              progress={clockProgress}
+              rate={clockRate}
+              remaining={remaining}
+              color={color}
+            />
             <CompletionFlourish reduced={reduced}>
               <CropSwap crop={crop} reduced={reduced}>
                 {(planted) => (

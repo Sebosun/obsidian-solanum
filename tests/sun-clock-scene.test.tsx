@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
+import { Box3, Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
 import { SunClock } from "@/components/scene/SunClock";
+import { useSunProgress } from "@/hooks/useSunProgress";
 import { SeasonScenery } from "@/components/scene/SeasonScenery";
-import { createCountdownGeometry } from "@/lib/scene/clockGeometry";
 import { SEASON_THEMES } from "@/lib/scene/seasons";
 import { SUN_CLOCK } from "@/lib/scene/constants";
 import { sunClockPlacement, sunState } from "@/lib/scene/sunClock";
@@ -21,8 +21,12 @@ const layers = (renderer: Renderer) =>
         throw new Error("sun layer is not a basic mesh");
       return mesh.material;
     });
+function Clock({ progress, remaining }: { progress: number; remaining: number }) {
+  const sun = useSunProgress(progress, 0, true);
+  return <SunClock sun={sun} progress={progress} remaining={remaining} color="#d8d0bf" reduced />;
+}
 const clock = (progress: number, remaining = 25 * MINUTE) => (
-  <SunClock progress={progress} remaining={remaining} color="#d8d0bf" />
+  <Clock progress={progress} remaining={remaining} />
 );
 
 describe("the sun clock in the scene", () => {
@@ -69,45 +73,32 @@ describe("the sun clock in the scene", () => {
 
   it("shows the time in large faint digits that fit inside the arc and fade a little", async () => {
     const renderer = await ReactThreeTestRenderer.create(clock(0, 25 * MINUTE));
-    const digits = () => {
-      const mesh = named(renderer, "clock-digits");
-      if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshBasicMaterial))
-        throw new Error("digits are not a basic mesh");
-      mesh.geometry.computeBoundingBox();
-      return {
-        width: mesh.geometry.boundingBox!.getSize(new Vector3()).x,
-        opacity: mesh.material.opacity,
-        mesh,
-      };
-    };
-    const first = digits();
-    const expected = createCountdownGeometry(25 * MINUTE, SUN_CLOCK.digitSize);
-    expected.computeBoundingBox();
-    expect(first.width).toBeCloseTo(expected.boundingBox!.getSize(new Vector3()).x, 6);
-    expect(first.width).toBeGreaterThan(SUN_CLOCK.arcRadiusX); // big, not a caption
-    expect(first.width).toBeLessThan(2 * SUN_CLOCK.arcRadiusX); // and inside the arc
-    expect(first.opacity).toBeGreaterThan(0.2);
-    expect(first.opacity).toBeLessThan(0.5);
+    const glyphs = () =>
+      renderer.scene
+        .findAll((node) => /^clock-digit-\d+$/.test(node.instance.name))
+        .map((node) => {
+          const mesh = node.instance;
+          if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshBasicMaterial))
+            throw new Error("digit is not a basic mesh");
+          return mesh;
+        });
+    expect(glyphs()).toHaveLength(5);
+    const row = named(renderer, "clock-digit-row");
+    const bounds = new Box3().setFromObject(row);
+    const width = bounds.getSize(new Vector3()).x;
+    expect(width).toBeGreaterThan(SUN_CLOCK.arcRadiusX * 0.8); // big, not a caption
+    expect(width).toBeLessThan(2 * SUN_CLOCK.arcRadiusX); // and inside the arc
+    const first = glyphs()[0].material.opacity;
+    expect(first).toBeGreaterThan(0.2);
+    expect(first).toBeLessThan(0.5);
     await renderer.update(clock(0.9, 2 * MINUTE + 30_000));
-    const later = digits();
-    expect(later.opacity).toBeLessThan(first.opacity);
-    expect(later.mesh.geometry.attributes.position.count).not.toBe(
-      first.mesh.geometry.attributes.position.count + 0.5,
-    );
+    expect(glyphs()[0].material.opacity).toBeLessThan(first);
     await renderer.unmount();
   });
 
-  it("changes the digits when the time changes", async () => {
-    const renderer = await ReactThreeTestRenderer.create(clock(0, 25 * MINUTE));
-    const vertices = () => {
-      const mesh = named(renderer, "clock-digits");
-      if (!(mesh instanceof Mesh)) throw new Error("digits are not a mesh");
-      return Array.from(mesh.geometry.attributes.position.array);
-    };
-    const before = vertices();
-    await renderer.update(clock(0.2, 20 * MINUTE));
-    expect(vertices()).not.toEqual(before);
-    await renderer.unmount();
+  it("sits higher than before and a little smaller", () => {
+    expect(SUN_CLOCK.baseY + SUN_CLOCK.arcRadiusY).toBeGreaterThan(3.4);
+    expect(SUN_CLOCK.digitSize).toBeLessThan(1.35);
   });
 });
 

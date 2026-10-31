@@ -21,17 +21,17 @@ export const CLOCK_TYPOGRAPHY = {
  */
 export const SUN_CLOCK = {
   arcRadiusX: 3.8,
-  arcRadiusY: 3.2,
+  arcRadiusY: 3.6,
   /** Where the arc's base line sits, above the plot's centre. */
-  baseY: -0.3,
+  baseY: 0.5,
   /** How far behind the plot, along the line of sight. Only the order in front matters. */
   depth: 3.5,
   /** Everything the clock draws, relative to the plot's centre on screen, for framing the camera. */
   boardHalfWidth: 4.3,
   boardBottom: -0.5,
-  boardTop: 3.9,
-  digitSize: 1.35,
-  digitY: 1.5,
+  boardTop: 4.8,
+  digitSize: 1.1,
+  digitY: 1.7,
   arcDots: 40,
   /** Layers of the sun disc: radius and opacity at full brightness. */
   sunLayers: [
@@ -47,6 +47,10 @@ export const SUN_CLOCK = {
   /** Colour of the sun at the start, halfway and at the end. */
   colors: [0xffe9a8, 0xffb86b, 0xff8a3d],
   digitOpacity: { start: 0.34, end: 0.22 },
+  /** How quickly the drawn sun catches up with where the clock says it should be, per second. */
+  smoothing: 6,
+  /** A digit that changes rolls out downwards and the new one drops in from above. */
+  digitRoll: { seconds: 0.45, travel: 0.55 },
 } as const;
 
 export const HARVEST_SCENE = {
