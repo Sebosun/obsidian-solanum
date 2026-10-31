@@ -1,7 +1,7 @@
 import { FontLoader } from "three/addons/loaders/FontLoader.js";
 import { TextGeometry } from "three/addons/geometries/TextGeometry.js";
 import { Vector3 } from "three";
-import data from "@assets/fonts/inter-digits.json";
+import data from "@assets/fonts/bricolage-grotesque-digits.json";
 import { formatTime } from "@/lib/time";
 import { CLOCK_TYPOGRAPHY } from "@/lib/scene/constants";
 
