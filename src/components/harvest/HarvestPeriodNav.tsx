@@ -5,6 +5,8 @@ interface HarvestPeriodNavProps {
   minutes: number;
   onPrevious(): void;
   onNext(): void;
+  /** Present only while another period than the current one is showing. */
+  onCurrent?: () => void;
 }
 
 export function HarvestPeriodNav({
@@ -13,6 +15,7 @@ export function HarvestPeriodNav({
   minutes,
   onPrevious,
   onNext,
+  onCurrent,
 }: HarvestPeriodNavProps) {
   return (
     <>
@@ -27,6 +30,14 @@ export function HarvestPeriodNav({
       </div>
       <p className="solanum-month-total sol:text-center sol:text-[11px] sol:text-(--text-muted) sol:mt-0 sol:mb-3.5 sol:tabular-nums">
         {Math.round(minutes)} min this {unit}
+        {onCurrent && (
+          <>
+            {" · "}
+            <button className="solanum-subtle" onClick={onCurrent}>
+              Back to this {unit}
+            </button>
+          </>
+        )}
       </p>
     </>
   );

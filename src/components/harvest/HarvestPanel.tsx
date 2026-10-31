@@ -31,7 +31,8 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
     [history, conflicts],
   );
   const [view, setView] = useState<HarvestView>("month");
-  const [month, setMonth] = useState(initialMonth ?? new Date());
+  const [today] = useState(() => new Date());
+  const [month, setMonth] = useState(initialMonth ?? today);
   const [tag, setTag] = useState("");
   const [notePath, setNotePath] = useState("");
   const filter = useMemo(() => ({ tag, notePath }), [tag, notePath]);
@@ -60,6 +61,9 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   }
   function next() {
     step(1);
+  }
+  function backToToday() {
+    setMonth(new Date(today.getFullYear(), today.getMonth(), 1));
   }
   function openMonth(index: number) {
     setMonth(new Date(year, index, 1));
@@ -111,6 +115,9 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
       </>
     );
   }
+  const isCurrent =
+    month.getFullYear() === today.getFullYear() &&
+    (view === "year" || month.getMonth() === today.getMonth());
   const title =
     view === "year"
       ? String(year)
@@ -125,6 +132,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         minutes={total}
         onPrevious={previous}
         onNext={next}
+        onCurrent={isCurrent ? undefined : backToToday}
       />
       <HarvestFilters
         tags={tags}

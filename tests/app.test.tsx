@@ -626,6 +626,35 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
     });
 
+    it("offers a way back to the current year or month from any other one", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date(2026, 9, 15, 12));
+      try {
+        const f = await plantedFixture();
+        render(<App host={f.host} screen="harvest" />);
+        const back = () => screen.queryByRole("button", { name: /Back to this/ });
+        expect(back()).toBeNull(); // already on the current month
+        fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+        fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+        expect(screen.getByText("No harvests yet")).toBeTruthy();
+        fireEvent.click(back()!);
+        expect(screen.getByRole("heading", { name: /October 2026/ })).toBeTruthy();
+        expect(back()).toBeNull();
+
+        fireEvent.click(screen.getByRole("button", { name: "Year" }));
+        expect(back()).toBeNull();
+        fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
+        fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
+        expect(screen.getByRole("heading", { name: "2024" })).toBeTruthy();
+        expect(monthButtons()).toHaveLength(12);
+        fireEvent.click(back()!);
+        expect(screen.getByRole("heading", { name: "2026" })).toBeTruthy();
+        expect(back()).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("applies the tag filter to the year, with a way back when it matches nothing", async () => {
       const f = await plantedFixture();
       render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
