@@ -231,6 +231,27 @@
 .solanum-day-list summary {
   @apply sol:cursor-pointer;
 }
+.solanum-empty-harvest {
+  @apply sol:flex sol:flex-col sol:items-center sol:justify-center sol:min-h-72 sol:text-(--text-muted) sol:gap-2;
+}
+.solanum-empty-harvest p {
+  @apply sol:text-sm sol:my-2;
+}
+.solanum-empty-harvest button {
+  @apply sol:bg-transparent sol:shadow-none sol:text-xs sol:text-(--text-accent);
+}
+.solanum-scene-loading {
+  @apply sol:flex sol:h-full sol:items-center sol:justify-center;
+}
+.solanum-spinner {
+  @apply sol:block sol:w-5 sol:h-5 sol:rounded-full sol:border-2 sol:border-solid sol:border-(--background-modifier-border) sol:border-t-(--text-muted);
+  animation: solanum-loading 0.9s linear infinite;
+}
+@keyframes solanum-loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @media (hover: none) {
   .solanum-app .solanum-reveal-controls {
     @apply sol:opacity-40;

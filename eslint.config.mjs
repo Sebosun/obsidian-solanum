@@ -55,7 +55,9 @@ const componentFiles = {
 };
 
 export default tseslint.config(
-  { ignores: ["node_modules/**", "main.js", "styles.css", "assets/**"] },
+  {
+    ignores: ["node_modules/**", "main.js", "styles.css", "assets/**", ".agents/**", ".claude/**"],
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   { languageOptions: { globals: { ...globals.browser, ...globals.node } } },

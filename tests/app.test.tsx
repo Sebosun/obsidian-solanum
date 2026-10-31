@@ -92,6 +92,14 @@ function fixture(debug = false) {
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
+  it("shows an actionable empty month instead of mounting a loading farm", () => {
+    const f = fixture();
+    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+    expect(screen.getByText("No harvests yet")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "2026-10-31" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    expect(f.host.navigate).toHaveBeenCalledWith("timer");
+  });
   it("seeds demo history and finishes an active simulated crop from the debug panel", async () => {
     const f = fixture(true);
     render(<App host={f.host} screen="timer" />);
@@ -239,6 +247,9 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.change(screen.getByLabelText("Filter by tag"), { target: { value: "work/client" } });
     expect(screen.queryByRole("button", { name: "Project.md" })).toBeNull();
     expect(screen.getByText("0 min this month")).toBeTruthy();
+    expect(screen.getByText("No matching harvests")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
   });
 
   it("previews crop details on hover and pins them on click", async () => {

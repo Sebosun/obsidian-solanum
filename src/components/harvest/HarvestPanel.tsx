@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import { useAppStore, useServices } from "../../state/hooks";
 import { buildHarvestMonth } from "../../lib/harvest/model";
 import { HarvestScene } from "./HarvestScene";
 import { HarvestDetails } from "./HarvestDetails";
 import { HarvestDayList } from "./HarvestDayList";
+import { HarvestEmpty } from "./HarvestEmpty";
 
 interface HarvestPanelProps {
   initialMonth?: Date;
 }
 
 export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
-  const host = useServices();
+  const services = useServices();
   const history = useAppStore((state) => state.sessions);
   const conflicts = useAppStore((state) => state.conflicts);
   const sessions = history.filter(
@@ -24,66 +25,75 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   const days = buildHarvestMonth(sessions, month, { tag, notePath });
   const activeKey = hoverKey ?? selectedKey;
   const details = days.find((day) => day.key === activeKey);
-  const tags = [...new Set([...host.tags(), ...sessions.flatMap((s) => s.tags)])].sort();
-  const changeMonth = (delta: number) => {
+  const total = days.reduce((sum, day) => sum + day.minutes, 0);
+  const tags = [
+    ...new Set([...services.tags(), ...sessions.flatMap((session) => session.tags)]),
+  ].sort();
+  const notes = [
+    ...new Set(sessions.flatMap((session) => (session.notePath ? [session.notePath] : []))),
+  ].sort();
+
+  function changeMonth(delta: number) {
     setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
     setSelected(null);
     setHover(null);
-  };
+  }
+  function previousMonth() {
+    changeMonth(-1);
+  }
+  function nextMonth() {
+    changeMonth(1);
+  }
+  function changeTag(event: ChangeEvent<HTMLSelectElement>) {
+    setTag(event.target.value);
+  }
+  function changeNote(event: ChangeEvent<HTMLSelectElement>) {
+    setNotePath(event.target.value);
+  }
+  function clearFilters() {
+    setTag("");
+    setNotePath("");
+  }
+
+  let scene = (
+    <HarvestScene days={days} activeKey={activeKey} onHover={setHover} onSelect={setSelected} />
+  );
+  if (total === 0)
+    scene = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
+
   return (
     <section className="solanum-harvest">
       <div className="solanum-month-nav sol:flex sol:items-center sol:justify-between sol:gap-1.5">
-        <button aria-label="Previous month" onClick={() => changeMonth(-1)}>
+        <button aria-label="Previous month" onClick={previousMonth}>
           ‹
         </button>
         <h2>{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2>
-        <button aria-label="Next month" onClick={() => changeMonth(1)}>
+        <button aria-label="Next month" onClick={nextMonth}>
           ›
         </button>
       </div>
       <p className="solanum-month-total sol:text-center sol:text-xs sol:text-(--text-muted) sol:mt-0 sol:mb-5">
-        {Math.round(days.reduce((sum, day) => sum + day.minutes, 0))} min this month
+        {Math.round(total)} min this month
       </p>
       <div className="solanum-filters sol:flex sol:gap-[7px] sol:mb-4">
-        <select aria-label="Filter by tag" value={tag} onChange={(e) => setTag(e.target.value)}>
+        <select aria-label="Filter by tag" value={tag} onChange={changeTag}>
           <option value="">All tags</option>
-          {tags.map((t) => (
-            <option key={t} value={t}>
-              #{t}
+          {tags.map((value) => (
+            <option key={value} value={value}>
+              #{value}
             </option>
           ))}
         </select>
-        <select
-          aria-label="Filter by note"
-          value={notePath}
-          onChange={(e) => setNotePath(e.target.value)}
-        >
+        <select aria-label="Filter by note" value={notePath} onChange={changeNote}>
           <option value="">All notes</option>
-          {[...new Set(sessions.map((s) => s.notePath).filter((p): p is string => !!p))]
-            .sort()
-            .map((p) => (
-              <option key={p}>{p}</option>
-            ))}
+          {notes.map((value) => (
+            <option key={value}>{value}</option>
+          ))}
         </select>
       </div>
-      <HarvestScene
-        days={days}
-        activeKey={activeKey}
-        assetUrl={host.assetUrl}
-        onHover={setHover}
-        onSelect={setSelected}
-      />
-      <p className="solanum-hint">
-        Hover to preview; click or tap to pin a day. More focus grows a fuller plot (25 min per
-        crop-equivalent). Up to 9 models per day; all sessions remain in details. Days use this
-        device’s time zone.
-      </p>
+      {scene}
       <HarvestDayList days={days} selectedKey={selectedKey} onSelect={setSelected} />
-      {details ? (
-        <HarvestDetails day={details} />
-      ) : (
-        <p className="solanum-hint">Choose a plot to explore your harvest.</p>
-      )}
+      {details && <HarvestDetails day={details} />}
     </section>
   );
 }

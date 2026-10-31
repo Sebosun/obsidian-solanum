@@ -4,3 +4,6 @@ main.js
 package-lock.json
 assets
 .env*
+/.agents
+/.claude
+/skills-lock.json
