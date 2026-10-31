@@ -63,3 +63,8 @@
 .solanum-focus-mode .solanum-scene.is-immersive { @apply sol:h-full sol:min-h-[400px] sol:rounded-none; background: var(--background-primary); }
 .solanum-app .solanum-reveal-controls { @apply sol:absolute sol:right-3 sol:bottom-3 sol:opacity-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted); }
 .solanum-focus-mode:hover .solanum-reveal-controls, .solanum-app .solanum-reveal-controls:focus-visible { @apply sol:opacity-100; }
+.solanum-harvest-scene { @apply sol:h-[380px] sol:rounded-2xl sol:overflow-hidden sol:bg-(--background-secondary); }
+.solanum-plot-date { @apply sol:text-[10px] sol:text-[#e7dec6] sol:whitespace-nowrap sol:select-none; text-shadow: 0 1px 3px #000; }
+.solanum-plot-date small { @apply sol:text-[8px]; }
+.solanum-day-list { @apply sol:mt-3 sol:text-[11px] sol:text-(--text-muted); }
+.solanum-day-list summary { @apply sol:cursor-pointer; }

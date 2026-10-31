@@ -2,7 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { CropScene } from "./CropScene";
 import { PRESETS, type SolanumHost } from "./host";
 import { isActive, normalizeTags, type Revision } from "./timer";
-import { dailyHarvest, monthDays } from "./harvest";
+import { HarvestPanel } from "./components/harvest/HarvestPanel";
 import { DebugPanel } from "./components/debug/DebugPanel";
 import { FocusMode } from "./components/timer/FocusMode";
 import { CropPicker } from "./components/crops/CropPicker";
@@ -12,7 +12,6 @@ const formatTime = (ms: number) => {
   const seconds = Math.ceil(ms / 1000);
   return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
 };
-const dateKey = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export function App({ host, screen, initialMonth }: { host: SolanumHost; screen: "timer" | "harvest"; initialMonth?: Date }) {
   const state = useSyncExternalStore(host.timer.subscribe, host.timer.getState);
@@ -128,41 +127,4 @@ function Preferences({ host, act, busy }: { host: SolanumHost; act: Action; busy
     })}>Save preferences</button><button onClick={() => host.previewSound()}>Test sound</button></div>
     <small>Changes apply to new sessions. Sync the Solanum folder to carry crops between devices. Audio needs Obsidian open and may need a tap on this device.</small>
   </div>;
-}
-
-function HarvestPanel({ host, sessions, initialMonth }: { host: SolanumHost; sessions: Revision[]; initialMonth?: Date }) {
-  const [month, setMonth] = useState(initialMonth ?? new Date());
-  const [selected, setSelected] = useState<Date | null>(null);
-  const [tag, setTag] = useState("");
-  const [notePath, setNotePath] = useState("");
-  const days = monthDays(month.getFullYear(), month.getMonth());
-  const filter = { tag, notePath };
-  const total = days.reduce((sum, day) => sum + dailyHarvest(sessions, day, filter).minutes, 0);
-  const details = selected && dailyHarvest(sessions, selected, filter);
-  const tags = [...new Set([...host.tags(), ...sessions.flatMap((s) => s.tags)])].sort();
-  return <section className="solanum-harvest">
-    <div className="solanum-month-nav sol:flex sol:items-center sol:justify-between sol:gap-1.5"><button aria-label="Previous month" onClick={() => { setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1)); setSelected(null); }}>‹</button>
-      <h2>{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2>
-      <button aria-label="Next month" onClick={() => { setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1)); setSelected(null); }}>›</button></div>
-    <p className="solanum-month-total sol:text-center sol:text-xs sol:text-(--text-muted) sol:mt-0 sol:mb-5">{Math.round(total)} min this month</p>
-    <div className="solanum-filters sol:flex sol:gap-[7px] sol:mb-4"><select aria-label="Filter by tag" value={tag} onChange={(e) => setTag(e.target.value)}><option value="">All tags</option>{tags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
-      <select aria-label="Filter by note" value={notePath} onChange={(e) => setNotePath(e.target.value)}><option value="">All notes</option>{[...new Set(sessions.map((s) => s.notePath).filter((p): p is string => !!p))].sort().map((p) => <option key={p}>{p}</option>)}</select></div>
-    <div className="solanum-calendar sol:grid sol:grid-cols-7 sol:gap-1" aria-label="Monthly harvest calendar">
-      {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span className="solanum-weekday" key={i}>{d}</span>)}
-      {Array.from({ length: days[0].getDay() }, (_, i) => <span key={`empty-${i}`} />)}
-      {days.map((day) => { const harvest = dailyHarvest(sessions, day, filter); const key = dateKey(day); return <button key={key}
-        aria-label={`${key}, ${Math.round(harvest.minutes)} focused minutes`} aria-pressed={selected !== null && dateKey(selected) === key}
-        className={`solanum-day ${harvest.crops ? "has-harvest" : ""}`} onClick={() => setSelected(day)}>
-        <span>{day.getDate()}</span><span className="solanum-mini-plot sol:grid sol:grid-cols-3 sol:gap-0 sol:w-full sol:max-w-[30px]" aria-hidden="true">{Array.from({ length: harvest.crops }, (_, i) => <i key={i}>{harvest.minutes >= 25 ? "🍅" : "🌱"}</i>)}</span>
-      </button>; })}
-    </div>
-    <p className="solanum-hint">A fuller plot means more focus. Partial sessions count; breaks don’t. Days use this device’s time zone.</p>
-    {selected && details && <section className="solanum-day-details"><h3>{selected.toLocaleDateString(undefined, { month: "long", day: "numeric" })} · {Math.round(details.minutes)} min</h3>
-      {details.entries.length === 0 ? <p>No focused work for this selection.</p> : details.entries.map(({ session: s, minutes }) => <article key={s.sessionId}>
-        <strong>{Math.round(minutes)} min</strong><span className="solanum-hint"> · {s.focusEndedAt ? "Harvested" : s.status === "cancelled" ? "Partial crop" : "Growing"}</span>
-        <div>{s.tags.map((t) => <span className="solanum-tag" key={t}>#{t}</span>)}</div>
-        {s.notePath && <button className="solanum-note-link" onClick={() => host.openNote(s.notePath!)}>{s.notePath}</button>}
-      </article>)}
-    </section>}
-  </section>;
 }

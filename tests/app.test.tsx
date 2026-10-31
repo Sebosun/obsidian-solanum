@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, act } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, act, within } from "@testing-library/react";
 import { App } from "../src/App";
 import { TimerService, type Revision } from "../src/timer";
 import { DEFAULT_SETTINGS, type SolanumHost } from "../src/host";
 
 vi.mock("../src/CropScene", () => ({ CropScene: ({ progress }: { progress: number }) => <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} /> }));
+vi.mock("../src/components/harvest/HarvestScene", () => ({ HarvestScene: ({ days, onHover, onSelect }: {
+  days: { key: string }[]; onHover: (key: string | null) => void; onSelect: (key: string) => void;
+}) => <div>{days.map((day) => <button key={day.key} aria-label={day.key} onPointerEnter={() => onHover(day.key)} onPointerLeave={() => onHover(null)} onClick={() => onSelect(day.key)}>{day.key}</button>)}</div> }));
 afterEach(cleanup);
 
 async function revealControls() {
@@ -118,11 +121,27 @@ describe("sidebar workflows backed by the real timer service", () => {
     f.advance(5 * 60_000);
     await f.host.timer.tick();
     render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    fireEvent.click(screen.getByRole("button", { name: /2026-10-31/ }));
+    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
     expect(screen.getByRole("button", { name: "Project.md" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Filter by tag"), { target: { value: "work/client" } });
     expect(screen.queryByRole("button", { name: "Project.md" })).toBeNull();
     expect(screen.getByText("0 min this month")).toBeTruthy();
+  });
+
+  it("previews crop details on hover and pins them on click", async () => {
+    const f = fixture();
+    await f.host.timer.start({ durationMs: 5 * 60_000, breakMs: 5 * 60_000, autoBreak: false, tags: ["study"], notePath: "Project.md", crop: "carrot" });
+    f.advance(5 * 60_000);
+    await f.host.timer.tick();
+    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+    const day = screen.getByRole("button", { name: "2026-10-31" });
+    fireEvent.pointerEnter(day);
+    expect(screen.getByText(/Carrot/)).toBeTruthy();
+    expect(within(screen.getByRole("region", { name: "Harvest details" })).getByText("#study")).toBeTruthy();
+    fireEvent.click(day);
+    fireEvent.pointerLeave(day);
+    fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
+    expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
   });
 
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {
