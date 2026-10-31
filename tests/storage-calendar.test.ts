@@ -24,6 +24,36 @@ async function fixture() {
 }
 
 describe("vault-backed integration", () => {
+  it("deduplicates simultaneous expiry recovery through real vault files", async () => {
+    const f = await fixture();
+    const env = { now: () => new Date(2026, 10, 1, 3).getTime(), id: () => "unused-id" };
+    const a = new TimerService(new VaultSessionStore(f.disk), env);
+    const b = new TimerService(new VaultSessionStore(f.disk), env);
+    await Promise.all([a.refresh(), b.refresh()]);
+    expect(f.disk.files.size).toBe(3); // plant, focus expiry, break expiry
+    expect(a.getState().sessions[0]).toEqual(b.getState().sessions[0]);
+  });
+
+  it("rejects logically inconsistent focus intervals and terminal running states", async () => {
+    const f = await fixture();
+    const path = [...f.disk.files.keys()][0];
+    const valid = f.service.getState().sessions[0];
+    f.disk.files.set(path, JSON.stringify({ ...valid, phase: "done", status: "running" }));
+    await expect(f.store.readAll()).rejects.toThrow(/session/i);
+    f.disk.files.set(path, JSON.stringify({ ...valid, intervals: [
+      { start: valid.startedAt, end: valid.startedAt + 60_000 },
+      { start: valid.startedAt + 30_000, end: null },
+    ] }));
+    await expect(f.store.readAll()).rejects.toThrow(/session/i);
+  });
+
+  it("updates every session linked under a renamed folder", async () => {
+    const f = await fixture();
+    await f.service.renameNote("Old.md", "Projects/Old.md");
+    await f.service.renameNote("Projects", "Archive");
+    expect(f.service.getState().sessions[0].notePath).toBe("Archive/Old.md");
+  });
+
   it("reopens the same files, renames linked notes and preserves immutable history", async () => {
     const f = await fixture();
     await f.service.renameNote("Old.md", "Projects/New.md");
@@ -52,6 +82,16 @@ describe("vault-backed integration", () => {
 });
 
 describe("harvest aggregation", () => {
+  it("uses calendar-day boundaries on daylight-saving transitions", async () => {
+    const f = await fixture();
+    const day = new Date(2026, 2, 8);
+    const start = day.getTime();
+    const end = new Date(2026, 2, 9).getTime();
+    const revision = { ...f.service.getState().sessions[0], intervals: [{ start, end }] };
+    expect(dailyHarvest([revision], day).minutes).toBe((end - start) / 60_000);
+    expect(dailyHarvest([revision], new Date(2026, 2, 9)).minutes).toBe(0);
+  });
+
   it("splits a focus session across month boundaries and never counts its break", async () => {
     const f = await fixture();
     f.advance(60 * 60_000);

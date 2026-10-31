@@ -34,6 +34,23 @@ function fixture() {
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
+  it("persists break preferences and uses them in the next planted session", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByText("Timer preferences"));
+    fireEvent.change(screen.getByLabelText("Break minutes"), { target: { value: "20" } });
+    fireEvent.click(screen.getByLabelText("Start breaks automatically"));
+    fireEvent.click(screen.getByRole("button", { name: "Save preferences" }));
+    await waitFor(() => expect(f.host.settings.autoBreak).toBe(true));
+    fireEvent.click(screen.getByRole("button", { name: "5 min" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Pause" });
+    f.advance(5 * 60_000);
+    await act(() => f.host.timer.tick());
+    expect(f.host.timer.getState().sessions[0]).toMatchObject({ phase: "break", status: "running", breakMs: 20 * 60_000 });
+    expect(screen.getByRole("timer").textContent).toBe("20:00");
+  });
+
   it("plants tagged work, survives view teardown, restores pause, and finishes a manual break", async () => {
     const f = fixture();
     const first = render(<App host={f.host} screen="timer" />);

@@ -29,8 +29,14 @@ export function isRevision(value: unknown): value is Revision {
     && Array.isArray(r.tags) && r.tags.every((t) => typeof t === "string")
     && (r.notePath === null || typeof r.notePath === "string")
     && Array.isArray(r.intervals) && r.intervals.length > 0
-    && r.intervals.every((i) => i && finite(i.start) && (i.end === null || (finite(i.end) && i.end >= i.start)))
-    && (r.status !== "running" || r.deadline !== null);
+    && r.intervals.every((i, index) => i && finite(i.start) && i.start >= r.startedAt
+      && (i.end === null ? index === r.intervals.length - 1 && r.phase === "focus" && r.status === "running" : finite(i.end) && i.end >= i.start)
+      && (index === 0 || (r.intervals[index - 1].end !== null && r.intervals[index - 1].end! <= i.start)))
+    && (r.status === "running" ? r.deadline !== null : r.deadline === null)
+    && (r.phase === "done" ? ["completed", "cancelled"].includes(r.status)
+      : r.phase === "focus" ? ["running", "paused"].includes(r.status) && r.focusEndedAt === null
+      : ["running", "paused", "waiting"].includes(r.status) && r.focusEndedAt !== null)
+    && (r.phase !== "focus" || r.status !== "running" || r.intervals[r.intervals.length - 1].end === null);
 }
 
 /** Flat, immutable revision files sync without overwriting another device's edits. */

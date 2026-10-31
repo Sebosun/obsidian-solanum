@@ -30,14 +30,24 @@ function vaultFixture() {
     getResourcePath: (p: string) => `app://vault/${p}`,
   };
   const app = {
-    vault: { adapter, on: (name: string, cb: (...args: any[]) => unknown) => { handlers[name] = cb; return {}; }, getMarkdownFiles: () => [{ path: "Old.md" }], getAbstractFileByPath: () => null },
+    vault: { adapter, on: (name: string, cb: (...args: any[]) => unknown) => { handlers[name] = cb; return {}; }, getMarkdownFiles: vi.fn(() => [{ path: "Old.md" }]), getAbstractFileByPath: () => null },
     workspace: { onLayoutReady: vi.fn(), getActiveFile: () => null, getLeavesOfType: () => [], getRightLeaf: () => null },
-    metadataCache: { getFileCache: () => ({ tags: [{ tag: "#work" }] }) },
+    metadataCache: { getFileCache: vi.fn(() => ({ tags: [{ tag: "#work" }] })), on: vi.fn(() => ({})) },
   } as unknown as App;
   return { app, handlers };
 }
 
 describe("Obsidian lifecycle integration", () => {
+  it("caches tag suggestions instead of scanning the vault each countdown render", async () => {
+    vi.useFakeTimers();
+    const { app } = vaultFixture();
+    const plugin = new SolanumPlugin(app, {} as PluginManifest);
+    await plugin.onload();
+    plugin.tags(); plugin.tags(); plugin.tags();
+    expect(app.metadataCache.getFileCache).toHaveBeenCalledTimes(1);
+    plugin.onunload();
+  });
+
   it("keeps crops across plugin unload and restores a deadline on the next load", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-31T12:00:00Z"));

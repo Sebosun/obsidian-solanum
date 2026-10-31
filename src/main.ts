@@ -14,6 +14,8 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
   private syncDebounce: number | null = null;
   private stopped = false;
   private lastError = "";
+  private tagCache: string[] | null = null;
+  private noteCache: string[] | null = null;
 
   async onload(): Promise<void> {
     this.stopped = false;
@@ -45,6 +47,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     this.addCommand({ id: "open-harvest", name: "Open harvest calendar", callback: () => this.navigate("harvest") });
 
     const onSync = (file: { path: string }) => {
+      this.invalidateSuggestions();
       if (!file.path.startsWith(`${SESSION_FOLDER}/`) || this.stopped) return;
       if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
       this.syncDebounce = window.setTimeout(() => { void this.background(() => this.timer.refresh()); }, 500);
@@ -53,8 +56,11 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     this.registerEvent(this.app.vault.on("modify", onSync));
     this.registerEvent(this.app.vault.on("delete", onSync));
     this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
+      this.invalidateSuggestions();
       void this.background(() => this.timer.renameNote(oldPath, file.path));
     }));
+    this.registerEvent(this.app.metadataCache.on("changed", this.invalidateSuggestions));
+    this.registerEvent(this.app.metadataCache.on("resolved", this.invalidateSuggestions));
     this.heartbeat = window.setInterval(() => { void this.background(() => this.timer.tick()); }, 1000);
     // Adapter writes / some sync providers do not immediately emit vault events.
     this.syncPoll = window.setInterval(() => { void this.background(() => this.timer.refresh()); }, 15_000);
@@ -93,6 +99,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
   }
 
   tags = (): string[] => {
+    if (this.tagCache) return this.tagCache;
     const tags = new Set<string>();
     for (const file of this.app.vault.getMarkdownFiles()) {
       const cache = this.app.metadataCache.getFileCache(file);
@@ -102,9 +109,14 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
         if (typeof tag === "string" && tag.trim()) tags.add(tag.trim().replace(/^#/, ""));
       }
     }
-    return [...tags].sort();
+    this.tagCache = [...tags].sort();
+    return this.tagCache;
   };
-  notes = () => this.app.vault.getMarkdownFiles().map((file) => file.path).sort();
+  private invalidateSuggestions = () => { this.tagCache = null; this.noteCache = null; };
+  notes = () => {
+    this.noteCache ??= this.app.vault.getMarkdownFiles().map((file) => file.path).sort();
+    return this.noteCache;
+  };
   activeNote = () => this.app.workspace.getActiveFile()?.path ?? null;
   openNote = (path: string) => {
     if (!this.app.vault.getAbstractFileByPath(path)) { new Notice(`Note not found: ${path}`); return; }
