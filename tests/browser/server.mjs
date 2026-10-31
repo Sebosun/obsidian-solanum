@@ -4,7 +4,7 @@ import { cp, mkdir, copyFile } from "node:fs/promises";
 const directory = "/tmp/opencode/solanum-browser";
 await mkdir(directory, { recursive: true });
 await cp("assets", `${directory}/assets`, { recursive: true });
-await cp("assets/crops", `${directory}/native-assets`, { recursive: true });
+await cp("assets", `${directory}/native-assets`, { recursive: true });
 await copyFile("styles.css", `${directory}/styles.css`);
 await copyFile("tests/browser/index.html", `${directory}/index.html`);
 const context = await esbuild.context({

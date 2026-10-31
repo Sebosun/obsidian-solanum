@@ -3,9 +3,9 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { YearStack } from "@/lib/harvest/year";
 import { YEAR_STACKS } from "@/lib/scene/constants";
 import { cratePlantOffset, stackPosition } from "@/lib/scene/yearLayout";
-import { Plant } from "@/components/scene/Plant";
-import { RiseGroup } from "@/components/scene/RiseGroup";
-import { CrateMesh } from "@/components/harvest/CrateMesh";
+import { Plant } from "@/components/models/Plant";
+import { RiseGroup } from "@/components/stage/RiseGroup";
+import { CrateMesh } from "@/components/models/CrateMesh";
 
 interface YearStackMeshProps {
   stack: YearStack;

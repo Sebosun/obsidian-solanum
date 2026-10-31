@@ -4,20 +4,20 @@ import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { sunState } from "@/lib/scene/sunClock";
-import { CropSwap } from "@/components/scene/CropSwap";
-import { CropPreview } from "@/components/scene/CropPreview";
-import { GrowingCrop } from "@/components/scene/GrowingCrop";
-import { SceneBoundary } from "@/components/scene/SceneBoundary";
-import { CropFallback } from "@/components/crops/CropFallback";
-import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { CropSwap } from "@/components/stage/CropSwap";
+import { CropPreview } from "@/components/models/CropPreview";
+import { GrowingCrop } from "@/components/models/GrowingCrop";
+import { SceneBoundary } from "@/components/stage/SceneBoundary";
+import { CropFallback } from "@/components/scenes/CropFallback";
+import { SeasonScenery } from "@/components/stage/SeasonScenery";
 import { SrLabel } from "@/components/app/SrLabel";
 import { SunClockFace } from "@/components/clock/SunClockFace";
 import { useReadyCrop } from "@/hooks/useReadyCrop";
 import { useSunClock } from "@/hooks/useSunClock";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { formatTime } from "@/lib/time";
-import { CompletionFlourish } from "@/components/scene/CompletionFlourish";
-import { TimerCamera } from "@/components/scene/TimerCamera";
+import { CompletionFlourish } from "@/components/stage/CompletionFlourish";
+import { TimerCamera } from "@/components/stage/TimerCamera";
 
 interface SeasonStyle extends CSSProperties {
   "--season-glow": string;

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Object3D, ShaderMaterial } from "three";
-import { FuzzyPillow } from "@/components/scene/FuzzyPillow";
+import { FuzzyPillow } from "@/components/models/FuzzyPillow";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { createFuzzShared, createFuzzShell } from "@/lib/scene/fuzz";
+import { createFuzzShared, createFuzzShell } from "@/lib/models/fuzz";
 import { sunState } from "@/lib/scene/sunClock";
 
 type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;

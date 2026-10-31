@@ -441,7 +441,7 @@ describe("Obsidian lifecycle integration", () => {
     await plugin.timer.refresh();
     expect(plugin.timer.getState().sessions[0].notePath).toBe("New.md");
     expect(plugin.tags()).toEqual(["work"]);
-    expect(plugin.assetUrl("Tomato_1.glb")).toContain(
+    expect(plugin.assetUrl("crops/Tomato_1.glb")).toContain(
       ".obsidian/plugins/solanum/assets/crops/Tomato_1.glb",
     );
     plugin.onunload();

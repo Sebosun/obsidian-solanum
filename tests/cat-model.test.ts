@@ -18,7 +18,7 @@ describe("the shipped sleeping cat", () => {
     expect(gltf.buffers.every((b: { uri?: string }) => !b.uri)).toBe(true);
     expect((gltf.images ?? []).every((i: { uri?: string }) => !i.uri)).toBe(true);
     expect(statSync(CAT_FILE).size).toBeLessThan(400_000);
-    expect(BREAK_SCENE.catModel).toBe("Cat_sleeping.glb");
+    expect(BREAK_SCENE.catModel).toBe("break/Cat_sleeping.glb");
   });
 
   it("lies on the ground, about a unit long, facing +X", async () => {

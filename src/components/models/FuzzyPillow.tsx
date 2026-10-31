@@ -1,8 +1,8 @@
 import { useEffect, useMemo, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { createFuzzShared, createFuzzShell } from "@/lib/scene/fuzz";
-import { pillowGeometry } from "@/lib/scene/pillow";
+import { createFuzzShared, createFuzzShell } from "@/lib/models/fuzz";
+import { pillowGeometry } from "@/lib/models/pillow";
 import type { SunState } from "@/lib/scene/sunClock";
 
 interface FuzzyPillowProps {

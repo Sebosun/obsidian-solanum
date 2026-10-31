@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Object3D } from "three";
-import { YearStackMesh } from "@/components/harvest/YearStackMesh";
+import { YearStackMesh } from "@/components/models/YearStackMesh";
 import { layoutYearStacks, type YearMonth, type YearStack } from "@/lib/harvest/year";
 import { YEAR_STACKS } from "@/lib/scene/constants";
 import { stackHeight, stackPosition } from "@/lib/scene/yearLayout";
 
 vi.mock("@react-three/drei", () => ({ Html: () => null }));
-vi.mock("@/components/scene/Plant", () => ({
+vi.mock("@/components/models/Plant", () => ({
   Plant: ({ crop, scale }: { crop: string; scale: number }) => (
     <mesh name={`plant-${crop}`} scale={scale} />
   ),

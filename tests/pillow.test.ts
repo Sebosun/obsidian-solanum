@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Box3, Vector3 } from "three";
-import { pillowGeometry } from "@/lib/scene/pillow";
+import { pillowGeometry } from "@/lib/models/pillow";
 
 const shape = { width: 1.5, depth: 1.2, height: 0.34 };
 

@@ -8,7 +8,7 @@ import {
   Points,
   type Object3D,
 } from "three";
-import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { SeasonScenery } from "@/components/stage/SeasonScenery";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 
 async function mount(season: SeasonId, animate = true) {

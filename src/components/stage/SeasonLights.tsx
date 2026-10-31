@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import type { AmbientLight, DirectionalLight } from "three";
 import type { SeasonTheme } from "@/lib/scene/seasons";
 import type { SunState } from "@/lib/scene/sunClock";
-import { SunHalo } from "@/components/scene/SunHalo";
+import { SunHalo } from "@/components/stage/SunHalo";
 
 /** The sun clock's state for the light: where the sun shines from and how much of it is left. */
 export interface Daylight {

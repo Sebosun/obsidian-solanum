@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Points, ShaderMaterial } from "three";
-import { Steam } from "@/components/scene/Steam";
+import { Steam } from "@/components/models/Steam";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { STILL_STEAM_SECONDS, createSteamMaterial, steamSeeds } from "@/lib/scene/steam";
+import { STILL_STEAM_SECONDS, createSteamMaterial, steamSeeds } from "@/lib/models/steam";
 
 type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;
 const steam = (renderer: Renderer) =>

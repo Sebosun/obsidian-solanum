@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { STILL_STEAM_SECONDS, createSteamMaterial, steamSeeds } from "@/lib/scene/steam";
+import { STILL_STEAM_SECONDS, createSteamMaterial, steamSeeds } from "@/lib/models/steam";
 
 /** Longest simulated step, so a stalled frame cannot skip through the rise. */
 const MAX_STEP_SECONDS = 0.1;

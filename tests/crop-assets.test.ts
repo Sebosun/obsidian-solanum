@@ -5,7 +5,7 @@ import { CropAssets } from "@/lib/crops/CropAssets";
 describe("vault binary crop loading", () => {
   it("shares one parse per model and retries failed vault reads", async () => {
     const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/crops/${filename}`);
+      const bytes = readFileSync(`assets/${filename}`);
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     });
     const repository = new CropAssets(read);
@@ -22,17 +22,17 @@ describe("vault binary crop loading", () => {
 
   it("has a crop ready only once every stage, and its produce, have loaded", async () => {
     const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/crops/${filename}`);
+      const bytes = readFileSync(`assets/${filename}`);
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     });
     const repository = new CropAssets(read);
     await repository.ready("coconut");
     expect(read.mock.calls.map(([name]) => name).sort()).toEqual([
-      "Coconut_1.glb",
-      "Coconut_2.glb",
-      "Coconut_3.glb",
-      "Coconut_4.glb",
-      "Coconut_produce.glb",
+      "crops/Coconut_1.glb",
+      "crops/Coconut_2.glb",
+      "crops/Coconut_3.glb",
+      "crops/Coconut_4.glb",
+      "crops/Coconut_produce.glb",
     ]);
     await repository.ready("coconut");
     expect(read).toHaveBeenCalledTimes(5);
@@ -42,27 +42,14 @@ describe("vault binary crop loading", () => {
     await expect(repository.ready("corn")).rejects.toThrow("Vault unavailable");
   });
 
-  it("loads any model in the folder by name, shared like the crops", async () => {
+  it("loads any model by its path under the assets folder, shared like the crops", async () => {
     const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/crops/${filename}`);
+      const bytes = readFileSync(`assets/${filename}`);
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     });
     const repository = new CropAssets(read);
-    const first = repository.loadModel("Cat_sleeping.glb");
-    expect(repository.loadModel("Cat_sleeping.glb")).toBe(first);
-    const cat = await first;
-    expect(cat.animations.map((clip) => clip.name)).toEqual(["Sleep"]);
-    expect(read).toHaveBeenCalledTimes(1);
-  });
-
-  it("loads any model in the folder by name, shared like the crops", async () => {
-    const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/crops/${filename}`);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    });
-    const repository = new CropAssets(read);
-    const first = repository.loadModel("Cat_sleeping.glb");
-    expect(repository.loadModel("Cat_sleeping.glb")).toBe(first);
+    const first = repository.loadModel("break/Cat_sleeping.glb");
+    expect(repository.loadModel("break/Cat_sleeping.glb")).toBe(first);
     const cat = await first;
     expect(cat.animations.map((clip) => clip.name)).toEqual(["Sleep"]);
     expect(read).toHaveBeenCalledTimes(1);

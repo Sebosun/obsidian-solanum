@@ -7,11 +7,11 @@ import { resolveSeason } from "@/lib/scene/seasons";
 import { formatFocus } from "@/lib/time";
 import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
 import { HarvestFilters } from "@/components/harvest/HarvestFilters";
-import { HarvestMonthScene } from "@/components/harvest/HarvestMonthScene";
+import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
 import { HarvestMonthSummary } from "@/components/harvest/HarvestMonthSummary";
 import { HarvestPeriodNav } from "@/components/harvest/HarvestPeriodNav";
 import { HarvestViewToggle, type HarvestView } from "@/components/harvest/HarvestViewToggle";
-import { HarvestYearScene } from "@/components/harvest/HarvestYearScene";
+import { HarvestYearScene } from "@/components/scenes/HarvestYearScene";
 
 interface HarvestPanelProps {
   initialMonth?: Date;

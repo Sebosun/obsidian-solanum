@@ -6,7 +6,7 @@ import { CROPS, produceModel, type CropId } from "@/lib/crops/catalog";
 import { prepareProduce } from "@/lib/crops/geometry";
 
 const reader = async (filename: string) => {
-  const bytes = readFileSync(`assets/crops/${filename}`);
+  const bytes = readFileSync(`assets/${filename}`);
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 };
 

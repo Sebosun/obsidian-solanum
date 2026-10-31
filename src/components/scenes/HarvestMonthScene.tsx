@@ -8,9 +8,9 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
 import { SrLabel } from "@/components/app/SrLabel";
-import { SceneBoundary } from "@/components/scene/SceneBoundary";
-import { SeasonLights } from "@/components/scene/SeasonLights";
-import { HarvestBlockMesh } from "@/components/harvest/HarvestBlockMesh";
+import { SceneBoundary } from "@/components/stage/SceneBoundary";
+import { SeasonLights } from "@/components/stage/SeasonLights";
+import { HarvestBlockMesh } from "@/components/models/HarvestBlockMesh";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 

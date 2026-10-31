@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { BoxGeometry, Mesh, MeshStandardMaterial, type Object3D } from "three";
-import { HarvestBlockMesh, plantSize } from "@/components/harvest/HarvestBlockMesh";
+import { HarvestBlockMesh, plantSize } from "@/components/models/HarvestBlockMesh";
 import { blockHeight, layoutHarvestBlocks } from "@/lib/harvest/month";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { focusSession } from "./helpers/sessions";
 import type { Revision } from "@/lib/timer/types";
 
-vi.mock("@/components/scene/Plant", () => ({
+vi.mock("@/components/models/Plant", () => ({
   Plant: ({ crop, scale }: { crop: string; scale: number }) => (
     <mesh name={`plant-${crop}`} scale={scale} />
   ),

@@ -8,11 +8,11 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
 import { SrLabel } from "@/components/app/SrLabel";
-import { SceneBoundary } from "@/components/scene/SceneBoundary";
+import { SceneBoundary } from "@/components/stage/SceneBoundary";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 import { HarvestYearFallback } from "@/components/harvest/HarvestYearFallback";
-import { YearStackMesh } from "@/components/harvest/YearStackMesh";
+import { YearStackMesh } from "@/components/models/YearStackMesh";
 
 interface HarvestYearSceneProps {
   year: number;

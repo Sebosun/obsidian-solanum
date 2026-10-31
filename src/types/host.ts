@@ -20,6 +20,7 @@ export interface SolanumHost {
   notes(): string[];
   activeNote(): string | null;
   openNote(path: string): void;
+  /** A model by its path under the plugin's `assets` folder, such as `crops/Tomato_1.glb`. */
   assetUrl(name: string): string;
   readAsset?(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;

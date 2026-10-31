@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { CropPreview } from "@/components/scene/CropPreview";
+import { CropPreview } from "@/components/models/CropPreview";
 import { GROWTH_MOTION } from "@/lib/scene/constants";
 
-vi.mock("@/components/scene/Plant", () => ({
+vi.mock("@/components/models/Plant", () => ({
   Plant: ({ crop, stage, harvested }: { crop: string; stage: number; harvested?: boolean }) => (
     <mesh name={`plant-${crop}-${stage}-${harvested ? "harvested" : "growing"}`} />
   ),

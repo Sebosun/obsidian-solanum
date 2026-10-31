@@ -10,8 +10,8 @@ TextureLoader.prototype.load = function (_url, onLoad) {
   return texture;
 };
 
-export const CAT_FILE = "assets/crops/Cat_sleeping.glb";
-export const MUG_FILE = "assets/crops/mug.glb";
+export const CAT_FILE = "assets/break/Cat_sleeping.glb";
+export const MUG_FILE = "assets/break/mug.glb";
 
 /** A shipped model, parsed the way the plugin parses it. */
 export async function loadModel(path: string): Promise<GLTF> {

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Object3D } from "three";
-import { SleepingCat } from "@/components/scene/SleepingCat";
+import { SleepingCat } from "@/components/models/SleepingCat";
 import { BREAK_SCENE } from "@/lib/scene/constants";
 import { loadCat } from "./helpers/catModel";
 

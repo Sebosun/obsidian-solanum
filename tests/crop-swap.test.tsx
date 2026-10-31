@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Object3D } from "three";
-import { CropSwap } from "@/components/scene/CropSwap";
+import { CropSwap } from "@/components/stage/CropSwap";
 import type { CropId } from "@/lib/crops/catalog";
 
 function scene(crop: CropId, reduced = false) {

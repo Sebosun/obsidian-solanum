@@ -1,6 +1,6 @@
 import { produceModel, type CropId } from "@/lib/crops/catalog";
-import { PlantModel } from "@/components/scene/PlantModel";
-import { Produce } from "@/components/scene/Produce";
+import { PlantModel } from "@/components/models/PlantModel";
+import { Produce } from "@/components/models/Produce";
 
 interface PlantProps {
   crop: CropId;

@@ -155,8 +155,8 @@ export const YEAR_STACKS = {
  * plot, so the same camera frames it.
  */
 export const BREAK_SCENE = {
-  /** The cat model, which lives with the crop models because the plugin reads its models there. */
-  catModel: "Cat_sleeping.glb",
+  /** The cat model, by its path under the plugin's assets folder. */
+  catModel: "break/Cat_sleeping.glb",
   /** Height of the pillow's base, which is as low as anything in the scene goes. */
   groundY: -0.54,
   /** What the camera must keep in view, in place of the plot's bounds. */
@@ -173,7 +173,7 @@ export const BREAK_SCENE = {
   cat: { scale: 1.1, sink: 0.07, turn: -0.15 },
   /** The mug model, which hangs in the air beside the pillow and sways a little. */
   mug: {
-    model: "mug.glb",
+    model: "break/mug.glb",
     position: [-0.8, 0.45] as [number, number],
     /** How tall it stands, and the height of its base above the ground (in the air, not on it). */
     height: 0.24,

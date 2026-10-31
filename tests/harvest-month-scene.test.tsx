@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { HarvestMonthScene } from "@/components/harvest/HarvestMonthScene";
+import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
 import { AppStoreProvider } from "@/components/app/AppStoreProvider";
 import { getAppStore, releaseAppStore } from "@/state/appStore";
 import { TimerService } from "@/lib/timer/TimerService";

@@ -3,8 +3,8 @@ import { cropStage } from "@/lib/crops/growth";
 import { HARVEST_BLOCKS } from "@/lib/scene/constants";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { seasonalColor } from "@/lib/scene/tint";
-import { Plant } from "@/components/scene/Plant";
-import { RiseGroup } from "@/components/scene/RiseGroup";
+import { Plant } from "@/components/models/Plant";
+import { RiseGroup } from "@/components/stage/RiseGroup";
 
 interface HarvestBlockMeshProps {
   block: HarvestBlock;

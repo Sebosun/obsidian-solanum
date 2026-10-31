@@ -1,9 +1,9 @@
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import type { MutableRefObject } from "react";
-import { SeasonLights, type Daylight } from "@/components/scene/SeasonLights";
+import { SeasonLights, type Daylight } from "@/components/stage/SeasonLights";
 import type { SunState } from "@/lib/scene/sunClock";
-import { SeasonParticles } from "@/components/scene/SeasonParticles";
-import { SeasonPlatform } from "@/components/scene/SeasonPlatform";
+import { SeasonParticles } from "@/components/stage/SeasonParticles";
+import { SeasonPlatform } from "@/components/stage/SeasonPlatform";
 
 interface SeasonSceneryProps {
   season: SeasonId;

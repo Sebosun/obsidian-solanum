@@ -5,8 +5,8 @@ import { BREAK_SCENE } from "@/lib/scene/constants";
 import { getCropAssets } from "@/state/cropAssets";
 import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
-import { BreakScene } from "@/components/crops/BreakScene";
-import { CropScene } from "@/components/crops/CropScene";
+import { BreakScene } from "@/components/scenes/BreakScene";
+import { CropScene } from "@/components/scenes/CropScene";
 import { TimerSetup } from "@/components/timer/TimerSetup";
 import { SessionControls } from "@/components/timer/SessionControls";
 

@@ -1,6 +1,9 @@
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { CROPS, produceModel, type CropId } from "@/lib/crops/catalog";
 
+/** Where the crop models live, under the plugin's `assets` folder. */
+const CROP_FOLDER = "crops";
+
 export type AssetReader = (filename: string) => Promise<ArrayBuffer>;
 
 interface AssetEntry {
@@ -16,7 +19,7 @@ export class CropAssets {
   constructor(private read: AssetReader) {}
 
   load(crop: CropId, stage: number): Promise<GLTF> {
-    return this.loadFile(`${CROPS[crop].model}_${stage}.glb`);
+    return this.loadFile(`${CROP_FOLDER}/${CROPS[crop].model}_${stage}.glb`);
   }
 
   /** What the crop yields, for crops that have a model of it. */
@@ -24,10 +27,10 @@ export class CropAssets {
     const model = produceModel(crop);
     if (model === null)
       return Promise.reject(new Error(`${CROPS[crop].name} has no produce model`));
-    return this.loadFile(`${model}.glb`);
+    return this.loadFile(`${CROP_FOLDER}/${model}.glb`);
   }
 
-  /** Any model in the plugin's model folder by file name, shared and cached like the crops. */
+  /** Any model by its path under the plugin's `assets` folder, shared and cached like the crops. */
   loadModel(filename: string): Promise<GLTF> {
     return this.loadFile(filename);
   }

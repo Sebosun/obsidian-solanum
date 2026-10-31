@@ -3,9 +3,9 @@ import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { useBreakModel } from "@/hooks/useBreakModel";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { prepareMug } from "@/lib/scene/mug";
+import { prepareMug } from "@/lib/models/mug";
 import type { SunState } from "@/lib/scene/sunClock";
-import { Steam } from "@/components/scene/Steam";
+import { Steam } from "@/components/models/Steam";
 
 interface CoffeeMugProps {
   reduced: boolean;

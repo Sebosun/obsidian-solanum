@@ -12,7 +12,7 @@ import { seasonOf } from "@/lib/scene/seasons";
 import { focusSession } from "./helpers/sessions";
 import { updatePresets, updateSeason } from "@/state/appStore";
 
-vi.mock("@/components/crops/CropScene", () => ({
+vi.mock("@/components/scenes/CropScene", () => ({
   CropScene: ({
     progress,
     remaining,
@@ -43,7 +43,7 @@ vi.mock("@/components/crops/CropScene", () => ({
     </figure>
   ),
 }));
-vi.mock("@/components/crops/BreakScene", () => ({
+vi.mock("@/components/scenes/BreakScene", () => ({
   BreakScene: ({
     remaining,
     season,
@@ -65,7 +65,7 @@ vi.mock("@/components/crops/BreakScene", () => ({
     </figure>
   ),
 }));
-vi.mock("@/components/harvest/HarvestMonthScene", () => ({
+vi.mock("@/components/scenes/HarvestMonthScene", () => ({
   HarvestMonthScene: ({
     layout,
     season,
@@ -86,7 +86,7 @@ vi.mock("@/components/harvest/HarvestMonthScene", () => ({
     </div>
   ),
 }));
-vi.mock("@/components/harvest/HarvestYearScene", () => ({
+vi.mock("@/components/scenes/HarvestYearScene", () => ({
   HarvestYearScene: ({
     year,
     months,

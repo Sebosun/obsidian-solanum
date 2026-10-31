@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Vector3 } from "three";
-import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { SeasonScenery } from "@/components/stage/SeasonScenery";
 import { SEASON_THEMES } from "@/lib/scene/seasons";
 import { sunState } from "@/lib/scene/sunClock";
 

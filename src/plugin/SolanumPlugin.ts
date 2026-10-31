@@ -413,9 +413,9 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     void this.app.workspace.openLinkText(path, "", false);
   };
   assetUrl = (name: string) =>
-    this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/assets/crops/${name}`);
+    this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/assets/${name}`);
   readAsset = (name: string): Promise<ArrayBuffer> =>
-    this.app.vault.adapter.readBinary(`${this.manifest.dir}/assets/crops/${name}`);
+    this.app.vault.adapter.readBinary(`${this.manifest.dir}/assets/${name}`);
   navigate = (screen: "timer" | "harvest") => {
     void this.background(() => this.openSidebar(screen, true));
   };

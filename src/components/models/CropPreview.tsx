@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import type { CropId } from "@/lib/crops/catalog";
 import { GROWTH_MOTION } from "@/lib/scene/constants";
-import { Plant } from "@/components/scene/Plant";
+import { Plant } from "@/components/models/Plant";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
 

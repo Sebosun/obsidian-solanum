@@ -2,9 +2,9 @@ import { statSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { Box3, Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
-import { CoffeeMug } from "@/components/scene/CoffeeMug";
+import { CoffeeMug } from "@/components/models/CoffeeMug";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { prepareMug } from "@/lib/scene/mug";
+import { prepareMug } from "@/lib/models/mug";
 import { sunState } from "@/lib/scene/sunClock";
 import { MUG_FILE, loadMug } from "./helpers/catModel";
 

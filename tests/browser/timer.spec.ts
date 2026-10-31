@@ -88,7 +88,7 @@ test("changing the crop animates inside the same canvas without errors", async (
 
 test("loading a crop for the first time never flashes a placeholder icon", async ({ page }) => {
   // Slow models down so a placeholder would have time to show, if there were one.
-  await page.route("**/assets/crops/*.glb", async (route) => {
+  await page.route("**/assets/**/*.glb", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 700));
     await route.continue();
   });
