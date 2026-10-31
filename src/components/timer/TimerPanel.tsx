@@ -1,82 +1,54 @@
-import { useState } from "react";
+import type { ChangeEvent } from "react";
 import { isActive } from "../../lib/timer/selectors";
-import type { Revision } from "../../lib/timer/types";
-import type { TimerDraft } from "../../types/timer-ui";
-import type { Action, SolanumHost } from "../../types/host";
+import { useAppStore, useServices } from "../../state/hooks";
+import { selectCurrentSession } from "../../state/selectors";
 import { CropScene } from "../crops/CropScene";
 import { TimerSetup } from "./TimerSetup";
 import { SessionControls } from "./SessionControls";
 
-export function TimerPanel({
-  host,
-  sessions,
-  conflicted,
-  busy,
-  act,
-}: {
-  host: SolanumHost;
-  sessions: Revision[];
-  conflicted: string[];
-  busy: boolean;
-  act: Action;
-}) {
-  const [draft, setDraft] = useState<TimerDraft>({
-    minutes: host.settings.defaultMinutes,
-    crop: "tomato",
-    tags: "",
-    note: "",
-  });
-  const [selected, setSelected] = useState<string | null>(null);
+export function TimerPanel() {
+  const services = useServices();
+  const sessions = useAppStore((state) => state.sessions);
+  const draft = useAppStore((state) => state.draft);
+  const session = useAppStore(selectCurrentSession);
+  const selectSession = useAppStore((state) => state.selectSession);
   const active = sessions.filter(isActive);
-  const session = active.find((s) => s.sessionId === selected) ?? active[0];
-  const remaining = session ? host.timer.remaining(session) : draft.minutes * 60_000;
-  const progress = session
-    ? session.phase === "focus"
-      ? 1 - remaining / session.durationMs
-      : 1
-    : 0;
+  let remaining = draft.minutes * 60_000;
+  let progress = 0;
+  let crop = draft.crop;
+  if (session) {
+    remaining = services.timer.remaining(session);
+    crop = session.crop;
+    progress = 1;
+    if (session.phase === "focus") progress = 1 - remaining / session.durationMs;
+  }
+  function changeSession(event: ChangeEvent<HTMLSelectElement>) {
+    selectSession(event.target.value);
+  }
+  let controls = <TimerSetup />;
+  if (session) controls = <SessionControls />;
+
   return (
     <>
       {active.length > 1 && (
         <label className="solanum-warning">
-          Multiple offline crops are active. Choose one to manage; finish or cancel the others.
-          <select
-            aria-label="Active crop"
-            value={session?.sessionId}
-            onChange={(e) => setSelected(e.target.value)}
-          >
-            {active.map((s) => (
-              <option key={s.sessionId} value={s.sessionId}>
-                {new Date(s.startedAt).toLocaleString()} · {s.notePath ?? "Unlinked crop"}
+          Multiple active crops
+          <select aria-label="Active crop" value={session?.sessionId} onChange={changeSession}>
+            {active.map((item) => (
+              <option key={item.sessionId} value={item.sessionId}>
+                {new Date(item.startedAt).toLocaleString()} · {item.notePath ?? "Unlinked crop"}
               </option>
             ))}
           </select>
         </label>
       )}
       <CropScene
-        crop={session?.crop ?? draft.crop}
+        crop={crop}
         progress={Math.max(0, Math.min(1, progress))}
         running={session?.status === "running"}
-        assetUrl={host.assetUrl}
         remaining={remaining}
       />
-      {session ? (
-        <SessionControls
-          session={session}
-          host={host}
-          blocked={busy || conflicted.includes(session.sessionId)}
-          act={act}
-        />
-      ) : (
-        <TimerSetup
-          draft={draft}
-          onChange={setDraft}
-          host={host}
-          sessions={sessions}
-          disabled={busy || conflicted.length > 0}
-          act={act}
-        />
-      )}
+      {controls}
     </>
   );
 }

@@ -1,32 +1,24 @@
 import { useId, type ChangeEvent } from "react";
-import type { Revision } from "../../lib/timer/types";
-import type { TimerDraft } from "../../types/timer-ui";
-import type { SolanumHost } from "../../types/host";
+import { useAppStore, useServices } from "../../state/hooks";
 
-export function SessionDetailsForm({
-  draft,
-  onChange,
-  host,
-  sessions,
-}: {
-  draft: TimerDraft;
-  onChange: (draft: TimerDraft) => void;
-  host: SolanumHost;
-  sessions: Revision[];
-}) {
+export function SessionDetailsForm() {
+  const host = useServices();
+  const draft = useAppStore((state) => state.draft);
+  const sessions = useAppStore((state) => state.sessions);
+  const updateDraft = useAppStore((state) => state.updateDraft);
   const tagsId = useId();
   const notesId = useId();
   const tags = [
     ...new Set([...host.tags(), ...sessions.flatMap((session) => session.tags)]),
   ].sort();
   function changeTags(event: ChangeEvent<HTMLInputElement>) {
-    onChange({ ...draft, tags: event.target.value });
+    updateDraft({ tags: event.target.value });
   }
   function changeNote(event: ChangeEvent<HTMLInputElement>) {
-    onChange({ ...draft, note: event.target.value });
+    updateDraft({ note: event.target.value });
   }
   function useActiveNote() {
-    onChange({ ...draft, note: host.activeNote() ?? "" });
+    updateDraft({ note: host.activeNote() ?? "" });
   }
   return (
     <details className="solanum-session-details">

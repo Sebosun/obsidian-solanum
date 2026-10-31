@@ -1,20 +1,21 @@
 import { useState } from "react";
-import type { SolanumHost } from "../../types/host";
-import type { Revision } from "../../lib/timer/types";
+import { useAppStore, useServices } from "../../state/hooks";
 import { buildHarvestMonth } from "../../lib/harvest/model";
 import { HarvestScene } from "./HarvestScene";
 import { HarvestDetails } from "./HarvestDetails";
 import { HarvestDayList } from "./HarvestDayList";
 
-export function HarvestPanel({
-  host,
-  sessions,
-  initialMonth,
-}: {
-  host: SolanumHost;
-  sessions: Revision[];
+interface HarvestPanelProps {
   initialMonth?: Date;
-}) {
+}
+
+export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
+  const host = useServices();
+  const history = useAppStore((state) => state.sessions);
+  const conflicts = useAppStore((state) => state.conflicts);
+  const sessions = history.filter(
+    (session) => !conflicts.some((conflict) => conflict.sessionId === session.sessionId),
+  );
   const [month, setMonth] = useState(initialMonth ?? new Date());
   const [selectedKey, setSelected] = useState<string | null>(null);
   const [hoverKey, setHover] = useState<string | null>(null);
@@ -79,7 +80,7 @@ export function HarvestPanel({
       </p>
       <HarvestDayList days={days} selectedKey={selectedKey} onSelect={setSelected} />
       {details ? (
-        <HarvestDetails day={details} host={host} />
+        <HarvestDetails day={details} />
       ) : (
         <p className="solanum-hint">Choose a plot to explore your harvest.</p>
       )}

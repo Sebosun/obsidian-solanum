@@ -1,31 +1,33 @@
-import type { TimerState } from "../../lib/timer/types";
-import type { Action, SolanumHost } from "../../types/host";
+import type { MouseEvent } from "react";
+import { useAppStore, useServices } from "../../state/hooks";
 
-export function SyncConflicts({
-  conflicts,
-  host,
-  act,
-  busy,
-}: {
-  conflicts: TimerState["conflicts"];
-  host: SolanumHost;
-  act: Action;
-  busy: boolean;
-}) {
+export function SyncConflicts() {
+  const services = useServices();
+  const conflicts = useAppStore((state) => state.conflicts);
+  const busy = useAppStore((state) => state.busy);
+  const run = useAppStore((state) => state.run);
+  function chooseVersion(event: MouseEvent<HTMLButtonElement>) {
+    const { session, revision } = event.currentTarget.dataset;
+    if (!session || !revision) return;
+    async function resolveConflict() {
+      await services.timer.resolve(session!, revision!);
+    }
+    void run(resolveConflict);
+  }
   return (
     <>
       {conflicts.map((conflict) => (
         <section key={conflict.sessionId} className="solanum-warning">
-          <strong>Sync conflict — choose a version</strong>
-          <p>Both edits are preserved. Automatic transitions are suspended until you choose.</p>
-          {conflict.versions.map((s) => (
+          <strong>Choose a synced version</strong>
+          {conflict.versions.map((version) => (
             <button
+              key={version.id}
               disabled={busy}
-              key={s.id}
-              onClick={() => void act(() => host.timer.resolve(s.sessionId, s.id))}
+              data-session={version.sessionId}
+              data-revision={version.id}
+              onClick={chooseVersion}
             >
-              Keep {s.phase} / {s.status} · {new Date(s.updatedAt).toLocaleString()} ·{" "}
-              {s.id.slice(0, 8)}
+              {version.phase} / {version.status} · {new Date(version.updatedAt).toLocaleString()}
             </button>
           ))}
         </section>

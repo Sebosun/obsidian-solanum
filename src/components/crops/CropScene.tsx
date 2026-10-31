@@ -8,22 +8,22 @@ import { CropFallback } from "./CropFallback";
 import { SceneCountdown } from "../scene/SceneCountdown";
 import { useSceneColor } from "../../hooks/useSceneColor";
 import { formatTime } from "../../lib/time";
+import { useServices } from "../../state/hooks";
 
 export function CropScene({
   crop = "tomato",
   progress,
   running,
-  assetUrl,
   immersive = false,
   remaining,
 }: {
   crop?: CropId;
   progress: number;
   running: boolean;
-  assetUrl: (name: string) => string;
   immersive?: boolean;
   remaining: number;
 }) {
+  const { assetUrl } = useServices();
   const container = useRef<HTMLDivElement>(null);
   const color = useSceneColor(container);
   const [visible, setVisible] = useState(true);

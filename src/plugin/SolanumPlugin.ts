@@ -13,6 +13,7 @@ import { DEBUG_CONFIG } from "../lib/debug/config";
 import { DebugTools } from "../lib/debug/DebugTools";
 import { VaultNoteIndex } from "./VaultNoteIndex";
 import { SolanumSettingsTab } from "./SolanumSettingsTab";
+import { releaseAppStore } from "../state/appStore";
 
 export default class SolanumPlugin extends Plugin implements SolanumHost {
   timer!: TimerService;
@@ -117,6 +118,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     if (this.syncPoll !== null) window.clearInterval(this.syncPoll);
     if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
     this.audio.close();
+    releaseAppStore(this.timer);
     // Never cancel or pause persisted crops when the plugin / Obsidian closes.
   }
 

@@ -1,8 +1,13 @@
 import { CROPS } from "../../lib/crops/catalog";
 import type { HarvestDay } from "../../lib/harvest/model";
-import type { SolanumHost } from "../../types/host";
+import { useServices } from "../../state/hooks";
 
-export function HarvestDetails({ day, host }: { day: HarvestDay; host: SolanumHost }) {
+interface HarvestDetailsProps {
+  day: HarvestDay;
+}
+
+export function HarvestDetails({ day }: HarvestDetailsProps) {
+  const host = useServices();
   return (
     <section className="solanum-day-details" aria-label="Harvest details" aria-live="polite">
       <h3>
