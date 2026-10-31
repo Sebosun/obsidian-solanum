@@ -1,8 +1,18 @@
-import { Notice, Plugin, type App, type TAbstractFile } from "obsidian";
+import { Notice, Plugin, TFile, type App, type TAbstractFile } from "obsidian";
 import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "@/views/SolanumView";
 import { TimerService } from "@/lib/timer/TimerService";
 import { VaultSessionStore } from "@/lib/storage/VaultSessionStore";
-import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+import {
+  DEBUG_SESSION_FOLDER,
+  DEFAULT_DAY_NOTES_FOLDER,
+  LEGACY_DAY_NOTES_FOLDER,
+  parseSessionFolder,
+} from "@/lib/storage/folder";
+import {
+  planDayNoteMigration,
+  moveDayNotes,
+  type DayNoteMigrationPlan,
+} from "@/lib/notes/migration";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
@@ -14,6 +24,9 @@ import {
   type ForestMapping,
 } from "@/lib/import/forest";
 import { DayNoteWriter, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import { parseExport } from "@/lib/storage/exchange";
+import type { ImportOptions } from "@/lib/storage/SessionExchange";
+import type { Revision } from "@/lib/timer/types";
 import { daysTouched } from "@/lib/notes/days";
 import { dayKey } from "@/lib/harvest/model";
 import type { CompletionPhase } from "@/types/host";
@@ -71,6 +84,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   private pendingDays = new Map<string, Date>();
   private dayNoteTimer: number | null = null;
   private unsubscribeDayNotes: (() => void) | null = null;
+  private importingSessions = new Map<string, number>();
 
   async onload(): Promise<void> {
     this.stopped = false;
@@ -103,7 +117,12 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
     this.exchange = new SessionExchange(this.app.vault.adapter, store, this.timer, Date.now);
     if (DEBUG_CONFIG.enabled) this.debug = new DebugTools(this.timer, store, DEBUG_CONFIG);
-    this.dayNotes = new DayNoteWriter(this.app.vault.adapter, () => this.settings.dayNotesFolder);
+    this.dayNotes = new DayNoteWriter(
+      this.app.vault.adapter,
+      () => this.settings.dayNotesFolder,
+      () => this.settings.dayNotesLayout,
+      () => this.settings.dayNotesMigrationRoot !== null,
+    );
     await this.background(() => this.timer.refresh());
     // Existing history is the baseline: notes follow changes, they are not backfilled at startup.
     for (const session of this.timer.getState().sessions)
@@ -251,12 +270,14 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     const { sessions } = this.timer.getState();
     const changed = sessions.filter(
       (session) =>
-        session.source === undefined && this.seenRevisions.get(session.sessionId) !== session.id,
+        session.source === undefined &&
+        this.seenRevisions.get(session.sessionId) !== session.id &&
+        !this.importingSessions.has(session.sessionId),
     );
     for (const session of sessions) this.seenRevisions.set(session.sessionId, session.id);
     if (!this.settings.dayNotes || this.stopped || changed.length === 0) return;
     const touched = daysTouched(changed, Date.now());
-    // A bulk import spans far more days than live work does; leave those to "Write notes for all history".
+    // Bound unsolicited sync backfills. Explicit imports write all their dates separately.
     if (touched.length > AUTO_DAY_NOTE_MAX_DAYS) return;
     for (const day of touched) this.pendingDays.set(dayKey(day), day);
     if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
@@ -293,17 +314,110 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   writeAllDayNotes = (): Promise<DayNoteTotals> =>
     this.dayNotes.writeAll(this.writableSessions(), Date.now());
 
-  exportSessions = (): Promise<ExportResult> => this.exchange.export();
-  importSessions = (text: string): Promise<ImportResult> => this.exchange.import(text);
+  private dayNoteMigrationTarget(): string {
+    if (this.settings.dayNotesMigrationRoot) return this.settings.dayNotesMigrationRoot;
+    if (this.settings.dayNotesFolder === LEGACY_DAY_NOTES_FOLDER) return DEFAULT_DAY_NOTES_FOLDER;
+    return this.settings.dayNotesFolder;
+  }
 
-  importForest = async (csv: string, mapping: ForestMapping): Promise<ForestImportResult> => {
+  planDayNoteMigration = (): Promise<DayNoteMigrationPlan> =>
+    this.dayNotes.exclusive(() =>
+      planDayNoteMigration(
+        this.app.vault.adapter,
+        this.settings.dayNotesFolder,
+        this.dayNoteMigrationTarget(),
+      ),
+    );
+
+  migrateDayNotes = (): Promise<number> =>
+    this.dayNotes.exclusive(async () => {
+      if (this.settings.dayNotesLayout !== "flat") return 0;
+      const from = this.settings.dayNotesFolder;
+      const to = this.dayNoteMigrationTarget();
+      const plan = await planDayNoteMigration(this.app.vault.adapter, from, to);
+      if (plan.conflicts.length > 0)
+        throw new Error(
+          `Documents already exist at ${plan.conflicts.join(", ")}. Nothing was moved.`,
+        );
+      // Survives a restart: no background write may recreate a moved source note.
+      await this.persist({ ...this.settings, dayNotesMigrationRoot: to });
+      const moved = await moveDayNotes(this.app.vault.adapter, from, to, async (source, target) => {
+        const file = this.app.vault.getAbstractFileByPath(source);
+        if (!(file instanceof TFile))
+          throw new Error(`Document not indexed yet: ${source}. Retry shortly`);
+        await this.app.fileManager.renameFile(file, target);
+      });
+      if (from !== to && (await this.app.vault.adapter.exists(from))) {
+        const { files, folders } = await this.app.vault.adapter.list(from);
+        if (files.length === 0 && folders.length === 0)
+          await this.app.vault.adapter.rmdir(from, false);
+      }
+      await this.persist({
+        ...this.settings,
+        dayNotesFolder: to,
+        dayNotesLayout: "calendar",
+        dayNotesMigrationRoot: null,
+      });
+      return moved;
+    });
+
+  exportSessions = (): Promise<ExportResult> => this.exchange.export();
+  importSessions = async (text: string, options: ImportOptions = {}): Promise<ImportResult> => {
+    const parsed = parseExport(text);
+    return this.importWithDocuments(parsed.revisions, parsed.invalid, options);
+  };
+
+  private async importWithDocuments(
+    revisions: Revision[],
+    invalid: number,
+    options: ImportOptions,
+  ): Promise<ImportResult> {
+    const ids = new Set(
+      revisions
+        .filter((revision) => revision.source === undefined)
+        .map((revision) => revision.sessionId),
+    );
+    for (const id of ids) this.importingSessions.set(id, (this.importingSessions.get(id) ?? 0) + 1);
+    let result: ImportResult;
+    try {
+      result = await this.exchange.importRevisions(revisions, invalid);
+    } finally {
+      for (const id of ids) {
+        const remaining = (this.importingSessions.get(id) ?? 1) - 1;
+        if (remaining === 0) this.importingSessions.delete(id);
+        else this.importingSessions.set(id, remaining);
+      }
+    }
+    if (options.createDocuments === false) return result;
+    const sessions = this.writableSessions();
+    const now = Date.now();
+    result.documents = await this.dayNotes.writeDays(
+      sessions,
+      daysTouched(
+        sessions.filter((session) => ids.has(session.sessionId)),
+        now,
+      ),
+      now,
+      options.onDocumentProgress,
+    );
+    return result;
+  }
+
+  importForest = async (
+    csv: string,
+    mapping: ForestMapping,
+    options: ImportOptions = {},
+  ): Promise<ForestImportResult> => {
     const parse = parseForestCsv(csv);
     const notes = this.noteIndex.notes();
     const built = buildForestRevisions(parse.entries, mapping, {
       breakMs: this.settings.breakMinutes * 60_000,
       resolveNote: (text) => matchNote(text, notes),
     });
-    const imported = await this.exchange.importRevisions(built.revisions);
+    const imported = await this.importWithDocuments(built.revisions, 0, {
+      ...options,
+      createDocuments: options.createDocuments ?? mapping.createDocuments,
+    });
     return {
       imported,
       failed: built.failed,

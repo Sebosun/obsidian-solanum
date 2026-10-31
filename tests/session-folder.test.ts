@@ -53,16 +53,20 @@ describe("season theme setting", () => {
 
 describe("day notes settings", () => {
   it("defaults to on with their own folder, and repairs corrupt values", () => {
-    expect(DEFAULT_SETTINGS).toMatchObject({ dayNotes: true, dayNotesFolder: "Solanum/days" });
+    expect(DEFAULT_SETTINGS).toMatchObject({
+      dayNotes: true,
+      dayNotesFolder: "Solanum",
+      dayNotesLayout: "calendar",
+    });
     expect(readSettings({ dayNotes: false }).dayNotes).toBe(false);
     expect(readSettings({ dayNotes: "no" }).dayNotes).toBe(true);
     expect(readSettings({ dayNotesFolder: "Journal/Focus" }).dayNotesFolder).toBe("Journal/Focus");
-    expect(readSettings({ dayNotesFolder: ".hidden" }).dayNotesFolder).toBe("Solanum/days");
-    expect(readSettings({ dayNotesFolder: "" }).dayNotesFolder).toBe("Solanum/days");
+    expect(readSettings({ dayNotesFolder: ".hidden" }).dayNotesFolder).toBe("Solanum");
+    expect(readSettings({ dayNotesFolder: "" }).dayNotesFolder).toBe("Solanum");
   });
 
   it("does not let day notes into the debug folder", () => {
     expect(parseDayNotesFolder("Solanum/debug-sessions/days").ok).toBe(false);
-    expect(parseDayNotesFolder("")).toEqual({ ok: true, folder: "Solanum/days" });
+    expect(parseDayNotesFolder("")).toEqual({ ok: true, folder: "Solanum" });
   });
 });

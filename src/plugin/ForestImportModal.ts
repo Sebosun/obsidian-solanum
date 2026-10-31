@@ -64,6 +64,15 @@ class ForestImportModal extends Modal {
     }
 
     new Setting(this.contentEl)
+      .setName("Create/update documents")
+      .setDesc("Write day documents for all imported dates, even if automatic day notes are off.")
+      .addToggle((control) => {
+        control.setValue(this.mapping.createDocuments !== false).onChange((value) => {
+          this.mapping.createDocuments = value;
+        });
+      });
+
+    new Setting(this.contentEl)
       .addButton((button) => button.setButtonText("Cancel").onClick(this.cancel))
       .addButton((button) =>
         button
@@ -92,7 +101,11 @@ export function askForestMapping(
   suggested: ForestMapping,
   knownTags: string[],
 ): Promise<ForestMapping | null> {
-  const mapping: ForestMapping = { tags: { ...suggested.tags }, trees: { ...suggested.trees } };
+  const mapping: ForestMapping = {
+    ...suggested,
+    tags: { ...suggested.tags },
+    trees: { ...suggested.trees },
+  };
   return new Promise((resolve) =>
     new ForestImportModal(app, preview, mapping, knownTags, resolve).open(),
   );

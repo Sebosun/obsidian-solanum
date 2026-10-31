@@ -1,6 +1,7 @@
 import { isRevision } from "@/lib/storage/validation";
 import type { Revision } from "@/lib/timer/types";
 import type { ImportResult } from "@/lib/storage/SessionExchange";
+import { describeDocuments } from "@/lib/notes/DayNoteWriter";
 
 export const EXPORT_FORMAT = "solanum-sessions";
 export const EXPORT_VERSION = 1;
@@ -105,5 +106,6 @@ export function summarizeImport(result: ImportResult): string {
     parts.push(
       `${plural(result.synthetic, "demo or debug entry was", "demo or debug entries were")} ignored.`,
     );
+  if (result.documents) parts.push(describeDocuments(result.documents));
   return parts.join(" ");
 }

@@ -2,7 +2,8 @@ import { normalizeVaultPath } from "@/lib/storage/vaultPath";
 
 export const DEFAULT_SESSION_FOLDER = "Solanum/sessions";
 export const DEBUG_SESSION_FOLDER = "Solanum/debug-sessions";
-export const DEFAULT_DAY_NOTES_FOLDER = "Solanum/days";
+export const DEFAULT_DAY_NOTES_FOLDER = "Solanum";
+export const LEGACY_DAY_NOTES_FOLDER = "Solanum/days";
 
 export type SessionFolderResult = { ok: true; folder: string } | { ok: false; reason: string };
 

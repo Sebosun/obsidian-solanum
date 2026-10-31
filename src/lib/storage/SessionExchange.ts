@@ -3,6 +3,12 @@ import { EXPORT_FOLDER, buildExport, canonical, parseExport } from "@/lib/storag
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { TimerService } from "@/lib/timer/TimerService";
 import type { Revision, SessionStore } from "@/lib/timer/types";
+import type { DocumentWriteResult } from "@/lib/notes/DayNoteWriter";
+
+export interface ImportOptions {
+  createDocuments?: boolean;
+  onDocumentProgress?: (done: number, total: number) => void;
+}
 
 export interface ExportResult {
   path: string;
@@ -10,6 +16,7 @@ export interface ExportResult {
 }
 
 export interface ImportResult {
+  documents?: DocumentWriteResult;
   added: number;
   /** Revisions the vault already held, byte-for-byte equal in content. */
   duplicates: number;

@@ -3,6 +3,7 @@ import { ensureFolder } from "@/lib/storage/ensureFolder";
 import { buildDayNote, composeDayNote } from "@/lib/notes/dayNote";
 import { daysTouched } from "@/lib/notes/days";
 import { dayKey } from "@/lib/harvest/model";
+import { pathForDay, type DayNotesLayout } from "@/lib/notes/path";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { Revision } from "@/lib/timer/types";
 
@@ -14,18 +15,48 @@ export interface DayNoteTotals {
   unchanged: number;
 }
 
+export interface DocumentWriteResult extends DayNoteTotals {
+  failures: { path: string; reason: string }[];
+}
+
+export function describeDocuments(result: DocumentWriteResult): string {
+  let message = `Documents: ${result.created} new, ${result.updated} updated, ${result.unchanged} unchanged.`;
+  if (result.failures.length > 0)
+    message += ` ${result.failures.length} failed. Session history is safe. Retry the import or use “Write notes for all history”. ${result.failures[0].reason}`;
+  return message;
+}
+
 /** Writes one readable markdown note per day into the vault. Demo and debug data never appears. */
 export class DayNoteWriter {
+  private queue: Promise<unknown> = Promise.resolve();
+
   constructor(
     private adapter: FileAdapter,
     private folder: () => string,
+    private layout: () => DayNotesLayout = () => "calendar",
+    private migrationPending: () => boolean = () => false,
   ) {}
 
-  pathFor(day: Date): string {
-    return `${this.folder()}/${dayKey(day)}.md`;
+  /** Notes and migration share a queue so a write cannot race a move. */
+  exclusive<T>(action: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(action);
+    this.queue = result.catch(() => {});
+    return result;
   }
 
-  async write(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
+  pathFor(day: Date): string {
+    return pathForDay(this.folder(), day, this.layout());
+  }
+
+  write(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
+    return this.exclusive(() => this.writeNow(sessions, day, now));
+  }
+
+  private async writeNow(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
+    if (this.migrationPending())
+      throw new Error(
+        "Day-note migration is incomplete. Resume it in Solanum settings before writing documents.",
+      );
     const real = sessions.filter((session) => session.source === undefined);
     const note = buildDayNote(day, dailyHarvest(real, day, {}, now).entries);
     if (!note) return "empty";
@@ -33,17 +64,57 @@ export class DayNoteWriter {
     const existing = (await this.adapter.exists(path)) ? await this.adapter.read(path) : null;
     const text = composeDayNote(existing, note);
     if (text === existing) return "unchanged";
-    await ensureFolder(this.adapter, this.folder());
+    await ensureFolder(this.adapter, path.slice(0, path.lastIndexOf("/")));
     await this.adapter.write(path, text);
     return existing === null ? "created" : "updated";
   }
 
   async writeAll(sessions: Revision[], now: number): Promise<DayNoteTotals> {
+    const { failures, ...totals } = await this.writeDays(sessions, daysTouched(sessions, now), now);
+    if (failures.length > 0) throw new Error(describeDocuments({ ...totals, failures }));
+    return totals;
+  }
+
+  writeDays(
+    sessions: Revision[],
+    days: Date[],
+    now: number,
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<DocumentWriteResult> {
+    return this.exclusive(() => this.writeDaysNow(sessions, days, now, onProgress));
+  }
+
+  private async writeDaysNow(
+    sessions: Revision[],
+    days: Date[],
+    now: number,
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<DocumentWriteResult> {
     const real = sessions.filter((session) => session.source === undefined);
-    const totals: DayNoteTotals = { created: 0, updated: 0, unchanged: 0 };
-    for (const day of daysTouched(real, now)) {
-      const outcome = await this.write(real, day, now);
-      if (outcome !== "empty") totals[outcome] += 1;
+    // Index once rather than scanning the entire history for each imported day.
+    const indexed = new Map<string, Revision[]>();
+    for (const session of real) {
+      for (const day of daysTouched([session], now)) {
+        const key = dayKey(day);
+        const bucket = indexed.get(key) ?? [];
+        bucket.push(session);
+        indexed.set(key, bucket);
+      }
+    }
+    const totals: DocumentWriteResult = { created: 0, updated: 0, unchanged: 0, failures: [] };
+    let done = 0;
+    for (const day of days) {
+      try {
+        const outcome = await this.writeNow(indexed.get(dayKey(day)) ?? [], day, now);
+        if (outcome !== "empty") totals[outcome] += 1;
+      } catch (error) {
+        totals.failures.push({
+          path: this.pathFor(day),
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
+      done += 1;
+      onProgress?.(done, days.length);
     }
     return totals;
   }

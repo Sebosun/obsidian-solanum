@@ -14,6 +14,7 @@ import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsCont
 /** Moving the whole session history in and out as a file. */
 export function displayBackupSettings(context: SettingsContext): void {
   const { app, containerEl, host, services } = context;
+  let createDocuments = true;
   addHeading(context, "Backup");
 
   new Setting(containerEl)
@@ -33,10 +34,12 @@ export function displayBackupSettings(context: SettingsContext): void {
     "No file dialog appeared? Put the file in your vault and use “From vault…” instead.";
 
   /** Runs a long import with a notice that stays up until it finishes. */
-  async function whileImporting<T>(work: () => Promise<T>): Promise<T> {
+  async function whileImporting<T>(
+    work: (onDocumentProgress: (done: number, total: number) => void) => Promise<T>,
+  ): Promise<T> {
     const working = new Notice("Importing sessions…", 0);
     try {
-      return await work();
+      return await work((done, total) => working.setMessage(`Writing documents… ${done}/${total}`));
     } finally {
       working.hide();
     }
@@ -44,7 +47,9 @@ export function displayBackupSettings(context: SettingsContext): void {
 
   async function importSessionsFrom(text: string | null): Promise<void> {
     if (text === null) return;
-    const result = await whileImporting(() => services.importSessions(text));
+    const result = await whileImporting((onDocumentProgress) =>
+      services.importSessions(text, { createDocuments, onDocumentProgress }),
+    );
     new Notice(summarizeImport(result), 10_000);
   }
 
@@ -62,7 +67,9 @@ export function displayBackupSettings(context: SettingsContext): void {
       host.tags(),
     );
     if (mapping === null) return;
-    const result = await whileImporting(() => services.importForest(text, mapping));
+    const result = await whileImporting((onDocumentProgress) =>
+      services.importForest(text, mapping, { onDocumentProgress }),
+    );
     new Notice(summarizeForestImport(result), 10_000);
   }
 
@@ -70,6 +77,17 @@ export function displayBackupSettings(context: SettingsContext): void {
     pickTextFile({ accept, onNoDialog: () => new Notice(NO_DIALOG_HINT, 8000) });
   const fromVault = async (extensions: string[]) =>
     (await pickVaultFile(app, extensions))?.text ?? null;
+
+  new Setting(containerEl)
+    .setName("Create/update documents when importing")
+    .setDesc(
+      "For Solanum backups. Forest imports have their own document option in the import dialog.",
+    )
+    .addToggle((control) => {
+      control.setValue(true).onChange((value) => {
+        createDocuments = value;
+      });
+    });
 
   new Setting(containerEl)
     .setName("Import sessions")

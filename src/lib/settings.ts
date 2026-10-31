@@ -1,4 +1,5 @@
 import { DEFAULT_PRESETS, readPresets } from "@/lib/timer/presets";
+import type { DayNotesLayout } from "@/lib/notes/path";
 import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
 import {
@@ -22,6 +23,10 @@ export interface Settings {
   dayNotes: boolean;
   /** Vault folder for the day notes. */
   dayNotesFolder: string;
+  /** Old vaults keep their flat layout until a confirmed, link-aware migration. */
+  dayNotesLayout: DayNotesLayout;
+  /** Persisted before moving; blocks note writes until an interrupted migration is resumed. */
+  dayNotesMigrationRoot: string | null;
   /** Vault audio file played when focus ends; empty uses the built-in chime. */
   focusSound: string;
   /** Vault audio file played when a break ends; empty uses the built-in chime. */
@@ -43,6 +48,8 @@ export const DEFAULT_SETTINGS: Settings = {
   breakSound: "",
   dayNotes: true,
   dayNotesFolder: DEFAULT_DAY_NOTES_FOLDER,
+  dayNotesLayout: "calendar",
+  dayNotesMigrationRoot: null,
 };
 
 export function readSettings(value: unknown): Settings {
@@ -63,10 +70,23 @@ export function readSettings(value: unknown): Settings {
     sessionFolder: readSessionFolder(s.sessionFolder),
     dayNotes: typeof s.dayNotes === "boolean" ? s.dayNotes : true,
     dayNotesFolder: readDayNotesFolder(s.dayNotesFolder),
+    dayNotesMigrationRoot:
+      typeof s.dayNotesMigrationRoot === "string" && parseDayNotesFolder(s.dayNotesMigrationRoot).ok
+        ? readDayNotesFolder(s.dayNotesMigrationRoot)
+        : null,
+    dayNotesLayout: readDayNotesLayout(s),
     focusSound: readSoundPath(s.focusSound),
     breakSound: readSoundPath(s.breakSound),
     season: SEASON_CHOICES.find((choice) => choice === s.season) ?? "auto",
   };
+}
+
+function readDayNotesLayout(settings: Partial<Settings>): DayNotesLayout {
+  if (settings.dayNotesLayout === "flat" || settings.dayNotesLayout === "calendar")
+    return settings.dayNotesLayout;
+  if (typeof settings.dayNotesFolder === "string" && settings.dayNotesFolder.trim() !== "")
+    return "flat";
+  return "calendar";
 }
 
 function readSessionFolder(value: unknown): string {

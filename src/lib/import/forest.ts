@@ -2,6 +2,7 @@ import { CROPS, type CropId } from "@/lib/crops/catalog";
 import type { ImportResult } from "@/lib/storage/SessionExchange";
 import { normalizeTags } from "@/lib/timer/selectors";
 import type { Revision } from "@/lib/timer/types";
+import { describeDocuments } from "@/lib/notes/DayNoteWriter";
 
 export interface ForestEntry {
   start: number;
@@ -38,6 +39,8 @@ export interface ForestPreview {
 }
 
 export interface ForestMapping {
+  /** Defaults to true, independently of automatic live-note updates. */
+  createDocuments?: boolean;
   /** Forest tag → Obsidian tag; an empty value means no tag. */
   tags: Record<string, string>;
   /** Forest tree type → our crop. */
@@ -283,5 +286,6 @@ export function summarizeForestImport(result: ForestImportResult): string {
     parts.push(
       `${plural(result.notesDropped, "note did", "notes did")} not match a note in your vault and ${result.notesDropped === 1 ? "was" : "were"} left out.`,
     );
+  if (imported.documents) parts.push(describeDocuments(imported.documents));
   return parts.join(" ");
 }

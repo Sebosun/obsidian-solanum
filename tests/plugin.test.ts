@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { App, PluginManifest } from "obsidian";
+import { TFile, type App, type PluginManifest } from "obsidian";
 
 const nativeSettings = vi.hoisted(() => {
   return new Map<string, (value: string | boolean | number) => Promise<void>>();
@@ -89,10 +89,16 @@ vi.mock("obsidian", () => ({
       nativeUi.notices.push(message);
     }
     hide() {}
+    setMessage(message: string) {
+      void message;
+    }
   },
   AbstractInputSuggest: class {},
   Modal: class {},
   TFolder: class {},
+  TFile: class {
+    path = "";
+  },
   PluginSettingTab: class {
     containerEl = document.createElement("div");
     app: unknown;
@@ -175,6 +181,7 @@ import SolanumPlugin from "@/main";
 import { getAppStore } from "@/state/appStore";
 import { MemoryDisk } from "./helpers/memoryDisk";
 import { readFileSync } from "node:fs";
+import type { ForestMapping } from "@/lib/import/forest";
 
 afterEach(() => {
   nativeUi.buttons.clear();
@@ -217,13 +224,21 @@ function vaultFixture() {
         return {};
       },
       getMarkdownFiles: vi.fn(() => [{ path: "Old.md" }]),
-      getAbstractFileByPath: (p: string) => (disk.files.has(p) ? { path: p } : null),
+      getAbstractFileByPath: (p: string) =>
+        disk.files.has(p) ? Object.assign(new TFile(), { path: p }) : null,
     },
     workspace: {
       onLayoutReady: vi.fn(),
       getActiveFile: () => null,
       getLeavesOfType: () => [],
       getRightLeaf: () => null,
+    },
+    fileManager: {
+      renameFile: vi.fn(async (file: TFile, target: string) => {
+        await disk.write(target, await disk.read(file.path));
+        await disk.remove(file.path);
+        file.path = target;
+      }),
     },
     setting: { open: vi.fn(), openTabById: vi.fn() },
     metadataCache: {
@@ -304,7 +319,12 @@ describe("Obsidian lifecycle integration", () => {
       ],
       Sessions: ["Session folder"],
       "Day notes": ["Keep day notes up to date", "Day notes folder", "Write notes for all history"],
-      Backup: ["Export sessions", "Import sessions", "Import from Forest"],
+      Backup: [
+        "Export sessions",
+        "Create/update documents when importing",
+        "Import sessions",
+        "Import from Forest",
+      ],
     });
     plugin.onunload();
   });
@@ -756,7 +776,7 @@ describe("Obsidian lifecycle integration", () => {
       notePath: null,
     });
     const notesIn = (disk: MemoryDisk) =>
-      [...disk.files.keys()].filter((path) => path.startsWith("Solanum/days/"));
+      [...disk.files.keys()].filter((path) => /^Solanum\/\d{4}\/\d{2}\/.*\.md$/.test(path));
 
     async function loaded(saved: unknown = null) {
       vi.useFakeTimers();
@@ -793,20 +813,20 @@ describe("Obsidian lifecycle integration", () => {
       await plugin.timer.pause(id);
       expect(notesIn(disk)).toEqual([]);
       await vi.advanceTimersByTimeAsync(2_000);
-      expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
-      expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Growing |");
+      expect(notesIn(disk)).toEqual(["Solanum/2026/10/2026-10-31.md"]);
+      expect(disk.files.get("Solanum/2026/10/2026-10-31.md")).toContain("| Growing |");
       await plugin.timer.resume(id);
       await vi.advanceTimersByTimeAsync(5 * 60_000 + 3_000);
-      expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Harvested |");
+      expect(disk.files.get("Solanum/2026/10/2026-10-31.md")).toContain("| Harvested |");
       plugin.onunload();
     });
 
     it("does not rewrite notes for existing history when the plugin starts", async () => {
       const first = await loaded();
       await workAMinute(first.plugin);
-      expect(notesIn(first.disk)).toEqual(["Solanum/days/2026-10-31.md"]);
+      expect(notesIn(first.disk)).toEqual(["Solanum/2026/10/2026-10-31.md"]);
       first.plugin.onunload();
-      first.disk.files.delete("Solanum/days/2026-10-31.md");
+      first.disk.files.delete("Solanum/2026/10/2026-10-31.md");
       const second = new SolanumPlugin(first.app, { id: "solanum" } as PluginManifest);
       await second.onload();
       await vi.advanceTimersByTimeAsync(5_000);
@@ -819,8 +839,8 @@ describe("Obsidian lifecycle integration", () => {
       await workAMinute(plugin);
       expect(notesIn(disk)).toEqual([]);
       await plugin.openDayNote(new Date(2026, 9, 31));
-      expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
-      expect(openLinkText).toHaveBeenCalledWith("Solanum/days/2026-10-31.md", "", false);
+      expect(notesIn(disk)).toEqual(["Solanum/2026/10/2026-10-31.md"]);
+      expect(openLinkText).toHaveBeenCalledWith("Solanum/2026/10/2026-10-31.md", "", false);
       plugin.onunload();
     });
 
@@ -834,9 +854,12 @@ describe("Obsidian lifecycle integration", () => {
     });
 
     it("uses the configured folder", async () => {
-      const { plugin, disk } = await loaded({ dayNotesFolder: "Journal/Focus" });
+      const { plugin, disk } = await loaded({
+        dayNotesFolder: "Journal/Focus",
+        dayNotesLayout: "calendar",
+      });
       await workAMinute(plugin);
-      expect([...disk.files.keys()]).toContain("Journal/Focus/2026-10-31.md");
+      expect([...disk.files.keys()]).toContain("Journal/Focus/2026/10/2026-10-31.md");
       plugin.onunload();
     });
 
@@ -850,11 +873,11 @@ describe("Obsidian lifecycle integration", () => {
       vi.setSystemTime(new Date(2026, 10, 2, 9, 5));
       await commandNamed(plugin, "open-today-note")();
       await vi.advanceTimersByTimeAsync(10);
-      expect(openLinkText).toHaveBeenCalledWith("Solanum/days/2026-11-02.md", "", false);
+      expect(openLinkText).toHaveBeenCalledWith("Solanum/2026/11/2026-11-02.md", "", false);
       await nativeUi.buttons.get("Write notes for all history")!();
       expect(notesIn(disk).sort()).toEqual([
-        "Solanum/days/2026-10-31.md",
-        "Solanum/days/2026-11-02.md",
+        "Solanum/2026/10/2026-10-31.md",
+        "Solanum/2026/11/2026-11-02.md",
       ]);
       expect(nativeUi.notices.join(" ")).toMatch(/Day notes: 1 new, 0 updated, 1 unchanged/);
       plugin.onunload();
@@ -866,16 +889,65 @@ describe("Obsidian lifecycle integration", () => {
       expect(plugin.settings.dayNotes).toBe(false);
       await nativeSettings.get("Day notes folder")!(".hidden/days");
       expect(nativeUi.descriptions.get("Day notes folder")).toMatch(/hidden/i);
-      expect(plugin.settings.dayNotesFolder).toBe("Solanum/days");
+      expect(plugin.settings.dayNotesFolder).toBe("Solanum");
       await nativeSettings.get("Day notes folder")!("Journal/Focus");
       expect(plugin.settings.dayNotesFolder).toBe("Journal/Focus");
       plugin.onunload();
+    });
+
+    it("keeps old paths until confirmed, then migrates through Obsidian and saves the new root", async () => {
+      const { plugin, disk, app } = await loaded({ dayNotesFolder: "Solanum/days" });
+      await workAMinute(plugin);
+      const source = "Solanum/days/2026-10-31.md";
+      disk.files.set(source, `${await disk.read(source)}\n## Reflection\nKeep this.\n`);
+      const original = await disk.read(source);
+      expect(plugin.settings.dayNotesLayout).toBe("flat");
+      nativeUi.confirm.answer = false;
+      await nativeUi.buttons.get("Preview migration…")!();
+      expect(disk.files.get(source)).toBe(original);
+      expect(nativeUi.confirm.messages[0]).toContain("Solanum/2026/10/2026-10-31.md");
+      nativeUi.confirm.answer = true;
+      await nativeUi.buttons.get("Preview migration…")!();
+      expect(app.fileManager.renameFile).toHaveBeenCalledOnce();
+      expect(disk.files.has(source)).toBe(false);
+      expect(disk.folders.has("Solanum/days")).toBe(false);
+      expect(disk.files.get("Solanum/2026/10/2026-10-31.md")).toBe(original);
+      expect(plugin.settings).toMatchObject({
+        dayNotesFolder: "Solanum",
+        dayNotesLayout: "calendar",
+        dayNotesMigrationRoot: null,
+      });
+      plugin.onunload();
+    });
+
+    it("blocks document writes after interrupted migration, including after restart, and resumes", async () => {
+      const { plugin, disk, app } = await loaded({ dayNotesFolder: "Journal/Focus" });
+      await workAMinute(plugin);
+      disk.failWrites.add("Journal/Focus/2026/10/2026-10-31.md");
+      await expect(plugin.migrateDayNotes()).rejects.toThrow(/Resume/);
+      expect(plugin.settings.dayNotesMigrationRoot).toBe("Journal/Focus");
+      const saved = { ...plugin.settings };
+      plugin.onunload();
+      const restarted = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+      restarted.loadData = async () => saved;
+      await restarted.onload();
+      await expect(restarted.writeAllDayNotes()).rejects.toThrow(/migration is incomplete/);
+      disk.failWrites.clear();
+      expect(await restarted.migrateDayNotes()).toBe(1);
+      expect(restarted.settings).toMatchObject({
+        dayNotesFolder: "Journal/Focus",
+        dayNotesLayout: "calendar",
+        dayNotesMigrationRoot: null,
+      });
+      expect(disk.files.has("Journal/Focus/2026-10-31.md")).toBe(false);
+      await restarted.writeAllDayNotes();
+      restarted.onunload();
     });
   });
 
   describe("Forest import", () => {
     const sample = readFileSync("tests/fixtures/forest-sample.csv", "utf8");
-    const mapping = {
+    const mapping: ForestMapping = {
       tags: { Study: "university", Latin: "" },
       trees: { Bush: "carrot", Cedar: "pumpkin", "Statue of Tada": "tomato" },
     };
@@ -890,7 +962,7 @@ describe("Obsidian lifecycle integration", () => {
     }
     const choose = () => nativeUi.buttons.get("Choose CSV…")!();
     const notesIn = (disk: MemoryDisk) =>
-      [...disk.files.keys()].filter((path) => path.startsWith("Solanum/days/"));
+      [...disk.files.keys()].filter((path) => /^Solanum\/\d{4}\/\d{2}\/.*\.md$/.test(path));
 
     it("imports a Forest CSV chosen from the vault", async () => {
       const { plugin } = await loaded();
@@ -1004,7 +1076,7 @@ describe("Obsidian lifecycle integration", () => {
       again.onunload();
     });
 
-    it("does not write a day note for every imported day, but still can on request", async () => {
+    it("writes documents for every imported day, including imports spanning more than 14 days", async () => {
       const { plugin, disk } = await loaded();
       const rows = Array.from({ length: 20 }, (_, i) => {
         const day = String(i + 1).padStart(2, "0");
@@ -1018,9 +1090,70 @@ describe("Obsidian lifecycle integration", () => {
       await choose();
       await vi.advanceTimersByTimeAsync(5_000);
       expect(plugin.timer.getState().sessions).toHaveLength(20);
-      expect(notesIn(disk)).toEqual([]);
+      expect(notesIn(disk)).toHaveLength(20);
       await nativeUi.buttons.get("Write notes for all history")!();
       expect(notesIn(disk)).toHaveLength(20);
+      plugin.onunload();
+    });
+
+    it("repairs a missing document on duplicate import without duplicating sessions", async () => {
+      const { plugin, disk } = await loaded();
+      picker.text = sample;
+      forestDialog.answer = mapping;
+      await choose();
+      const paths = notesIn(disk);
+      expect(paths.length).toBeGreaterThan(0);
+      disk.files.delete(paths[0]);
+      await choose();
+      expect(plugin.timer.getState().sessions).toHaveLength(17);
+      expect(notesIn(disk).sort()).toEqual(paths.sort());
+      plugin.onunload();
+    });
+
+    it("creates import documents even when automatic notes are off, and supports opting out", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.saveSettings({ ...plugin.settings, dayNotes: false });
+      const skipped = await plugin.importForest(sample, { ...mapping, createDocuments: false });
+      expect(skipped.imported.added).toBe(17);
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(notesIn(disk)).toEqual([]);
+      const repaired = await plugin.importForest(sample, mapping);
+      expect(repaired.imported.duplicates).toBe(17);
+      expect(repaired.imported.documents?.created).toBeGreaterThan(0);
+      expect(notesIn(disk).length).toBeGreaterThan(0);
+      plugin.onunload();
+    });
+
+    it("keeps imported sessions when a document fails, continues, and repairs on retry", async () => {
+      const { plugin, disk } = await loaded();
+      const first = await plugin.importForest(sample, { ...mapping, createDocuments: false });
+      const day = new Date(plugin.timer.getState().sessions[0].startedAt);
+      const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+      const path = `Solanum/${date.slice(0, 4)}/${date.slice(5, 7)}/${date}.md`;
+      disk.failWrites.add(path);
+      const failed = await plugin.importForest(sample, mapping);
+      expect(first.imported.added).toBe(17);
+      expect(failed.imported.documents?.failures).toHaveLength(1);
+      expect(failed.imported.documents?.created).toBeGreaterThan(0);
+      expect(plugin.timer.getState().sessions).toHaveLength(17);
+      disk.failWrites.clear();
+      const retry = await plugin.importForest(sample, mapping);
+      expect(retry.imported.documents?.failures).toEqual([]);
+      expect(disk.files.has(path)).toBe(true);
+      plugin.onunload();
+    });
+
+    it("uses the same repair pipeline for a Solanum backup and reports progress", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.importForest(sample, { ...mapping, createDocuments: false });
+      const exported = await plugin.exportSessions();
+      const progress: [number, number][] = [];
+      const result = await plugin.importSessions(await disk.read(exported.path), {
+        onDocumentProgress: (done, total) => progress.push([done, total]),
+      });
+      expect(result.added).toBe(0);
+      expect(result.documents?.created).toBeGreaterThan(0);
+      expect(progress[progress.length - 1]).toEqual([notesIn(disk).length, notesIn(disk).length]);
       plugin.onunload();
     });
   });

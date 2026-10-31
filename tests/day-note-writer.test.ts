@@ -7,7 +7,7 @@ import { focusSession } from "./helpers/sessions";
 
 const NOW = new Date(2026, 10, 3, 12).getTime();
 
-function writer(folder = "Solanum/days") {
+function writer(folder = "Solanum") {
   const disk = new MemoryDisk();
   let writes = 0;
   const original = disk.write.bind(disk);
@@ -51,7 +51,7 @@ describe("writing day notes into the vault", () => {
     const { disk, notes } = writer("Journal/Focus/Days");
     const outcome = await notes.write([morning], new Date(2026, 9, 31), NOW);
     expect(outcome).toBe("created");
-    const text = disk.files.get("Journal/Focus/Days/2026-10-31.md")!;
+    const text = disk.files.get("Journal/Focus/Days/2026/10/2026-10-31.md")!;
     expect(text.startsWith("---\nsolanum: day\ndate: 2026-10-31\n")).toBe(true);
     expect(text).toContain("# Saturday, 31 October 2026");
     expect(text).toContain("| 09:00 | 🍅 Tomato | 25 min | Harvested | #study |");
@@ -60,7 +60,7 @@ describe("writing day notes into the vault", () => {
   it("leaves text the user added and does not rewrite an unchanged note", async () => {
     const { disk, writes, notes } = writer();
     await notes.write([morning], new Date(2026, 9, 31), NOW);
-    const path = "Solanum/days/2026-10-31.md";
+    const path = "Solanum/2026/10/2026-10-31.md";
     disk.files.set(path, `${disk.files.get(path)}\n## My reflection\nGood focus today.\n`);
     const before = writes();
     expect(await notes.write([morning], new Date(2026, 9, 31), NOW)).toBe("unchanged");
@@ -91,10 +91,10 @@ describe("writing day notes into the vault", () => {
     const result = await notes.writeAll([morning, late], NOW);
     expect(result).toEqual({ created: 2, updated: 0, unchanged: 0 });
     expect([...disk.files.keys()].sort()).toEqual([
-      "Solanum/days/2026-10-31.md",
-      "Solanum/days/2026-11-01.md",
+      "Solanum/2026/10/2026-10-31.md",
+      "Solanum/2026/11/2026-11-01.md",
     ]);
-    expect(disk.files.get("Solanum/days/2026-11-01.md")).toContain("**30 min focused**");
+    expect(disk.files.get("Solanum/2026/11/2026-11-01.md")).toContain("**30 min focused**");
     expect(await notes.writeAll([morning, late], NOW)).toEqual({
       created: 0,
       updated: 0,
@@ -104,9 +104,21 @@ describe("writing day notes into the vault", () => {
 
   it("surfaces a failed write instead of pretending the note exists", async () => {
     const { disk, notes } = writer();
-    disk.failWrites.add("Solanum/days/2026-10-31.md");
+    disk.failWrites.add("Solanum/2026/10/2026-10-31.md");
     await expect(notes.write([morning], new Date(2026, 9, 31), NOW)).rejects.toThrow(
       /Write failed/,
+    );
+  });
+
+  it("splits a year-boundary session and includes other sessions on the requested days", async () => {
+    const { disk, notes } = writer();
+    const late = focusSession("late", new Date(2025, 11, 31, 23, 30), 60);
+    const morning = focusSession("morning", new Date(2026, 0, 1, 9), 25);
+    const result = await notes.writeDays([late, morning], daysTouched([late], NOW), NOW);
+    expect(result).toEqual({ created: 2, updated: 0, unchanged: 0, failures: [] });
+    expect(disk.files.get("Solanum/2025/12/2025-12-31.md")).toContain("**30 min focused**");
+    expect(disk.files.get("Solanum/2026/01/2026-01-01.md")).toContain(
+      "**55 min focused** · 2 sessions",
     );
   });
 });

@@ -3,8 +3,9 @@ import type { DebugTools } from "@/lib/debug/DebugTools";
 import type { Settings } from "@/lib/settings";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import type { DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import type { DayNoteMigrationPlan } from "@/lib/notes/migration";
 import type { ForestImportResult, ForestMapping } from "@/lib/import/forest";
-import type { ExportResult, ImportResult } from "@/lib/storage/SessionExchange";
+import type { ExportResult, ImportOptions, ImportResult } from "@/lib/storage/SessionExchange";
 
 export type CompletionPhase = "focus" | "break";
 export type Screen = "timer" | "harvest";
@@ -39,14 +40,20 @@ export interface SessionFolderPort {
 /** Backup and restore of the whole session history, used only by the settings tab. */
 export interface SessionExchangePort {
   exportSessions(): Promise<ExportResult>;
-  importSessions(text: string): Promise<ImportResult>;
+  importSessions(text: string, options?: ImportOptions): Promise<ImportResult>;
   /** Adds the finished sessions of a Forest CSV export, using the user's tag and tree mapping. */
-  importForest(csv: string, mapping: ForestMapping): Promise<ForestImportResult>;
+  importForest(
+    csv: string,
+    mapping: ForestMapping,
+    options?: ImportOptions,
+  ): Promise<ForestImportResult>;
 }
 
 /** Writing day notes for the whole history, used only by the settings tab. */
 export interface DayNotesPort {
   writeAllDayNotes(): Promise<DayNoteTotals>;
+  planDayNoteMigration(): Promise<DayNoteMigrationPlan>;
+  migrateDayNotes(): Promise<number>;
 }
 
 /** Everything the settings tab can ask the plugin to do beyond saving preferences. */
