@@ -4,6 +4,7 @@
   "private": true,
   "description": "A tomato timer for the Obsidian sidebar.",
   "scripts": {
+    "test:browser": "npm run build:css && playwright test",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
     "@react-three/test-renderer": "^9.1.1",
     "@tailwindcss/cli": "^4.3.3",
     "@testing-library/react": "^16.3.3",

@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
 import type { Group } from "three";
-import { CROPS, type CropId } from "../../lib/crops/catalog";
+import type { CropId } from "../../lib/crops/catalog";
 import { GrowthTransition } from "../../lib/scene/GrowthTransition";
 import { GrowthLayer } from "./GrowthLayer";
 import { GrowthSeed } from "./GrowthSeed";
+import { getCropAssets } from "../../state/cropAssets";
+import { useServices } from "../../state/hooks";
 
 interface GrowingCropProps {
   crop: CropId;
   stage: number;
   moving: boolean;
   reduced: boolean;
-  assetUrl: (file: string) => string;
 }
 
-export function GrowingCrop({ crop, stage, moving, reduced, assetUrl }: GrowingCropProps) {
+export function GrowingCrop({ crop, stage, moving, reduced }: GrowingCropProps) {
+  const assets = getCropAssets(useServices());
   const transition = useRef(new GrowthTransition(stage)).current;
   const clock = useThree((state) => state.clock);
   const invalidate = useThree((state) => state.invalidate);
@@ -24,9 +25,8 @@ export function GrowingCrop({ crop, stage, moving, reduced, assetUrl }: GrowingC
   const retained = useRef([stage]);
 
   useEffect(() => {
-    for (let index = 1; index <= 4; index++)
-      useGLTF.preload(assetUrl(`${CROPS[crop].model}_${index}.glb`));
-  }, [crop, assetUrl]);
+    assets.preload(crop);
+  }, [crop, assets]);
 
   useEffect(() => {
     const now = clock.getElapsedTime();
@@ -53,13 +53,7 @@ export function GrowingCrop({ crop, stage, moving, reduced, assetUrl }: GrowingC
         value === 0 ? (
           <GrowthSeed key={value} transition={transition} />
         ) : (
-          <GrowthLayer
-            key={value}
-            stage={value}
-            crop={crop}
-            transition={transition}
-            assetUrl={assetUrl}
-          />
+          <GrowthLayer key={value} stage={value} crop={crop} transition={transition} />
         ),
       )}
     </group>

@@ -1,14 +1,13 @@
 import { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Bounds, useGLTF } from "@react-three/drei";
+import { Bounds } from "@react-three/drei";
 import type { HarvestDay } from "../../lib/harvest/model";
-import { CROPS } from "../../lib/crops/catalog";
-import { cropStage } from "../../lib/crops/growth";
 import { useServices } from "../../state/hooks";
 import { SceneBoundary } from "../scene/SceneBoundary";
 import { HarvestDayPlot } from "./HarvestDayPlot";
 import { HarvestLoading } from "./HarvestLoading";
 import { HarvestUnavailable } from "./HarvestUnavailable";
+import { getCropAssets } from "../../state/cropAssets";
 
 interface HarvestSceneProps {
   days: HarvestDay[];
@@ -18,20 +17,11 @@ interface HarvestSceneProps {
 }
 
 export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestSceneProps) {
-  const { assetUrl } = useServices();
+  const services = useServices();
   const [attempt, setAttempt] = useState(0);
 
   function retry() {
-    const assets = new Set<string>();
-    for (const day of days) {
-      for (const item of day.items) {
-        const model = CROPS[item.session.crop].model;
-        const stage = Math.max(1, cropStage(item.progress));
-        assets.add(assetUrl(`${model}_${stage}.glb`));
-        assets.add(assetUrl(`${model}_4.glb`));
-      }
-    }
-    assets.forEach((asset) => useGLTF.clear(asset));
+    getCropAssets(services).retry();
     setAttempt(attempt + 1);
   }
   function clearHover() {
@@ -61,7 +51,6 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
                     key={day.key}
                     day={day}
                     active={day.key === activeKey}
-                    assetUrl={assetUrl}
                     onHover={onHover}
                     onSelect={onSelect}
                   />

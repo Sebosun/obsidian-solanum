@@ -12,13 +12,7 @@ describe("3D plot pointer interaction", () => {
     const onSelect = vi.fn();
     const stopPropagation = vi.fn();
     const renderer = await ReactThreeTestRenderer.create(
-      <HarvestDayPlot
-        day={day}
-        active={false}
-        assetUrl={(s) => s}
-        onHover={onHover}
-        onSelect={onSelect}
-      />,
+      <HarvestDayPlot day={day} active={false} onHover={onHover} onSelect={onSelect} />,
     );
     try {
       const group = renderer.scene.findByProps({ name: `day-${day.key}` });

@@ -15,6 +15,7 @@ export interface SolanumHost {
   activeNote(): string | null;
   openNote(path: string): void;
   assetUrl(name: string): string;
+  readAsset?(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;
   unlockAudio(): void;
   previewSound(): void;

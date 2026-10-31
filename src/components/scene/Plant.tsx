@@ -1,19 +1,17 @@
 import { useMemo } from "react";
-import { useGLTF } from "@react-three/drei";
-import { CROPS, type CropId } from "../../lib/crops/catalog";
+import type { CropId } from "../../lib/crops/catalog";
 import { preparePlant } from "../../lib/crops/geometry";
+import { useCropModel } from "../../hooks/useCropModel";
 
 interface PlantProps {
   crop: CropId;
   stage: number;
-  assetUrl(name: string): string;
   scale?: number;
 }
 
-export function Plant({ crop, stage, assetUrl, scale = 1 }: PlantProps) {
-  const model = CROPS[crop].model;
-  const { scene } = useGLTF(assetUrl(`${model}_${Math.max(1, stage)}.glb`));
-  const { scene: mature } = useGLTF(assetUrl(`${model}_4.glb`));
+export function Plant({ crop, stage, scale = 1 }: PlantProps) {
+  const { scene } = useCropModel(crop, Math.max(1, stage));
+  const { scene: mature } = useCropModel(crop, 4);
   const { object, factor } = useMemo(() => preparePlant(scene, mature), [scene, mature]);
   return (
     <group scale={scale * factor}>

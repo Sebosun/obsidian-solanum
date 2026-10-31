@@ -8,7 +8,6 @@ import { CropFallback } from "./CropFallback";
 import { SceneCountdown } from "../scene/SceneCountdown";
 import { useSceneColor } from "../../hooks/useSceneColor";
 import { formatTime } from "../../lib/time";
-import { useServices } from "../../state/hooks";
 import { CompletionFlourish } from "../scene/CompletionFlourish";
 
 interface CropSceneProps {
@@ -26,7 +25,6 @@ export function CropScene({
   immersive = false,
   remaining,
 }: CropSceneProps) {
-  const { assetUrl } = useServices();
   const container = useRef<HTMLDivElement>(null);
   const color = useSceneColor(container);
   const [visible, setVisible] = useState(true);
@@ -76,14 +74,7 @@ export function CropScene({
               <meshStandardMaterial color="#493324" />
             </mesh>
             <CompletionFlourish reduced={reduced}>
-              <GrowingCrop
-                key={crop}
-                crop={crop}
-                stage={stage}
-                assetUrl={assetUrl}
-                moving={moving}
-                reduced={reduced}
-              />
+              <GrowingCrop key={crop} crop={crop} stage={stage} moving={moving} reduced={reduced} />
             </CompletionFlourish>
           </Canvas>
         </Suspense>

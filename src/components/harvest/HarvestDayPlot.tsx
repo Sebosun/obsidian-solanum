@@ -7,12 +7,11 @@ import type { ThreeEvent } from "@react-three/fiber";
 interface HarvestDayPlotProps {
   day: HarvestDay;
   active: boolean;
-  assetUrl(name: string): string;
   onHover(key: string | null): void;
   onSelect(key: string): void;
 }
 
-export function HarvestDayPlot({ day, active, assetUrl, onHover, onSelect }: HarvestDayPlotProps) {
+export function HarvestDayPlot({ day, active, onHover, onSelect }: HarvestDayPlotProps) {
   let soilColor = "#514536";
   if (day.items.length > 0) soilColor = "#765538";
   if (active) soilColor = "#a1bb79";
@@ -46,7 +45,6 @@ export function HarvestDayPlot({ day, active, assetUrl, onHover, onSelect }: Har
             crop={item.session.crop}
             stage={Math.max(1, cropStage(item.progress))}
             scale={0.19 + 0.06 * item.progress}
-            assetUrl={assetUrl}
           />
         </group>
       ))}

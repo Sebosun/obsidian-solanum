@@ -1,23 +1,21 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
-import { CROPS, type CropId } from "../../lib/crops/catalog";
+import type { CropId } from "../../lib/crops/catalog";
 import { preparePlant } from "../../lib/crops/geometry";
 import { clonePlantMaterials } from "../../lib/crops/materials";
 import type { GrowthTransition } from "../../lib/scene/GrowthTransition";
+import { useCropModel } from "../../hooks/useCropModel";
 
 interface GrowthLayerProps {
   crop: CropId;
   stage: number;
-  assetUrl: (file: string) => string;
   transition: GrowthTransition;
 }
 
-export function GrowthLayer({ crop, stage, assetUrl, transition }: GrowthLayerProps) {
-  const model = CROPS[crop].model;
-  const { scene } = useGLTF(assetUrl(`${model}_${stage}.glb`));
-  const { scene: mature } = useGLTF(assetUrl(`${model}_4.glb`));
+export function GrowthLayer({ crop, stage, transition }: GrowthLayerProps) {
+  const { scene } = useCropModel(crop, stage);
+  const { scene: mature } = useCropModel(crop, 4);
   const plant = useMemo(() => {
     const prepared = preparePlant(scene, mature);
     const materials = clonePlantMaterials(prepared.object);
