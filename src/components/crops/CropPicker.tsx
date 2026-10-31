@@ -1,5 +1,5 @@
 import { CROPS, isCropId, type CropId } from "@/lib/crops/catalog";
-import type { ChangeEvent } from "react";
+import type { MouseEvent } from "react";
 
 interface CropPickerProps {
   value: CropId;
@@ -7,19 +7,35 @@ interface CropPickerProps {
 }
 
 export function CropPicker({ value, onChange }: CropPickerProps) {
-  function changeCrop(event: ChangeEvent<HTMLSelectElement>) {
-    if (isCropId(event.target.value)) onChange(event.target.value);
+  function pick(event: MouseEvent<HTMLButtonElement>) {
+    const crop = event.currentTarget.dataset.crop;
+    if (isCropId(crop)) onChange(crop);
   }
   return (
-    <label className="solanum-field">
-      Crop
-      <select value={value} onChange={changeCrop}>
+    <div className="solanum-field">
+      <span id="solanum-crop-label">Crop</span>
+      <div
+        className="solanum-crops"
+        role="radiogroup"
+        aria-labelledby="solanum-crop-label"
+        aria-label="Crop"
+      >
         {Object.entries(CROPS).map(([id, crop]) => (
-          <option key={id} value={id}>
-            {crop.emoji} {crop.name}
-          </option>
+          <button
+            key={id}
+            role="radio"
+            aria-checked={value === id}
+            aria-label={crop.name}
+            data-crop={id}
+            onClick={pick}
+          >
+            <span className="solanum-crop-emoji" aria-hidden="true">
+              {crop.emoji}
+            </span>
+            <span aria-hidden="true">{crop.name}</span>
+          </button>
         ))}
-      </select>
-    </label>
+      </div>
+    </div>
   );
 }

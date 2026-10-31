@@ -37,7 +37,7 @@ export function HarvestEntry({ session, minutes }: HarvestEntryProps) {
         <div className="solanum-entry-tags">
           {session.tags.map((tag) => (
             <span className="solanum-tag" key={tag}>
-              #{tag}
+              {tag}
             </span>
           ))}
         </div>

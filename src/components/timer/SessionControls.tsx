@@ -40,7 +40,7 @@ export function SessionControls() {
       <div className="solanum-session-context sol:flex sol:flex-wrap sol:gap-1.5 sol:items-center sol:justify-center sol:mb-3">
         {session.tags.map((tag) => (
           <span className="solanum-tag" key={tag}>
-            #{tag}
+            {tag}
           </span>
         ))}
         {session.notePath && (

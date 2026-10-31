@@ -21,12 +21,15 @@ export function useFocusMode(screen: Screen) {
     id = active[0].id;
   }
   useEffect(() => {
+    // Escape toggles: the first press shows the controls, the next returns to the focus view.
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape" && id) reveal(id);
+      if (event.key !== "Escape" || !id) return;
+      if (revealed === id) hide();
+      else reveal(id);
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [id, reveal]);
+  }, [id, revealed, reveal, hide]);
   const immersive = !!id && revealed !== id && !error && conflicts.length === 0;
   const onHide = id ? hide : undefined;
   return { immersive, onHide };

@@ -151,7 +151,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     const scene = screen.getByRole("figure");
-    fireEvent.change(screen.getByLabelText("Crop"), { target: { value: "pumpkin" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Pumpkin" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await screen.findByRole("button", { name: "Show timer controls" });
     expect(screen.getByRole("figure")).toBe(scene);
@@ -170,6 +170,118 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("figure")).toBe(scene);
     expect(screen.getByRole("navigation")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
+  });
+
+  it("returns to the immersive view from the revealed controls, by button or Escape", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await revealControls();
+    expect(screen.getByRole("button", { name: "Pause" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Enter focus view" }));
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enter focus view" })).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Pause" })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Show timer controls" })).toBeTruthy();
+  });
+
+  describe("session details pickers", () => {
+    const tagInput = () => screen.getByRole("combobox", { name: "Tags" });
+    const chips = () =>
+      [...document.querySelectorAll(".solanum-chip")].map((chip) => chip.textContent?.trim());
+    const options = () => screen.queryAllByRole("option").map((option) => option.textContent);
+
+    it("offers vault and past tags in a dropdown, without the # prefix", async () => {
+      const f = fixture();
+      render(<App host={f.host} screen="timer" />);
+      fireEvent.focus(tagInput());
+      expect(options()).toEqual(["study", "work/client"]);
+      fireEvent.change(tagInput(), { target: { value: "#WORK" } });
+      expect(options()).toEqual(["work/client"]);
+    });
+
+    it("adds a suggestion by click or arrow keys, a typed tag by Enter, and removes the last on Backspace", async () => {
+      const f = fixture();
+      render(<App host={f.host} screen="timer" />);
+      fireEvent.focus(tagInput());
+      fireEvent.mouseDown(screen.getByRole("option", { name: "study" }));
+      expect(chips()).toEqual(["study"]);
+      expect(options()).toEqual([]);
+      fireEvent.keyDown(tagInput(), { key: "ArrowDown" });
+      expect(options()).toEqual(["work/client"]);
+      fireEvent.keyDown(tagInput(), { key: "Enter" });
+      expect(chips()).toEqual(["study", "work/client"]);
+      fireEvent.change(tagInput(), { target: { value: "#brand-new" } });
+      expect(options()[0]).toBe("brand-new");
+      fireEvent.keyDown(tagInput(), { key: "Enter" });
+      expect(chips()).toEqual(["study", "work/client", "brand-new"]);
+      fireEvent.keyDown(tagInput(), { key: "Backspace" });
+      expect(chips()).toEqual(["study", "work/client"]);
+      fireEvent.click(screen.getByRole("button", { name: "Remove study" }));
+      expect(chips()).toEqual(["work/client"]);
+    });
+
+    it("keeps typed text as a tag when focus leaves and never duplicates tags", async () => {
+      const f = fixture();
+      render(<App host={f.host} screen="timer" />);
+      fireEvent.change(tagInput(), { target: { value: "idea" } });
+      fireEvent.blur(tagInput());
+      fireEvent.change(tagInput(), { target: { value: "#idea," } });
+      expect(chips()).toEqual(["idea"]);
+    });
+
+    it("starts the next crop with the previous session's tags already filled in", async () => {
+      const f = fixture();
+      await f.host.timer.start({
+        durationMs: 5 * 60_000,
+        breakMs: 5 * 60_000,
+        autoBreak: false,
+        tags: ["study", "deep"],
+        notePath: null,
+      });
+      await f.host.timer.cancel(f.host.timer.getState().sessions[0].sessionId);
+      render(<App host={f.host} screen="timer" />);
+      expect(chips()).toEqual(["study", "deep"]);
+      fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+      await waitFor(() =>
+        expect(f.host.timer.getState().sessions[0].tags).toEqual(["study", "deep"]),
+      );
+    });
+
+    it("searches notes by name, shows the folder, and lets the link be cleared", async () => {
+      const f = fixture();
+      f.host.notes = () => ["Projects/Alpha.md", "Projects/Beta.md", "Inbox.md"];
+      render(<App host={f.host} screen="timer" />);
+      const note = screen.getByRole("combobox", { name: "Linked note" });
+      fireEvent.focus(note);
+      expect(options()).toHaveLength(3);
+      fireEvent.change(note, { target: { value: "alp" } });
+      expect(options()).toEqual(["AlphaProjects"]);
+      fireEvent.mouseDown(screen.getByRole("option", { name: /Alpha/ }));
+      expect(screen.queryByRole("combobox", { name: "Linked note" })).toBeNull();
+      expect(screen.getByText("Alpha")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Clear linked note" }));
+      expect(screen.getByRole("combobox", { name: "Linked note" })).toBeTruthy();
+    });
+
+    it("picks a crop from a visible grid instead of a select", async () => {
+      const f = fixture();
+      render(<App host={f.host} screen="timer" />);
+      const group = screen.getByRole("radiogroup", { name: "Crop" });
+      expect(
+        within(group)
+          .getAllByRole("radio")
+          .map((radio) => radio.getAttribute("aria-label")),
+      ).toEqual(["Tomato", "Carrot", "Corn", "Pumpkin"]);
+      expect(screen.getByRole("radio", { name: "Tomato" }).getAttribute("aria-checked")).toBe(
+        "true",
+      );
+      fireEvent.click(screen.getByRole("radio", { name: "Corn" }));
+      expect(screen.getByRole("radio", { name: "Corn" }).getAttribute("aria-checked")).toBe("true");
+    });
   });
 
   it("opens native preferences from the icon menu without changing the active session", async () => {
@@ -202,8 +314,9 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture();
     const first = render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "5 min" }));
-    fireEvent.click(screen.getByText("Details"));
-    fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "#work/client" } });
+    const tagInput = screen.getByRole("combobox", { name: "Tags" });
+    fireEvent.change(tagInput, { target: { value: "#work/client" } });
+    fireEvent.keyDown(tagInput, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Use active note" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await revealControls();
@@ -217,7 +330,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     await f.host.timer.refresh();
     render(<App host={f.host} screen="timer" />);
     expect(screen.getByRole("timer").textContent).toBe("03:00");
-    expect(screen.getByText("#work/client")).toBeTruthy();
+    expect(screen.getByText("work/client")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
     expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
@@ -283,7 +396,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.pointerEnter(other);
     const details = screen.getByRole("region", { name: "Harvest details" });
     expect(within(details).getByText(/October 31/)).toBeTruthy();
-    expect(within(details).getByText("#study")).toBeTruthy();
+    expect(within(details).getByText("study")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
     expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
   });

@@ -89,7 +89,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           <option value="">All tags</option>
           {tags.map((value) => (
             <option key={value} value={value}>
-              #{value}
+              {value}
             </option>
           ))}
         </select>

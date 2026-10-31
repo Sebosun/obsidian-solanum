@@ -1,5 +1,6 @@
 import { createStore } from "zustand/vanilla";
 import type { TimerService } from "@/lib/timer/TimerService";
+import type { Revision } from "@/lib/timer/types";
 import { normalizeTags } from "@/lib/timer/selectors";
 import type { SolanumHost } from "@/types/host";
 import type { AppState, AppStore } from "@/state/types";
@@ -9,16 +10,28 @@ interface StoreEntry {
   unsubscribe(): void;
 }
 
+/** Tags of the newest real session; seeded and debug history never leaks into the form. */
+function rememberedTags(sessions: Revision[]): string[] {
+  return sessions.find((session) => session.source === undefined)?.tags ?? [];
+}
+
 const stores = new WeakMap<TimerService, StoreEntry>();
 
 export function getAppStore(services: SolanumHost): AppStore {
   const existing = stores.get(services.timer);
   if (existing) return existing.store;
 
+  // Tags follow the latest real session until the user picks their own.
+  let tagsChosen = false;
   const store = createStore<AppState>((set, get) => ({
     ...services.timer.getState(),
     services,
-    draft: { minutes: services.settings.defaultMinutes, crop: "tomato", tags: "", note: "" },
+    draft: {
+      minutes: services.settings.defaultMinutes,
+      crop: "tomato",
+      tags: rememberedTags(services.timer.getState().sessions),
+      note: "",
+    },
     selectedSessionId: null,
     revealedRevisionId: null,
     busy: false,
@@ -40,6 +53,7 @@ export function getAppStore(services: SolanumHost): AppStore {
       return true;
     },
     updateDraft(patch) {
+      if (patch.tags) tagsChosen = true;
       set({ draft: { ...get().draft, ...patch } });
     },
     selectSession(id) {
@@ -77,14 +91,19 @@ export function getAppStore(services: SolanumHost): AppStore {
           durationMs: draft.minutes * 60_000,
           breakMs: services.settings.breakMinutes * 60_000,
           autoBreak: services.settings.autoBreak,
-          tags: normalizeTags(draft.tags.split(/[\s,]+/)),
+          tags: normalizeTags(draft.tags),
           notePath: draft.note || null,
         });
       });
     },
   }));
   function syncSessions() {
-    store.setState(services.timer.getState());
+    const state = services.timer.getState();
+    store.setState(state);
+    if (!tagsChosen)
+      store.setState({
+        draft: { ...store.getState().draft, tags: rememberedTags(state.sessions) },
+      });
   }
   const unsubscribe = services.timer.subscribe(syncSessions);
   const unsubscribeCompletion = services.timer.subscribeCompletion((event) => {

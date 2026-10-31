@@ -30,7 +30,31 @@ export function AppContent({ screen, initialMonth }: AppContentProps) {
       {!focus.immersive && (
         <div className="solanum-toolbar">
           <ViewTabs screen={screen} onNavigate={services.navigate} />
-          <SettingsMenu onPreferences={services.openSettings} onHide={focus.onHide} />
+          <div className="solanum-toolbar-actions">
+            {focus.onHide && (
+              <button
+                className="solanum-icon-button"
+                aria-label="Enter focus view"
+                title="Focus view (Escape)"
+                onClick={focus.onHide}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                </svg>
+              </button>
+            )}
+            <SettingsMenu onPreferences={services.openSettings} onHide={focus.onHide} />
+          </div>
         </div>
       )}
       {!focus.immersive && error && <ErrorNotice message={error} onDismiss={clearError} />}

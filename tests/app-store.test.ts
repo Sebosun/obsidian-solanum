@@ -100,4 +100,62 @@ describe("shared application store", () => {
     });
     expect(changes).not.toHaveBeenCalled();
   });
+
+  describe("remembered tags", () => {
+    const start = (host: SolanumHost, tags: string[]) =>
+      host.timer.start({
+        durationMs: 300_000,
+        breakMs: 300_000,
+        autoBreak: false,
+        tags,
+        notePath: null,
+      });
+
+    it("prefills the draft with the tags of the most recent session on load", async () => {
+      const { host, files } = fixture();
+      await start(host, ["study", "deep-work"]);
+      await host.timer.cancel(host.timer.getState().sessions[0].sessionId);
+      const [first] = [...files.values()];
+      files.set("seed-1", {
+        ...first,
+        id: "seed-1",
+        sessionId: "seed-1",
+        tags: ["demo"],
+        startedAt: first.startedAt + 1,
+        source: "seed",
+      });
+      await host.timer.refresh();
+      const store = getAppStore(host);
+      expect(store.getState().draft.tags).toEqual(["study", "deep-work"]);
+      releaseAppStore(host.timer);
+    });
+
+    it("fills the draft when history arrives after the view opened", async () => {
+      const { host } = fixture();
+      const store = getAppStore(host);
+      expect(store.getState().draft.tags).toEqual([]);
+      await start(host, ["study"]);
+      expect(store.getState().draft.tags).toEqual(["study"]);
+      releaseAppStore(host.timer);
+    });
+
+    it("never overwrites tags the user has already chosen", async () => {
+      const { host } = fixture();
+      const store = getAppStore(host);
+      store.getState().updateDraft({ tags: ["mine"] });
+      await start(host, ["study"]);
+      expect(store.getState().draft.tags).toEqual(["mine"]);
+      releaseAppStore(host.timer);
+    });
+
+    it("starts the next crop with the remembered tags", async () => {
+      const { host } = fixture();
+      await start(host, ["study"]);
+      await host.timer.cancel(host.timer.getState().sessions[0].sessionId);
+      const store = getAppStore(host);
+      await store.getState().startFocus();
+      expect(store.getState().sessions[0].tags).toEqual(["study"]);
+      releaseAppStore(host.timer);
+    });
+  });
 });

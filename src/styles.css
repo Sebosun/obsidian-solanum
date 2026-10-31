@@ -70,10 +70,7 @@
   @apply sol:block sol:w-full sol:text-left sol:bg-transparent sol:shadow-none sol:text-xs;
 }
 .solanum-session-details {
-  @apply sol:text-xs sol:text-(--text-muted) sol:mt-3;
-}
-.solanum-session-details summary {
-  @apply sol:cursor-pointer sol:mb-3;
+  @apply sol:mt-1;
 }
 .solanum-presets {
   @apply sol:flex sol:flex-wrap sol:justify-center sol:gap-1.5 sol:my-4;
@@ -85,11 +82,75 @@
   @apply sol:bg-[#87a87920] sol:text-(--text-normal) sol:border-(--crop-green);
 }
 .solanum-field {
-  @apply sol:flex sol:flex-col sol:gap-[7px] sol:mb-3 sol:text-[11px] sol:text-(--text-muted);
+  @apply sol:relative sol:flex sol:flex-col sol:gap-1.5 sol:mb-3 sol:text-[11px] sol:text-(--text-muted);
+}
+.solanum-field-header {
+  @apply sol:flex sol:items-center sol:justify-between;
 }
 .solanum-field input,
 .solanum-field select {
   @apply sol:w-full sol:py-[9px] sol:px-2.5 sol:h-auto sol:text-xs sol:text-(--text-normal) sol:rounded-[7px];
+}
+.solanum-crops {
+  @apply sol:grid sol:grid-cols-4 sol:gap-1.5;
+}
+.solanum-app .solanum-crops button {
+  @apply sol:flex sol:flex-col sol:items-center sol:gap-0.5 sol:h-auto sol:py-2 sol:px-1 sol:text-[10px] sol:text-(--text-muted) sol:bg-transparent sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:rounded-lg sol:transition-colors;
+}
+.solanum-app .solanum-crops button:hover {
+  @apply sol:bg-(--background-secondary);
+}
+.solanum-app .solanum-crops button[aria-checked="true"] {
+  @apply sol:text-(--text-normal) sol:bg-[#87a87920] sol:border-(--crop-green);
+}
+.solanum-crop-emoji {
+  @apply sol:text-xl sol:leading-none;
+}
+.solanum-chip-input {
+  @apply sol:flex sol:flex-wrap sol:items-center sol:gap-1 sol:p-1 sol:rounded-[7px] sol:border sol:border-solid sol:border-(--background-modifier-border) sol:bg-(--background-modifier-form-field);
+}
+.solanum-chip-input:focus-within {
+  @apply sol:border-(--interactive-accent);
+}
+.solanum-app .solanum-chip-input input {
+  @apply sol:flex-1 sol:min-w-20 sol:w-auto sol:p-1 sol:border-0 sol:bg-transparent sol:shadow-none sol:outline-none;
+}
+.solanum-chip {
+  @apply sol:inline-flex sol:items-center sol:gap-1 sol:py-[3px] sol:pl-2 sol:pr-1 sol:rounded-full sol:bg-[#87a87926] sol:text-(--text-normal) sol:text-[11px] sol:wrap-anywhere;
+}
+.solanum-app .solanum-chip button {
+  @apply sol:flex sol:items-center sol:justify-center sol:w-4 sol:h-4 sol:p-0 sol:rounded-full sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted);
+}
+.solanum-app .solanum-chip button:hover {
+  @apply sol:bg-(--background-modifier-hover) sol:text-(--text-normal);
+}
+.solanum-note-chip {
+  @apply sol:flex sol:items-center sol:gap-2 sol:py-1.5 sol:pl-2.5 sol:pr-1.5 sol:rounded-[7px] sol:border sol:border-solid sol:border-(--background-modifier-border) sol:text-xs sol:text-(--text-normal);
+}
+.solanum-note-chip small {
+  @apply sol:flex-1 sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
+}
+.solanum-note-chip-name {
+  @apply sol:font-medium sol:wrap-anywhere;
+}
+.solanum-app .solanum-note-chip button {
+  @apply sol:ml-auto sol:flex sol:items-center sol:justify-center sol:w-5 sol:h-5 sol:p-0 sol:rounded-full sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted);
+}
+.solanum-suggest {
+  @apply sol:absolute sol:left-0 sol:right-0 sol:top-full sol:z-30 sol:m-0 sol:mt-1 sol:p-1 sol:list-none sol:max-h-56 sol:overflow-y-auto sol:rounded-lg sol:bg-(--background-primary) sol:border sol:border-solid sol:border-(--background-modifier-border) sol:shadow-lg;
+}
+.solanum-suggest-item {
+  @apply sol:flex sol:items-baseline sol:justify-between sol:gap-2 sol:py-1.5 sol:px-2 sol:rounded-md sol:text-xs sol:text-(--text-normal) sol:cursor-pointer;
+}
+.solanum-suggest-item:hover,
+.solanum-suggest-item[aria-selected="true"] {
+  @apply sol:bg-(--background-modifier-hover);
+}
+.solanum-suggest-label {
+  @apply sol:wrap-anywhere;
+}
+.solanum-suggest-detail {
+  @apply sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
 }
 .solanum-app .solanum-subtle {
   @apply sol:bg-transparent sol:shadow-none sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent);
@@ -207,8 +268,14 @@
   @apply sol:h-full sol:min-h-[400px] sol:rounded-none;
   background: var(--background-primary);
 }
+.solanum-toolbar-actions {
+  @apply sol:flex sol:items-center sol:gap-0.5;
+}
 .solanum-app .solanum-reveal-controls {
-  @apply sol:absolute sol:right-3 sol:bottom-3 sol:opacity-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted);
+  @apply sol:absolute sol:right-3 sol:top-3 sol:z-10 sol:flex sol:items-center sol:justify-center sol:w-8 sol:h-8 sol:p-0 sol:rounded-full sol:opacity-30 sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted) sol:transition-opacity;
+}
+.solanum-app .solanum-reveal-controls:hover {
+  @apply sol:opacity-100 sol:bg-(--background-secondary);
 }
 .solanum-focus-mode:hover .solanum-reveal-controls,
 .solanum-app .solanum-reveal-controls:focus-visible {
