@@ -6,7 +6,12 @@ import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
-import type { SessionFolderPort, SolanumHost } from "@/types/host";
+import type { SessionExchangePort, SessionFolderPort, SolanumHost } from "@/types/host";
+import {
+  SessionExchange,
+  type ExportResult,
+  type ImportResult,
+} from "@/lib/storage/SessionExchange";
 import { CompletionAudio } from "@/lib/audio/CompletionAudio";
 import { DEBUG_CONFIG } from "@/lib/debug/config";
 import { DebugTools } from "@/lib/debug/DebugTools";
@@ -22,7 +27,10 @@ interface SettingsApp extends App {
   setting: SettingsController;
 }
 
-export default class SolanumPlugin extends Plugin implements SolanumHost, SessionFolderPort {
+export default class SolanumPlugin
+  extends Plugin
+  implements SolanumHost, SessionFolderPort, SessionExchangePort
+{
   timer!: TimerService;
   debug?: DebugTools;
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -35,12 +43,13 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Sessio
   private noteIndex!: VaultNoteIndex;
   private store!: VaultSessionStore;
   private folders!: SessionFolderManager;
+  private exchange!: SessionExchange;
 
   async onload(): Promise<void> {
     this.stopped = false;
     this.noteIndex = new VaultNoteIndex(this.app.vault, this.app.metadataCache);
     this.settings = readSettings(await this.loadData());
-    this.addSettingTab(new SolanumSettingsTab(this.app, this, this, this));
+    this.addSettingTab(new SolanumSettingsTab(this.app, this, this, this, this));
     const store = new VaultSessionStore(this.app.vault.adapter, {
       debug: DEBUG_CONFIG.enabled,
       folder: this.settings.sessionFolder,
@@ -60,6 +69,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Sessio
       },
     });
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
+    this.exchange = new SessionExchange(this.app.vault.adapter, store, this.timer, Date.now);
     if (DEBUG_CONFIG.enabled) this.debug = new DebugTools(this.timer, store, DEBUG_CONFIG);
     await this.background(() => this.timer.refresh());
     this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this, "timer"));
@@ -173,6 +183,9 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Sessio
     await this.persist({ ...this.settings, sessionFolder: target });
     return result;
   };
+
+  exportSessions = (): Promise<ExportResult> => this.exchange.export();
+  importSessions = (text: string): Promise<ImportResult> => this.exchange.import(text);
 
   private valid(folder: string): string {
     const parsed = parseSessionFolder(folder);

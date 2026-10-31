@@ -10,9 +10,11 @@ import { PRESETS, type Settings } from "@/lib/settings";
 import { SEASON_CHOICES, SEASON_THEMES } from "@/lib/scene/seasons";
 import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import type { MovePlan } from "@/lib/storage/migration";
+import { summarizeImport } from "@/lib/storage/exchange";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
+import { pickTextFile } from "@/plugin/pickTextFile";
 import { FolderSuggest } from "@/plugin/FolderSuggest";
-import type { SessionFolderPort, SolanumHost } from "@/types/host";
+import type { SessionExchangePort, SessionFolderPort, SolanumHost } from "@/types/host";
 
 const FOLDER_HELP = "Vault folder for session files. Changing it moves your existing sessions.";
 
@@ -38,6 +40,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
     plugin: Plugin,
     private host: SolanumHost,
     private folders: SessionFolderPort,
+    private exchange: SessionExchangePort,
   ) {
     super(app, plugin);
   }
@@ -86,6 +89,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
       control.onChange(this.changeVolume);
     });
     this.displaySessionFolder();
+    this.displayBackup();
     new Setting(this.containerEl).setName("Preview").addButton((control) => {
       control.setButtonText("Test sound").onClick(this.host.previewSound);
     });
@@ -106,6 +110,40 @@ export class SolanumSettingsTab extends PluginSettingTab {
     });
     this.folderSetting = setting;
   }
+
+  private displayBackup(): void {
+    new Setting(this.containerEl)
+      .setName("Export sessions")
+      .setDesc("Save your whole session history to one file in the vault.")
+      .addButton((control) => {
+        control.setButtonText("Export").onClick(this.exportSessions);
+      });
+    new Setting(this.containerEl)
+      .setName("Import sessions")
+      .setDesc("Merge sessions from an export file. Existing sessions are never overwritten.")
+      .addButton((control) => {
+        control.setButtonText("Import…").onClick(this.importSessions);
+      });
+  }
+
+  private exportSessions = async (): Promise<void> => {
+    try {
+      const { path, count } = await this.exchange.exportSessions();
+      new Notice(`Exported ${count} revisions to ${path}`);
+    } catch (error) {
+      this.reportError(error);
+    }
+  };
+
+  private importSessions = async (): Promise<void> => {
+    try {
+      const text = await pickTextFile();
+      if (text === null) return;
+      new Notice(summarizeImport(await this.exchange.importSessions(text)), 10_000);
+    } catch (error) {
+      this.reportError(error);
+    }
+  };
 
   private editFolder = (value: string): void => {
     this.folderInput = value;

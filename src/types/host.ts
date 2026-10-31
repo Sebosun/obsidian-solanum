@@ -2,6 +2,7 @@ import type { TimerService } from "@/lib/timer/TimerService";
 import type { DebugTools } from "@/lib/debug/DebugTools";
 import type { Settings } from "@/lib/settings";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
+import type { ExportResult, ImportResult } from "@/lib/storage/SessionExchange";
 
 export type Screen = "timer" | "harvest";
 export type Action = (action: () => Promise<unknown>) => Promise<void>;
@@ -29,4 +30,10 @@ export interface SessionFolderPort {
   planSessionFolder(folder: string): Promise<MovePlan>;
   /** Moves existing sessions into `folder`, then makes it the saved session folder. */
   moveSessionFolder(folder: string): Promise<MoveResult>;
+}
+
+/** Backup and restore of the whole session history, used only by the settings tab. */
+export interface SessionExchangePort {
+  exportSessions(): Promise<ExportResult>;
+  importSessions(text: string): Promise<ImportResult>;
 }

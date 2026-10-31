@@ -12,6 +12,8 @@ const nativeUi = vi.hoisted(() => ({
   notices: [] as string[],
   confirm: { answer: true, messages: [] as string[] },
 }));
+const picker = vi.hoisted(() => ({ text: null as string | null }));
+vi.mock("@/plugin/pickTextFile", () => ({ pickTextFile: async () => picker.text }));
 vi.mock("@/plugin/ConfirmMoveModal", () => ({
   confirmMove: async (_app: unknown, message: string) => {
     nativeUi.confirm.messages.push(message);
@@ -117,6 +119,7 @@ afterEach(() => {
   nativeUi.disabled.clear();
   nativeUi.descriptions.clear();
   nativeUi.notices.length = 0;
+  picker.text = null;
   nativeUi.confirm.answer = true;
   nativeUi.confirm.messages.length = 0;
   vi.clearAllTimers();
@@ -387,6 +390,61 @@ describe("Obsidian lifecycle integration", () => {
       handlers.create({ path: `Assets/sessions/${[...disk.files.keys()].length}.json` });
       await vi.advanceTimersByTimeAsync(600);
       expect(refresh).toHaveBeenCalled();
+      plugin.onunload();
+    });
+  });
+
+  describe("backup", () => {
+    const session = {
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: ["study"],
+      notePath: null,
+    };
+    async function loaded() {
+      vi.useFakeTimers();
+      const fixture = vaultFixture();
+      const plugin = new SolanumPlugin(fixture.app, { id: "solanum" } as PluginManifest);
+      await plugin.onload();
+      vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+      return { ...fixture, plugin };
+    }
+
+    it("exports the history to a vault file and says where", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.timer.start(session);
+      await nativeUi.buttons.get("Export")!();
+      const file = [...disk.files.keys()].find((path) => path.startsWith("Solanum/exports/"));
+      expect(file).toMatch(/solanum-sessions-\d{4}-\d{2}-\d{2}\.json$/);
+      expect(nativeUi.notices.join(" ")).toContain(file);
+      plugin.onunload();
+    });
+
+    it("imports a chosen file into the live history and summarises it", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.timer.start(session);
+      await nativeUi.buttons.get("Export")!();
+      const file = [...disk.files.keys()].find((path) => path.startsWith("Solanum/exports/"))!;
+      const text = disk.files.get(file)!;
+      const { plugin: other } = await loaded();
+      picker.text = text;
+      await nativeUi.buttons.get("Import…")!();
+      expect(other.timer.getState().sessions).toHaveLength(1);
+      expect(nativeUi.notices.join(" ")).toMatch(/Imported 1 revision\./);
+      other.onunload();
+      plugin.onunload();
+    });
+
+    it("explains an unusable file and ignores a cancelled picker", async () => {
+      const { plugin } = await loaded();
+      picker.text = null;
+      await nativeUi.buttons.get("Import…")!();
+      expect(nativeUi.notices).toEqual([]);
+      picker.text = "definitely not json";
+      await nativeUi.buttons.get("Import…")!();
+      expect(nativeUi.notices.join(" ")).toMatch(/not a valid Solanum export/i);
+      expect(plugin.timer.getState().sessions).toEqual([]);
       plugin.onunload();
     });
   });
