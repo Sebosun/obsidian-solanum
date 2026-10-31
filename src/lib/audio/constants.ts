@@ -8,3 +8,7 @@ export const COMPLETION_CHIME = {
   peakGain: 0.25,
   silentGain: 0.0001,
 } as const;
+
+/** Custom completion sounds: bigger files are refused, longer ones are cut short. */
+export const MAX_CLIP_BYTES = 8 * 1024 * 1024;
+export const MAX_CLIP_SECONDS = 20;

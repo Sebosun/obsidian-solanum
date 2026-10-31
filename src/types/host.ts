@@ -4,6 +4,7 @@ import type { Settings } from "@/lib/settings";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import type { ExportResult, ImportResult } from "@/lib/storage/SessionExchange";
 
+export type CompletionPhase = "focus" | "break";
 export type Screen = "timer" | "harvest";
 export type Action = (action: () => Promise<unknown>) => Promise<void>;
 
@@ -20,7 +21,8 @@ export interface SolanumHost {
   readAsset?(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;
   unlockAudio(): void;
-  previewSound(): void;
+  /** Plays the completion sound for a phase, as it would sound when that phase ends. */
+  previewSound(phase?: CompletionPhase): void;
   openSettings(): void;
 }
 

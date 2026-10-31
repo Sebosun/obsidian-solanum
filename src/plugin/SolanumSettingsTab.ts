@@ -7,14 +7,24 @@ import {
   type Plugin,
 } from "obsidian";
 import { PRESETS, type Settings } from "@/lib/settings";
+import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, SEASON_THEMES } from "@/lib/scene/seasons";
 import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import type { MovePlan } from "@/lib/storage/migration";
 import { summarizeImport } from "@/lib/storage/exchange";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
 import { pickTextFile } from "@/plugin/pickTextFile";
+import { AudioFileSuggest } from "@/plugin/AudioFileSuggest";
 import { FolderSuggest } from "@/plugin/FolderSuggest";
-import type { SessionExchangePort, SessionFolderPort, SolanumHost } from "@/types/host";
+import type {
+  CompletionPhase,
+  SessionExchangePort,
+  SessionFolderPort,
+  SolanumHost,
+} from "@/types/host";
+
+const SOUND_HELP = "Audio file from your vault. Leave empty for the built-in chime.";
+type SoundKey = "focusSound" | "breakSound";
 
 const FOLDER_HELP = "Vault folder for session files. Changing it moves your existing sessions.";
 
@@ -90,8 +100,10 @@ export class SolanumSettingsTab extends PluginSettingTab {
     });
     this.displaySessionFolder();
     this.displayBackup();
+    this.displaySound("Focus completion sound", "focusSound", "focus");
+    this.displaySound("Break completion sound", "breakSound", "break");
     new Setting(this.containerEl).setName("Preview").addButton((control) => {
-      control.setButtonText("Test sound").onClick(this.host.previewSound);
+      control.setButtonText("Test sound").onClick(this.previewFocus);
     });
   }
 
@@ -110,6 +122,34 @@ export class SolanumSettingsTab extends PluginSettingTab {
     });
     this.folderSetting = setting;
   }
+
+  private displaySound(name: string, key: SoundKey, phase: CompletionPhase): void {
+    const setting = new Setting(this.containerEl).setName(name).setDesc(SOUND_HELP);
+    setting.addText((control) => {
+      control.setPlaceholder("Built-in chime").setValue(this.host.settings[key]);
+      new AudioFileSuggest(this.app, control.inputEl);
+      control.onChange((value) => this.editSound(setting, key, value));
+    });
+    setting.addButton((control) => {
+      control.setButtonText("Test").onClick(() => this.host.previewSound(phase));
+    });
+  }
+
+  private editSound = async (setting: Setting, key: SoundKey, value: string): Promise<void> => {
+    const parsed = parseSoundPath(value);
+    if (!parsed.ok) {
+      setting.setDesc(parsed.reason);
+      return;
+    }
+    if (parsed.path && !this.app.vault.getAbstractFileByPath(parsed.path)) {
+      setting.setDesc("That file is not in the vault.");
+      return;
+    }
+    setting.setDesc(SOUND_HELP);
+    await this.save({ [key]: parsed.path });
+  };
+
+  private previewFocus = () => this.host.previewSound("focus");
 
   private displayBackup(): void {
     new Setting(this.containerEl)

@@ -6,6 +6,7 @@ import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
+import type { CompletionPhase } from "@/types/host";
 import type { SessionExchangePort, SessionFolderPort, SolanumHost } from "@/types/host";
 import {
   SessionExchange,
@@ -13,6 +14,7 @@ import {
   type ImportResult,
 } from "@/lib/storage/SessionExchange";
 import { CompletionAudio } from "@/lib/audio/CompletionAudio";
+import { SoundLibrary } from "@/lib/audio/SoundLibrary";
 import { DEBUG_CONFIG } from "@/lib/debug/config";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { VaultNoteIndex } from "@/plugin/VaultNoteIndex";
@@ -35,6 +37,7 @@ export default class SolanumPlugin
   debug?: DebugTools;
   settings: Settings = { ...DEFAULT_SETTINGS };
   private audio = new CompletionAudio();
+  private sounds!: SoundLibrary;
   private heartbeat: number | null = null;
   private syncPoll: number | null = null;
   private syncDebounce: number | null = null;
@@ -49,6 +52,11 @@ export default class SolanumPlugin
     this.stopped = false;
     this.noteIndex = new VaultNoteIndex(this.app.vault, this.app.metadataCache);
     this.settings = readSettings(await this.loadData());
+    this.sounds = new SoundLibrary(
+      this.audio,
+      (path) => this.app.vault.adapter.readBinary(path),
+      (path, reason) => new Notice(`Solanum: ${path}: ${reason} Using the built-in chime.`),
+    );
     this.addSettingTab(new SolanumSettingsTab(this.app, this, this, this, this));
     const store = new VaultSessionStore(this.app.vault.adapter, {
       debug: DEBUG_CONFIG.enabled,
@@ -65,7 +73,7 @@ export default class SolanumPlugin
             ? "Solanum: your crop is ready! Time for a break."
             : "Solanum: break finished. Ready to plant again?",
         );
-        if (this.settings.sound) this.audio.play(this.settings.volume);
+        void this.playCompletion(phase);
       },
     });
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
@@ -95,6 +103,7 @@ export default class SolanumPlugin
 
     const onSync = (file: TAbstractFile) => {
       this.noteIndex.invalidate();
+      this.sounds.invalidate(file.path);
       if (
         ![this.store.folder, DEBUG_SESSION_FOLDER].some((folder) =>
           file.path.startsWith(`${folder}/`),
@@ -113,6 +122,8 @@ export default class SolanumPlugin
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
         this.noteIndex.invalidate();
+        this.sounds.invalidate(oldPath);
+        this.sounds.invalidate(file.path);
         void this.background(() => this.timer.renameNote(oldPath, file.path));
       }),
     );
@@ -168,8 +179,15 @@ export default class SolanumPlugin
 
   private async persist(next: Settings): Promise<void> {
     const previousMinutes = this.settings.defaultMinutes;
+    const previous = this.settings;
     await this.saveData(next);
     this.settings = next;
+    for (const key of ["focusSound", "breakSound"] as const) {
+      if (next[key] === previous[key]) continue;
+      if (previous[key]) this.sounds.invalidate(previous[key]);
+      // Decode now so a bad file is reported while the user is still in settings.
+      if (next[key]) void this.sounds.load(next[key]);
+    }
     if (next.defaultMinutes !== previousMinutes)
       updateDefaultMinutes(this.timer, next.defaultMinutes);
     updateSeason(this.timer, next.season);
@@ -232,10 +250,17 @@ export default class SolanumPlugin
     void this.background(() => this.openSidebar(screen, true));
   };
   unlockAudio = () => this.audio.unlock();
-  previewSound = () => {
+  previewSound = (phase: CompletionPhase = "focus") => {
     this.audio.unlock();
-    window.setTimeout(() => this.audio.play(this.settings.volume), 100);
+    window.setTimeout(() => void this.playCompletion(phase, true), 100);
   };
+
+  private async playCompletion(phase: CompletionPhase, preview = false): Promise<void> {
+    if (!this.settings.sound && !preview) return;
+    const path = phase === "focus" ? this.settings.focusSound : this.settings.breakSound;
+    const clip = path ? await this.sounds.load(path) : null;
+    this.audio.play(this.settings.volume, clip);
+  }
 
   private async openSidebar(screen: "timer" | "harvest", reveal: boolean): Promise<void> {
     const { workspace } = this.app;

@@ -1,3 +1,4 @@
+import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
 import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 
@@ -9,6 +10,10 @@ export interface Settings {
   volume: number;
   /** Vault-relative folder holding session revision files. */
   sessionFolder: string;
+  /** Vault audio file played when focus ends; empty uses the built-in chime. */
+  focusSound: string;
+  /** Vault audio file played when a break ends; empty uses the built-in chime. */
+  breakSound: string;
   /** Scene theme: follow the calendar (northern hemisphere) or force a season. */
   season: SeasonChoice;
 }
@@ -22,6 +27,8 @@ export const DEFAULT_SETTINGS: Settings = {
   volume: 0.4,
   sessionFolder: DEFAULT_SESSION_FOLDER,
   season: "auto",
+  focusSound: "",
+  breakSound: "",
 };
 
 export function readSettings(value: unknown): Settings {
@@ -36,6 +43,8 @@ export function readSettings(value: unknown): Settings {
     sound: typeof s.sound === "boolean" ? s.sound : true,
     volume: Number.isFinite(s.volume) ? Math.max(0, Math.min(1, s.volume!)) : 0.4,
     sessionFolder: readSessionFolder(s.sessionFolder),
+    focusSound: readSoundPath(s.focusSound),
+    breakSound: readSoundPath(s.breakSound),
     season: SEASON_CHOICES.find((choice) => choice === s.season) ?? "auto",
   };
 }
@@ -44,4 +53,10 @@ function readSessionFolder(value: unknown): string {
   if (typeof value !== "string") return DEFAULT_SESSION_FOLDER;
   const parsed = parseSessionFolder(value);
   return parsed.ok ? parsed.folder : DEFAULT_SESSION_FOLDER;
+}
+
+function readSoundPath(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const parsed = parseSoundPath(value);
+  return parsed.ok ? parsed.path : "";
 }

@@ -12,6 +12,25 @@ const nativeUi = vi.hoisted(() => ({
   notices: [] as string[],
   confirm: { answer: true, messages: [] as string[] },
 }));
+const audioSpy = vi.hoisted(() => ({
+  plays: [] as { volume: number; clip: unknown }[],
+  decodes: 0,
+  undecodable: false,
+}));
+vi.mock("@/lib/audio/CompletionAudio", () => ({
+  CompletionAudio: class {
+    unlock() {}
+    close() {}
+    play(volume: number, clip: unknown = null) {
+      audioSpy.plays.push({ volume, clip });
+    }
+    async decode(data: ArrayBuffer) {
+      audioSpy.decodes += 1;
+      if (audioSpy.undecodable) return null;
+      return { duration: 1, bytes: data.byteLength };
+    }
+  },
+}));
 const picker = vi.hoisted(() => ({ text: null as string | null }));
 vi.mock("@/plugin/pickTextFile", () => ({ pickTextFile: async () => picker.text }));
 vi.mock("@/plugin/ConfirmMoveModal", () => ({
@@ -47,6 +66,10 @@ vi.mock("obsidian", () => ({
   TFolder: class {},
   PluginSettingTab: class {
     containerEl = document.createElement("div");
+    app: unknown;
+    constructor(app: unknown) {
+      this.app = app;
+    }
   },
   Setting: class {
     name = "";
@@ -74,6 +97,7 @@ vi.mock("obsidian", () => ({
       return this.addControl(callback);
     }
     addControl(callback: (control: unknown) => void) {
+      const name = this.name;
       const control = {
         inputEl: document.createElement("input"),
         text: "",
@@ -93,6 +117,7 @@ vi.mock("obsidian", () => ({
         },
         onClick: (handler: () => unknown) => {
           nativeUi.buttons.set(control.text, handler);
+          nativeUi.buttons.set(`${name}/${control.text}`, handler);
           return control;
         },
         onChange: (handler: (value: string | boolean | number) => Promise<void>) => {
@@ -120,6 +145,9 @@ afterEach(() => {
   nativeUi.descriptions.clear();
   nativeUi.notices.length = 0;
   picker.text = null;
+  audioSpy.plays.length = 0;
+  audioSpy.decodes = 0;
+  audioSpy.undecodable = false;
   nativeUi.confirm.answer = true;
   nativeUi.confirm.messages.length = 0;
   vi.clearAllTimers();
@@ -129,7 +157,14 @@ afterEach(() => {
 function vaultFixture() {
   const handlers: Record<string, (...args: unknown[]) => unknown> = {};
   const disk = new MemoryDisk();
-  const adapter = Object.assign(disk, { getResourcePath: (p: string) => `app://vault/${p}` });
+  const adapter = Object.assign(disk, {
+    getResourcePath: (p: string) => `app://vault/${p}`,
+    readBinary: async (p: string) => {
+      const text = disk.files.get(p);
+      if (text === undefined) throw new Error(`ENOENT ${p}`);
+      return new TextEncoder().encode(text).buffer;
+    },
+  });
   const app = {
     vault: {
       adapter,
@@ -138,7 +173,7 @@ function vaultFixture() {
         return {};
       },
       getMarkdownFiles: vi.fn(() => [{ path: "Old.md" }]),
-      getAbstractFileByPath: () => null,
+      getAbstractFileByPath: (p: string) => (disk.files.has(p) ? { path: p } : null),
     },
     workspace: {
       onLayoutReady: vi.fn(),
@@ -445,6 +480,130 @@ describe("Obsidian lifecycle integration", () => {
       await nativeUi.buttons.get("Import…")!();
       expect(nativeUi.notices.join(" ")).toMatch(/not a valid Solanum export/i);
       expect(plugin.timer.getState().sessions).toEqual([]);
+      plugin.onunload();
+    });
+  });
+
+  describe("custom completion sounds", () => {
+    async function loaded(saved: unknown = null, files: Record<string, string> = {}) {
+      vi.useFakeTimers();
+      const fixture = vaultFixture();
+      for (const [path, text] of Object.entries(files)) fixture.disk.files.set(path, text);
+      const plugin = new SolanumPlugin(fixture.app, { id: "solanum" } as PluginManifest);
+      plugin.loadData = async () => saved;
+      await plugin.onload();
+      vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+      return { ...fixture, plugin };
+    }
+    const shortCrop = {
+      durationMs: 60_000,
+      breakMs: 60_000,
+      autoBreak: true,
+      tags: [],
+      notePath: null,
+    };
+    async function finishFocusAndBreak(plugin: SolanumPlugin) {
+      await plugin.timer.start(shortCrop);
+      await vi.advanceTimersByTimeAsync(61_000);
+      await vi.advanceTimersByTimeAsync(61_000);
+    }
+
+    it("plays the built-in chime by default, at the saved volume", async () => {
+      const { plugin } = await loaded({ volume: 0.7 });
+      await finishFocusAndBreak(plugin);
+      expect(audioSpy.plays).toEqual([
+        { volume: 0.7, clip: null },
+        { volume: 0.7, clip: null },
+      ]);
+      plugin.onunload();
+    });
+
+    it("plays the chosen file for each phase and decodes it only once", async () => {
+      const { plugin } = await loaded(
+        { focusSound: "Sounds/focus.mp3", breakSound: "Sounds/break.wav" },
+        { "Sounds/focus.mp3": "focus-bytes", "Sounds/break.wav": "break-bytes!" },
+      );
+      await finishFocusAndBreak(plugin);
+      expect(audioSpy.plays).toHaveLength(2);
+      expect(audioSpy.plays[0].clip).toMatchObject({ bytes: "focus-bytes".length });
+      expect(audioSpy.plays[1].clip).toMatchObject({ bytes: "break-bytes!".length });
+      expect(audioSpy.decodes).toBe(2);
+      plugin.onunload();
+    });
+
+    it("falls back to the chime and says why when the file is gone", async () => {
+      const { plugin } = await loaded({ focusSound: "Sounds/missing.mp3" });
+      await finishFocusAndBreak(plugin);
+      expect(audioSpy.plays.map((play) => play.clip)).toEqual([null, null]);
+      const warnings = nativeUi.notices.filter((notice) => notice.includes("Sounds/missing.mp3"));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatch(/could not be read/i);
+      plugin.onunload();
+    });
+
+    it("re-reads a sound that changed in the vault", async () => {
+      const { plugin, handlers, disk } = await loaded(
+        { focusSound: "Sounds/focus.mp3" },
+        { "Sounds/focus.mp3": "old" },
+      );
+      const first = await plugin.timer.start({ ...shortCrop, autoBreak: false });
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(audioSpy.plays[0].clip).toMatchObject({ bytes: 3 });
+      await plugin.timer.cancel(first);
+      disk.files.set("Sounds/focus.mp3", "much-longer");
+      handlers.modify({ path: "Sounds/focus.mp3" });
+      await plugin.timer.start({ ...shortCrop, autoBreak: false });
+      await vi.advanceTimersByTimeAsync(61_000);
+      expect(audioSpy.plays[1].clip).toMatchObject({ bytes: "much-longer".length });
+      plugin.onunload();
+    });
+
+    it("stays silent with the sound toggle off, but still previews on request", async () => {
+      const { plugin } = await loaded(
+        { sound: false, focusSound: "Sounds/focus.mp3" },
+        {
+          "Sounds/focus.mp3": "x",
+        },
+      );
+      await finishFocusAndBreak(plugin);
+      expect(audioSpy.plays).toEqual([]);
+      plugin.previewSound("focus");
+      await vi.advanceTimersByTimeAsync(200);
+      expect(audioSpy.plays).toHaveLength(1);
+      plugin.onunload();
+    });
+
+    it("saves a valid vault file chosen in settings and previews each phase", async () => {
+      const { plugin } = await loaded(null, { "Sounds/ding.mp3": "ding" });
+      await nativeSettings.get("Focus completion sound")!("Sounds/ding.mp3");
+      expect(plugin.settings.focusSound).toBe("Sounds/ding.mp3");
+      expect(plugin.saveData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ focusSound: "Sounds/ding.mp3" }),
+      );
+      await nativeUi.buttons.get("Focus completion sound/Test")!();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(audioSpy.plays[audioSpy.plays.length - 1]?.clip).toMatchObject({ bytes: 4 });
+      await nativeUi.buttons.get("Break completion sound/Test")!();
+      await vi.advanceTimersByTimeAsync(200);
+      expect(audioSpy.plays[audioSpy.plays.length - 1]?.clip).toBeNull();
+      plugin.onunload();
+    });
+
+    it("rejects files that are not audio or not in the vault, and can reset to the chime", async () => {
+      const { plugin } = await loaded(
+        { focusSound: "Sounds/ding.mp3" },
+        {
+          "Sounds/ding.mp3": "ding",
+          "notes.md": "text",
+        },
+      );
+      await nativeSettings.get("Focus completion sound")!("notes.md");
+      expect(nativeUi.descriptions.get("Focus completion sound")).toMatch(/audio file/i);
+      await nativeSettings.get("Focus completion sound")!("Sounds/nope.mp3");
+      expect(nativeUi.descriptions.get("Focus completion sound")).toMatch(/not in the vault/i);
+      expect(plugin.settings.focusSound).toBe("Sounds/ding.mp3");
+      await nativeSettings.get("Focus completion sound")!("");
+      expect(plugin.settings.focusSound).toBe("");
       plugin.onunload();
     });
   });
