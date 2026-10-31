@@ -444,6 +444,65 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.queryByLabelText("Monthly harvest day list")).toBeNull();
   });
 
+  describe("year overview", () => {
+    async function plantedFixture() {
+      const f = fixture();
+      await f.host.timer.start({
+        durationMs: 5 * 60_000,
+        breakMs: 5 * 60_000,
+        autoBreak: false,
+        tags: ["study"],
+        notePath: "Project.md",
+      });
+      f.advance(5 * 60_000);
+      await f.host.timer.tick();
+      return f;
+    }
+    const monthButtons = () =>
+      screen.getAllByRole("button", { name: /^[A-Z][a-z]+ \d{4}, \d+ focused minutes$/ });
+
+    it("previews every month of the year as a grid with focused minutes", async () => {
+      const f = await plantedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      expect(monthButtons()).toHaveLength(12);
+      expect(screen.getByRole("heading", { name: "2026" })).toBeTruthy();
+      expect(screen.getByText("5 min this year")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "October 2026, 5 focused minutes" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "March 2026, 0 focused minutes" })).toBeTruthy();
+      const october = screen.getByRole("button", { name: "October 2026, 5 focused minutes" });
+      const busy = october.querySelector('[title^="2026-10-31"]');
+      expect(busy?.className).toMatch(/level-1/);
+    });
+
+    it("opens a month from the year grid and returns with the Year button", async () => {
+      const f = await plantedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 2, 1)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      fireEvent.click(screen.getByRole("button", { name: "October 2026, 5 focused minutes" }));
+      expect(screen.getByRole("heading", { name: "October 2026" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      expect(screen.getByRole("heading", { name: "2026" })).toBeTruthy();
+    });
+
+    it("moves between years and respects the tag filter", async () => {
+      const f = await plantedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      fireEvent.click(screen.getByRole("button", { name: "Next year" }));
+      expect(screen.getByRole("heading", { name: "2027" })).toBeTruthy();
+      expect(screen.getByText("No harvests yet")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
+      fireEvent.change(screen.getByLabelText("Filter by tag"), {
+        target: { value: "work/client" },
+      });
+      expect(screen.getByText("No matching harvests")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(monthButtons()).toHaveLength(12);
+    });
+  });
+
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {
     const f = fixture();
     f.store.append = async () => {

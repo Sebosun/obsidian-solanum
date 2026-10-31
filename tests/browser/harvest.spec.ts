@@ -42,3 +42,13 @@ test("hovering another plot keeps the clicked day's details and no second grid i
   await page.waitForTimeout(300);
   await expect(details.getByRole("heading")).toContainText("October 19");
 });
+
+test("the year overview opens a month back into the 3D calendar", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
+  await page.getByRole("button", { name: "Year" }).click();
+  await expect(page.locator(".solanum-year-month")).toHaveCount(12);
+  await page.getByRole("button", { name: /^October 2026, \d+ focused minutes$/ }).click();
+  await expect(page.getByRole("heading", { name: "October 2026" })).toBeVisible();
+  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
+});

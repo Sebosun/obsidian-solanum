@@ -196,6 +196,62 @@
 .solanum-warning select {
   @apply sol:whitespace-normal sol:h-auto sol:w-full sol:mt-1.5 sol:text-[10px];
 }
+.solanum-view-toggle {
+  @apply sol:flex sol:w-fit sol:mx-auto sol:mb-1 sol:p-0.5 sol:rounded-lg sol:bg-(--background-secondary);
+}
+.solanum-app .solanum-view-toggle button {
+  @apply sol:h-auto sol:py-1 sol:px-3 sol:text-[11px] sol:rounded-md sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted);
+}
+.solanum-app .solanum-view-toggle button[aria-pressed="true"] {
+  @apply sol:bg-(--background-primary) sol:text-(--text-normal) sol:shadow-sm;
+}
+.solanum-year-grid {
+  @apply sol:grid sol:grid-cols-2 sol:gap-2;
+}
+@container (min-width: 440px) {
+  .solanum-year-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.solanum-app .solanum-year-month {
+  @apply sol:flex sol:flex-col sol:gap-1.5 sol:h-auto sol:p-2.5 sol:text-left sol:rounded-xl sol:bg-(--background-secondary) sol:shadow-none sol:border sol:border-solid sol:border-transparent sol:text-(--text-normal) sol:transition-colors;
+}
+.solanum-app .solanum-year-month:hover {
+  @apply sol:border-(--background-modifier-border-hover);
+}
+.solanum-year-month-head {
+  @apply sol:flex sol:items-baseline sol:justify-between sol:text-xs sol:font-medium;
+}
+.solanum-year-month-head small {
+  @apply sol:text-[10px] sol:font-normal sol:text-(--text-muted) sol:tabular-nums;
+}
+.solanum-year-days {
+  @apply sol:grid sol:grid-cols-7 sol:gap-0.5;
+}
+.solanum-year-day {
+  @apply sol:block sol:aspect-square sol:rounded-[2px] sol:bg-(--background-modifier-border);
+}
+.solanum-year-day.level-0 {
+  @apply sol:opacity-50;
+}
+.solanum-year-day.level-1 {
+  background: #87a87940;
+}
+.solanum-year-day.level-2 {
+  background: #87a87980;
+}
+.solanum-year-day.level-3 {
+  background: #87a879c0;
+}
+.solanum-year-day.level-4 {
+  background: #a1bb79;
+}
+.solanum-year-legend {
+  @apply sol:flex sol:items-center sol:justify-end sol:gap-1 sol:mt-3 sol:text-[10px] sol:text-(--text-faint);
+}
+.solanum-year-legend .solanum-year-day {
+  @apply sol:w-2.5 sol:h-2.5;
+}
 .solanum-month-nav {
   @apply sol:mb-1;
 }
