@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  BOARD_HEIGHT,
   BOARD_WIDTH,
   arcDots,
+  boardHeight,
   boardLayout,
   boardPoint,
   clockCells,
   digitCenterFraction,
+  ringStretch,
 } from "@/lib/scene/clockBoard";
 import { SUN_CLOCK } from "@/lib/scene/constants";
 import { sunState } from "@/lib/scene/sunClock";
@@ -14,7 +15,7 @@ import { sunState } from "@/lib/scene/sunClock";
 describe("the clock board", () => {
   it("measures the board from its own constants, so it scales as one piece", () => {
     expect(BOARD_WIDTH).toBeCloseTo(2 * SUN_CLOCK.board.halfWidth, 9);
-    expect(BOARD_HEIGHT).toBeGreaterThan(SUN_CLOCK.arcRadiusY);
+    expect(boardHeight()).toBeGreaterThan(SUN_CLOCK.arcRadiusY);
     expect(BOARD_WIDTH).toBeGreaterThan(2 * SUN_CLOCK.arcRadiusX);
   });
 
@@ -26,7 +27,7 @@ describe("the clock board", () => {
       expect(at.x - glow).toBeGreaterThanOrEqual(0);
       expect(at.x + glow).toBeLessThanOrEqual(BOARD_WIDTH);
       expect(at.y - glow).toBeGreaterThanOrEqual(0);
-      expect(at.y + glow).toBeLessThanOrEqual(BOARD_HEIGHT);
+      expect(at.y + glow).toBeLessThanOrEqual(boardHeight());
     }
   });
 
@@ -54,20 +55,68 @@ describe("the clock board", () => {
     expect(width("00:00") * SUN_CLOCK.digitSize).toBeGreaterThan(SUN_CLOCK.arcRadiusX * 0.8);
   });
 
-  it("sizes the board so its top never passes the top of the scene", () => {
-    const { aspect, maxWidthInHeights, lift } = boardLayout();
-    expect(aspect).toBeCloseTo(BOARD_WIDTH / BOARD_HEIGHT, 9);
-    // At the widest, the part above the base line fits between the baseline and the top margin.
-    const height = maxWidthInHeights / aspect;
-    const above = height * (SUN_CLOCK.board.top / BOARD_HEIGHT);
-    expect(above).toBeCloseTo(SUN_CLOCK.baselineFraction - SUN_CLOCK.topMargin, 9);
-    expect(lift).toBeGreaterThan(0);
-    expect(lift).toBeLessThan(0.3);
+  it("sizes the board so its top never passes the top of the scene, at any stretch", () => {
+    for (const stretch of [0.5, 1, 1.8]) {
+      const { aspect, maxWidthInHeights, lift } = boardLayout(stretch);
+      expect(aspect).toBeCloseTo(BOARD_WIDTH / boardHeight(stretch), 9);
+      // At the widest, the part above the base line fits between the baseline and the top margin.
+      const height = maxWidthInHeights / aspect;
+      const above =
+        height * ((boardHeight(stretch) - SUN_CLOCK.board.below) / boardHeight(stretch));
+      expect(above).toBeCloseTo(SUN_CLOCK.baselineFraction - SUN_CLOCK.topMargin, 9);
+      expect(lift).toBeGreaterThan(0);
+      expect(lift).toBeLessThan(0.3);
+    }
   });
 
-  it("centres the digits inside the arc", () => {
-    const fraction = digitCenterFraction();
-    expect(fraction).toBeGreaterThan(0.2);
-    expect(fraction).toBeLessThan(0.7);
+  it("makes the arc span most of the scene's width", () => {
+    const { widthInScenes } = boardLayout();
+    const arcWidthInScenes = (widthInScenes * 2 * SUN_CLOCK.arcRadiusX) / BOARD_WIDTH;
+    expect(arcWidthInScenes).toBeCloseTo(SUN_CLOCK.ring.fill, 9);
+    expect(SUN_CLOCK.ring.fill).toBeGreaterThan(0.9);
+  });
+
+  it("stretches the arc taller in a tall scene and flatter in a short, wide one", () => {
+    const tall = ringStretch(320, 720);
+    const square = ringStretch(600, 600);
+    const wide = ringStretch(900, 300);
+    expect(tall).toBeGreaterThan(square);
+    expect(square).toBeGreaterThan(wide);
+    expect(tall).toBeLessThanOrEqual(SUN_CLOCK.ring.maxStretch);
+    expect(wide).toBeGreaterThanOrEqual(SUN_CLOCK.ring.minStretch);
+  });
+
+  it("keeps the same shape when the scene is only scaled up, which is what resolution does", () => {
+    expect(ringStretch(640, 1440)).toBeCloseTo(ringStretch(320, 720), 9);
+    expect(ringStretch(900, 600)).toBeCloseTo(ringStretch(450, 300), 9);
+  });
+
+  it("fits the ring and the sun's glow in the scene whenever the stretch is not at a limit", () => {
+    for (const [width, height] of [
+      [320, 720],
+      [400, 300],
+      [480, 720],
+      [900, 900],
+      [560, 400],
+    ]) {
+      const stretch = ringStretch(width, height);
+      const unit = (boardLayout().widthInScenes * width) / BOARD_WIDTH;
+      const arcTop = (SUN_CLOCK.arcRadiusY * stretch + SUN_CLOCK.board.headroom) * unit;
+      expect(arcTop).toBeLessThanOrEqual(SUN_CLOCK.baselineFraction * height + 1e-6);
+      expect(arcTop).toBeGreaterThan(0);
+    }
+  });
+
+  it("falls back to a true half circle while the scene has no size yet", () => {
+    expect(ringStretch(0, 0)).toBe(1);
+    expect(ringStretch(Number.NaN, 300)).toBe(1);
+  });
+
+  it("centres the digits inside the arc, whatever its stretch", () => {
+    for (const stretch of [0.5, 1, 1.8]) {
+      const fraction = digitCenterFraction(stretch);
+      expect(fraction).toBeGreaterThan(0.2);
+      expect(fraction).toBeLessThan(0.7);
+    }
   });
 });

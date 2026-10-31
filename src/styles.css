@@ -60,11 +60,11 @@
   @apply sol:absolute sol:inset-0 sol:overflow-hidden sol:pointer-events-none sol:text-(--text-normal);
   container-type: size;
 }
-/* Wide as the scene allows, but never so wide that it would reach the top; everything inside is relative to it. */
+/* Wide enough for the arc to span the scene, but never so wide that it would reach the top; everything inside is relative to it. */
 .solanum-sky-board {
   @apply sol:absolute sol:left-1/2;
   container-type: inline-size;
-  width: min(100cqw, calc(var(--board-max) * 100cqh));
+  width: min(calc(var(--board-width) * 100cqw), calc(var(--board-max) * 100cqh));
   aspect-ratio: var(--board-aspect);
   bottom: calc((1 - var(--baseline)) * 100cqh);
   transform: translate(-50%, calc(var(--board-lift) * 100%));

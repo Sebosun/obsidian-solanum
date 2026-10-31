@@ -1,14 +1,24 @@
 import { SUN_CLOCK } from "@/lib/scene/constants";
 
-const { board } = SUN_CLOCK;
+const { board, ring } = SUN_CLOCK;
 
-/** The board's size in clock units: what the SVG's viewBox shows. */
+/** The board's width in clock units: what the SVG's viewBox shows. */
 export const BOARD_WIDTH = board.halfWidth * 2;
-export const BOARD_HEIGHT = board.top - board.bottom;
+
+/**
+ * The board's height in clock units. `stretch` makes the arc taller (above 1) or flatter (below 1)
+ * than a true half circle, so that the ring can fill scenes of any shape.
+ */
+export function boardHeight(stretch = 1): number {
+  return SUN_CLOCK.arcRadiusY * stretch + board.headroom + board.below;
+}
 
 /** Clock units (y up from the arc's base line) as SVG coordinates (y down from the board's top). */
-export function boardPoint(x: number, y: number): { x: number; y: number } {
-  return { x: x + board.halfWidth, y: board.top - y };
+export function boardPoint(x: number, y: number, stretch = 1): { x: number; y: number } {
+  return {
+    x: x + board.halfWidth,
+    y: SUN_CLOCK.arcRadiusY * stretch + board.headroom - y * stretch,
+  };
 }
 
 export interface ArcDot {
@@ -21,7 +31,7 @@ export interface ArcDot {
 }
 
 /** The dots that trace the sun's path, from the left horizon over the top to the right one. */
-export function arcDots(): ArcDot[] {
+export function arcDots(stretch = 1): ArcDot[] {
   const { major, minor, majorEvery } = SUN_CLOCK.arcDot;
   return Array.from({ length: SUN_CLOCK.arcDots + 1 }, (_, index) => {
     const angle = Math.PI - (index / SUN_CLOCK.arcDots) * Math.PI;
@@ -29,6 +39,7 @@ export function arcDots(): ArcDot[] {
     const at = boardPoint(
       Math.cos(angle) * SUN_CLOCK.arcRadiusX,
       Math.sin(angle) * SUN_CLOCK.arcRadiusY,
+      stretch,
     );
     return { index, major: isMajor, ...at, ...(isMajor ? major : minor) };
   });
@@ -49,26 +60,42 @@ export function clockCells(text: string): ClockCell[] {
 }
 
 /** Where the digits' middle sits, as a fraction of the board's height from its top. */
-export function digitCenterFraction(): number {
-  const middle = SUN_CLOCK.digitY + SUN_CLOCK.digitSize * 0.35;
-  return (board.top - middle) / BOARD_HEIGHT;
+export function digitCenterFraction(stretch = 1): number {
+  const middle = (SUN_CLOCK.digitY + SUN_CLOCK.digitSize * 0.35) * stretch;
+  return (boardHeight(stretch) - board.below - middle) / boardHeight(stretch);
 }
 
 export interface BoardLayout {
   /** Width ÷ height of the board. */
   aspect: number;
+  /** How wide the board is, in scene widths, so that the arc spans `ring.fill` of the scene. */
+  widthInScenes: number;
   /** The widest the board may be, in scene heights, so it keeps clear of the top edge. */
   maxWidthInHeights: number;
   /** How far the board reaches below its base line, as a fraction of its own height. */
   lift: number;
 }
 
-export function boardLayout(): BoardLayout {
-  const aspect = BOARD_WIDTH / BOARD_HEIGHT;
+export function boardLayout(stretch = 1): BoardLayout {
+  const height = boardHeight(stretch);
+  const aspect = BOARD_WIDTH / height;
   const aboveBaseline = SUN_CLOCK.baselineFraction - SUN_CLOCK.topMargin;
   return {
     aspect,
-    maxWidthInHeights: (aboveBaseline * BOARD_HEIGHT * aspect) / board.top,
-    lift: -board.bottom / BOARD_HEIGHT,
+    widthInScenes: (ring.fill * BOARD_WIDTH) / (2 * SUN_CLOCK.arcRadiusX),
+    maxWidthInHeights: (aboveBaseline * aspect * height) / (height - board.below),
+    lift: board.below / height,
   };
+}
+
+/**
+ * How much to stretch the arc's height for a scene of this size, so the ring fills the width and
+ * as much of the height above the base line as it can, without leaving the scene.
+ */
+export function ringStretch(width: number, height: number): number {
+  if (!(width > 0) || !(height > 0)) return 1;
+  const unit = (boardLayout().widthInScenes * width) / BOARD_WIDTH; // pixels per clock unit
+  const room = (SUN_CLOCK.baselineFraction - SUN_CLOCK.topMargin) * height; // above the base line
+  const stretch = (room / unit - board.headroom) / SUN_CLOCK.arcRadiusY;
+  return Math.min(ring.maxStretch, Math.max(ring.minStretch, stretch));
 }

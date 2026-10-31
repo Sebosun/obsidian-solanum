@@ -121,6 +121,52 @@ describe("the sun clock in the page", () => {
     expect(css).not.toMatch(/https?:/);
   });
 
+  describe("fitting the ring to the scene", () => {
+    /** Renders the face in a scene of the given size. */
+    function inScene(width: number, height: number, progress = 0.5) {
+      const original = HTMLElement.prototype.getBoundingClientRect;
+      HTMLElement.prototype.getBoundingClientRect = () =>
+        ({ width, height, top: 0, left: 0, right: width, bottom: height, x: 0, y: 0 }) as DOMRect;
+      try {
+        const view = render(<Face progress={progress} />);
+        const viewBox = view.container.querySelector("svg")!.getAttribute("viewBox")!;
+        const [, , boxWidth, boxHeight] = viewBox.split(" ").map(Number);
+        const dots = [
+          ...view.container.querySelectorAll<SVGCircleElement>(".solanum-clock-arc > circle"),
+        ];
+        const top = Number(dots[SUN_CLOCK.arcDots / 2].getAttribute("cy"));
+        return { view, boxWidth, boxHeight, top, sunY: translation(sun(view.container)).y };
+      } finally {
+        HTMLElement.prototype.getBoundingClientRect = original;
+      }
+    }
+
+    it("draws a taller arc in a tall scene than in a short one, in the same width", () => {
+      const tall = inScene(320, 720);
+      const short = inScene(400, 300);
+      expect(tall.boxWidth).toBe(short.boxWidth);
+      expect(tall.boxHeight).toBeGreaterThan(short.boxHeight);
+      // The top of the arc is as far below the board's top as the headroom, whatever the stretch.
+      expect(tall.top).toBeCloseTo(SUN_CLOCK.board.headroom, 6);
+      expect(short.top).toBeCloseTo(SUN_CLOCK.board.headroom, 6);
+    });
+
+    it("keeps the sun on the stretched arc", () => {
+      const tall = inScene(320, 720, 0.5);
+      expect(tall.sunY).toBeCloseTo(tall.top, 6);
+      const start = inScene(320, 720, 0);
+      expect(start.sunY).toBeCloseTo(start.boxHeight - SUN_CLOCK.board.below, 6);
+    });
+
+    it("tells the stylesheet how wide to make the board, as a share of the scene", () => {
+      const { view } = inScene(400, 300);
+      const board = view.container.querySelector<HTMLElement>(".solanum-sky-board")!;
+      const share = Number(board.style.getPropertyValue("--board-width"));
+      expect(share).toBeGreaterThan(1);
+      expect(share).toBeLessThan(1.4);
+    });
+  });
+
   it("sizes the board from the scene, not from fixed pixels", () => {
     const view = render(<Face progress={0} />);
     const board = view.container.querySelector<HTMLElement>(".solanum-sky-board")!;

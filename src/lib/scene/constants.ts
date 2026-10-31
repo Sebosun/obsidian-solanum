@@ -23,8 +23,13 @@ export const SUN_CLOCK = {
   arcRadiusX: 3.8,
   arcRadiusY: 3.6,
   arcDots: 40,
-  /** What the board shows: half its width, and its top and bottom relative to the base line. */
-  board: { halfWidth: 4.8, top: 4.8, bottom: -1 },
+  /** What the board shows: half its width, and the room above the arc and below the base line. */
+  board: { halfWidth: 4.8, headroom: 1.2, below: 1 },
+  /**
+   * How the ring fills the scene: the arc spans this fraction of the scene's width, and its height
+   * is stretched (a taller or flatter ellipse) to suit the scene's shape, within these limits.
+   */
+  ring: { fill: 0.94, minStretch: 0.5, maxStretch: 1.8 },
   /** Where the arc's base line sits, as a fraction of the scene's height from the top. */
   baselineFraction: 0.56,
   /** Space kept free above the board, as a fraction of the scene's height. */
