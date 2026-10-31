@@ -1,4 +1,4 @@
-The break scene's models (a cat asleep, a coffee mug).
+The break scene's models (a cat asleep, a coffee mug, the bed the cat sleeps in).
 
 Cat_sleeping.glb
 Original work made for Solanum, modelled in Blender and exported as a GLB. A sleeping orange tabby
@@ -8,5 +8,9 @@ mug.glb
 Original work made for Solanum, modelled in Blender and exported as a GLB: a coffee mug with a
 baked, unlit texture.
 
-The steam above the mug is a shader and the pillow under the cat is built in code (until a
-modelled one replaces it); neither uses external art.
+pillow.glb
+Original work made for Solanum, modelled in Blender and exported as a GLB: a rectangular pet bed
+with a baked, unlit texture.
+
+The baked models (mug, pillow) carry their lighting in their textures, so the scene draws them as
+they are, without tone mapping. The steam above the mug is a shader that uses no external art.

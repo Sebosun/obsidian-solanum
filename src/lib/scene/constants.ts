@@ -150,7 +150,7 @@ export const YEAR_STACKS = {
 } as const;
 
 /**
- * The break: a cat asleep on a pillow, with a mug of coffee hovering beside it. There is no floor:
+ * The break: a cat asleep on a pillow on the screen's left, with a mug of coffee hovering on its right. There is no floor:
  * the pillow is what everything rests on. Lengths are world units in the same space as the timer's
  * plot, so the same camera frames it.
  */
@@ -160,21 +160,22 @@ export const BREAK_SCENE = {
   /** Height of the pillow's base, which is as low as anything in the scene goes. */
   groundY: -0.54,
   /** What the camera must keep in view, in place of the plot's bounds. */
-  bounds: { min: [-1.1, -0.6, -1.1], max: [1.1, 0.95, 1.1] } as const,
+  bounds: { min: [-1.2, -0.6, -1.2], max: [1.2, 0.95, 1.2] } as const,
+  /** The middle of what is framed, a touch below the middle of the view: the time sits above it. */
+  center: 0.55,
+  /** The pillow model: how wide it is in the scene, where it sits and how it is turned. */
   pillow: {
-    width: 1.7,
-    depth: 1.35,
-    height: 0.5,
-    /** Turned about the vertical, in radians. */
-    turn: -0.5,
-    position: [0.12, -0.1] as [number, number],
+    model: "break/pillow.glb",
+    width: 1.9,
+    turn: 0.2,
+    position: [-0.3, 0.2] as [number, number],
   },
-  /** The cat sits in the middle of the pillow, sunk a little into it. */
-  cat: { scale: 1.1, sink: 0.07, turn: -0.15 },
+  /** The cat lies on the pillow's floor, sunk a little into it, and is turned against the pillow. */
+  cat: { scale: 1.1, sink: 0.03, turn: -0.15 },
   /** The mug model, which hangs in the air beside the pillow and sways a little. */
   mug: {
     model: "break/mug.glb",
-    position: [-0.8, 0.45] as [number, number],
+    position: [0.85, -0.5] as [number, number],
     /** How tall it stands, and the height of its base above the ground (in the air, not on it). */
     height: 0.24,
     hover: 0.1,

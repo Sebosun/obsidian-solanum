@@ -126,6 +126,16 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   await expect(scene).toBeVisible();
   await expect(page.getByRole("timer")).toHaveText(/0[34]:\d\d/);
   await expect(page.getByText("Break time", { exact: true })).toBeVisible();
+  // No sun and no ring: the time is centred at the top, progress is a bar along the bottom.
+  await expect(page.locator(".solanum-clock-arc")).toHaveCount(0);
+  const frame = await page.locator(".solanum-scene").boundingBox();
+  const header = await page.locator(".solanum-time-header").boundingBox();
+  const bar = await page.getByRole("progressbar", { name: "Break progress" }).boundingBox();
+  expect(frame && header && bar).toBeTruthy();
+  expect(header!.y + header!.height).toBeLessThan(frame!.y + frame!.height * 0.3);
+  expect(Math.abs(header!.x + header!.width / 2 - (frame!.x + frame!.width / 2))).toBeLessThan(4);
+  expect(bar!.y).toBeGreaterThan(frame!.y + frame!.height * 0.88);
+  expect(bar!.width).toBeGreaterThan(frame!.width * 0.7);
   // Nothing is shown in place of the scene while the cat's model loads.
   expect(
     await page.evaluate(() =>
@@ -150,8 +160,10 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
 test("under reduced motion the break holds still", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?view=timer&break=1");
-  // The clock behind the scene ticks every second; only the 3D scene is being compared.
-  await page.addStyleTag({ content: ".solanum-sky { display: none !important; }" });
+  // The time and the bar tick every second; only the 3D scene is being compared.
+  await page.addStyleTag({
+    content: ".solanum-time-header, .solanum-progress { display: none !important; }",
+  });
   const scene = page.getByRole("img", { name: "A cat sleeping beside a cup of coffee" });
   await expect(scene).toBeVisible();
   await page.waitForTimeout(1500);

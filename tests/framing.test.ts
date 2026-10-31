@@ -62,4 +62,16 @@ describe("sidebar camera framing", () => {
     expect(b.min.x).toBeCloseTo(a.min.x, 6);
     expect(b.max.y).toBeCloseTo(a.max.y, 6);
   });
+
+  it("can hold the plot at a different height, for a view with nothing above it", () => {
+    for (const centre of [0.5, 0.45]) {
+      const camera = new OrthographicCamera();
+      fitTimerCamera(camera, { width: 320, height: 720 }, TIMER_SCENE.bounds, centre);
+      const middle = plotOnScreen(camera).getCenter(new Vector3());
+      expect(middle.y).toBeCloseTo(1 - 2 * centre, 6);
+      const box = plotOnScreen(camera);
+      for (const value of [box.min.x, box.max.x, box.min.y, box.max.y])
+        expect(Math.abs(value)).toBeLessThanOrEqual(1);
+    }
+  });
 });

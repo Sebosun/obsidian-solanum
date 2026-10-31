@@ -21,6 +21,8 @@ export function fitTimerCamera(
   camera: OrthographicCamera,
   size: SceneSize,
   bounds: SceneBounds = TIMER_SCENE.bounds,
+  /** How far down the scene the middle of the view sits, as a fraction of its height. */
+  center: number = TIMER_SCENE.plotCenter,
 ): void {
   const plot = new Box3(new Vector3(...bounds.min), new Vector3(...bounds.max));
   const target = new Vector3(...TIMER_SCENE.target);
@@ -39,7 +41,7 @@ export function fitTimerCamera(
         view.expandByPoint(new Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
   const extent = view.getSize(new Vector3());
   // The plot is centred at `plotCenter`, so it can use only as much height as fits on both sides.
-  const roomHeight = 2 * Math.min(TIMER_SCENE.plotCenter, 1 - TIMER_SCENE.plotCenter) * size.height;
+  const roomHeight = 2 * Math.min(center, 1 - center) * size.height;
   camera.zoom = Math.min(size.width / extent.x, roomHeight / extent.y) / TIMER_SCENE.padding;
   camera.left = -size.width / 2;
   camera.right = size.width / 2;
@@ -50,7 +52,7 @@ export function fitTimerCamera(
 
   // Look a little above the plot, so that the plot lands below the middle of the scene.
   const centre = view.getCenter(new Vector3());
-  const lift = ((TIMER_SCENE.plotCenter - 0.5) * size.height) / camera.zoom;
+  const lift = ((center - 0.5) * size.height) / camera.zoom;
   camera.position
     .addScaledVector(new Vector3(1, 0, 0).applyQuaternion(camera.quaternion), centre.x)
     .addScaledVector(new Vector3(0, 1, 0).applyQuaternion(camera.quaternion), centre.y + lift);

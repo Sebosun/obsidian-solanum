@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
+import { useBakedDimming } from "@/hooks/useBakedDimming";
 import { useBreakModel } from "@/hooks/useBreakModel";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { prepareMug } from "@/lib/models/mug";
+import { prepareBaked } from "@/lib/models/baked";
 import type { SunState } from "@/lib/scene/sunClock";
 import { Steam } from "@/components/models/Steam";
 
@@ -15,8 +16,6 @@ interface CoffeeMugProps {
 
 /** Longest simulated step, so a stalled frame cannot make the mug jump. */
 const MAX_STEP_SECONDS = 0.1;
-/** Never darker than this share of its baked colours, so the mug stays readable at dusk. */
-const DIMMEST = 0.5;
 
 /** The mug of coffee, with steam rising from it. */
 export function CoffeeMug({ reduced, daylightRef }: CoffeeMugProps) {
@@ -24,13 +23,14 @@ export function CoffeeMug({ reduced, daylightRef }: CoffeeMugProps) {
   const { position, height, coffeeLevel, turn, hover, bob, bobSeconds } = BREAK_SCENE.mug;
   const floating = useRef<Group>(null);
   const elapsed = useRef(0);
-  const mug = useMemo(() => prepareMug(scene, height), [scene, height]);
+  const mug = useMemo(() => prepareBaked(scene, { size: { height } }), [scene, height]);
   useEffect(
     () => () => {
       mug.materials.forEach((material) => material.dispose());
     },
     [mug],
   );
+  useBakedDimming(mug.materials, daylightRef);
   useFrame((_state, delta) => {
     // It hangs in the air, rising and sinking slowly; a stalled frame must not make it jump.
     if (!reduced && floating.current) {
@@ -38,9 +38,6 @@ export function CoffeeMug({ reduced, daylightRef }: CoffeeMugProps) {
       floating.current.position.y =
         BREAK_SCENE.groundY + hover + Math.sin((elapsed.current / bobSeconds) * Math.PI * 2) * bob;
     }
-    // The model is baked with its own light, so it does not react to the scene's: dim it by hand.
-    const light = Math.min(1, daylightRef?.current.lightFactor ?? 1);
-    for (const material of mug.materials) material.color.setScalar(DIMMEST + (1 - DIMMEST) * light);
   });
   return (
     <group

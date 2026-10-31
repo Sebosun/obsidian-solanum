@@ -12,6 +12,7 @@ TextureLoader.prototype.load = function (_url, onLoad) {
 
 export const CAT_FILE = "assets/break/Cat_sleeping.glb";
 export const MUG_FILE = "assets/break/mug.glb";
+export const PILLOW_FILE = "assets/break/pillow.glb";
 
 /** A shipped model, parsed the way the plugin parses it. */
 export async function loadModel(path: string): Promise<GLTF> {
@@ -24,3 +25,4 @@ export async function loadModel(path: string): Promise<GLTF> {
 
 export const loadCat = () => loadModel(CAT_FILE);
 export const loadMug = () => loadModel(MUG_FILE);
+export const loadPillow = () => loadModel(PILLOW_FILE);

@@ -93,6 +93,42 @@
   margin-left: 0.16em;
   opacity: calc(var(--digit-opacity) * 1.9);
 }
+/* The break: the time centred at the top and a thin bar along the bottom, both sized from the view. */
+.solanum-scene.is-break {
+  container-type: size;
+}
+.solanum-time-header {
+  @apply sol:absolute sol:inset-x-0 sol:flex sol:flex-col sol:items-center sol:pointer-events-none sol:text-(--text-normal);
+  top: 4cqh;
+}
+.solanum-time-header .solanum-clock-readout {
+  position: static;
+  transform: none;
+  font-size: min(11cqw, 15cqh);
+}
+.solanum-time-caption {
+  @apply sol:m-0 sol:uppercase sol:leading-none sol:text-(--text-muted);
+  font-size: min(2.6cqw, 3.6cqh);
+  letter-spacing: 0.32em;
+  /* The tracking adds space after the last letter, so shift back to stay centred. */
+  margin-left: 0.32em;
+  margin-bottom: 1.2cqh;
+  opacity: 0.85;
+}
+.solanum-progress {
+  @apply sol:absolute sol:overflow-hidden sol:pointer-events-none;
+  left: 7cqw;
+  right: 7cqw;
+  bottom: 3.5cqh;
+  height: clamp(3px, 1cqh, 8px);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text-normal) 14%, transparent);
+}
+.solanum-progress-fill {
+  @apply sol:h-full sol:w-full;
+  transform-origin: left center;
+  border-radius: inherit;
+}
 .solanum-clock-cell {
   @apply sol:relative sol:inline-block sol:h-[1em] sol:text-center;
 }

@@ -4,7 +4,6 @@ import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { Box3, Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
 import { CoffeeMug } from "@/components/models/CoffeeMug";
 import { BREAK_SCENE } from "@/lib/scene/constants";
-import { prepareMug } from "@/lib/models/mug";
 import { sunState } from "@/lib/scene/sunClock";
 import { MUG_FILE, loadMug } from "./helpers/catModel";
 
@@ -39,26 +38,6 @@ describe("the shipped mug", () => {
     const materials = materialsOf(scene);
     expect(materials).toHaveLength(1);
     expect(materials[0].map).not.toBeNull();
-  });
-});
-
-describe("preparing the mug for the scene", () => {
-  it("makes it as tall as asked and stands it on the ground", async () => {
-    const { scene } = await loadMug();
-    const { object, factor } = prepareMug(scene, 0.24);
-    const box = new Box3().setFromObject(object);
-    expect(box.min.y).toBeCloseTo(0, 6);
-    expect(box.getSize(new Vector3()).y * factor).toBeCloseTo(0.24, 6);
-  });
-
-  it("gives its copy private materials, leaving the shared model untouched", async () => {
-    const { scene } = await loadMug();
-    const prepared = prepareMug(scene, 0.24);
-    expect(prepared.materials).toHaveLength(1);
-    const [original] = materialsOf(scene);
-    expect(prepared.materials[0]).not.toBe(original);
-    prepared.materials[0].color.setScalar(0.1);
-    expect(original.color.r).toBe(1);
   });
 });
 

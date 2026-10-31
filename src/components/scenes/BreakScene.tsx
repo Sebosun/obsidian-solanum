@@ -2,9 +2,10 @@ import { Suspense, useId, useRef, type CSSProperties } from "react";
 import { Canvas } from "@react-three/fiber";
 import { SrLabel } from "@/components/app/SrLabel";
 import { BreakFallback } from "@/components/scenes/BreakFallback";
-import { SunClockFace } from "@/components/clock/SunClockFace";
+import { ProgressBar } from "@/components/clock/ProgressBar";
+import { TimeHeader } from "@/components/clock/TimeHeader";
 import { CoffeeMug } from "@/components/models/CoffeeMug";
-import { FuzzyPillow } from "@/components/models/FuzzyPillow";
+import { Pillow } from "@/components/models/Pillow";
 import { SceneBoundary } from "@/components/stage/SceneBoundary";
 import { SeasonLights } from "@/components/stage/SeasonLights";
 import { SleepingCat } from "@/components/models/SleepingCat";
@@ -33,12 +34,10 @@ interface BreakSceneProps {
   immersive?: boolean;
 }
 
-/** What the sleeping cat rests on: the top of the pillow, a little below the pile of fur. */
-const CAT_REST = BREAK_SCENE.pillow.height * 0.93;
-
 /**
- * The break, as a view of its own: a cat asleep on a fuzzy pillow beside a steaming mug, under the
- * same sun that counts the time down.
+ * The break, as a view of its own: a cat asleep on a pillow beside a steaming mug. The time sits at
+ * the top and a thin bar along the bottom fills as the break runs out; nothing else competes for
+ * the room. The sun still sets the light, and the sky darkens with it.
  */
 export function BreakScene({
   remaining,
@@ -60,18 +59,11 @@ export function BreakScene({
     "--season-sun": theme.css.sun,
     "--dusk": sun.dusk,
   };
-  const { pillow } = BREAK_SCENE;
   const classes = ["solanum-scene", "is-break", `is-${season}`];
   if (immersive) classes.push("is-immersive");
   return (
     <div ref={container} className={classes.join(" ")} style={style}>
-      <SunClockFace
-        clock={clock}
-        progress={clockProgress}
-        remaining={remaining}
-        reduced={reduced}
-        caption="Break time"
-      />
+      <TimeHeader remaining={remaining} reduced={reduced} caption="Break time" />
       <SceneBoundary fallback={<BreakFallback />}>
         {/* Nothing is drawn while the model loads: the placeholder is only for when WebGL fails. */}
         <Suspense fallback={null}>
@@ -83,23 +75,22 @@ export function BreakScene({
             role="img"
             aria-labelledby={labelId}
           >
-            <TimerCamera bounds={BREAK_SCENE.bounds} />
+            <TimerCamera bounds={BREAK_SCENE.bounds} center={BREAK_SCENE.center} />
             <SeasonLights theme={theme} daylight={sun} daylightRef={clock.sun} showGlow={false} />
-            <FuzzyPillow daylightRef={clock.sun} />
-            <group
-              position={[pillow.position[0], BREAK_SCENE.groundY + CAT_REST, pillow.position[1]]}
-              rotation={[0, pillow.turn, 0]}
-            >
-              <Suspense fallback={null}>
-                <SleepingCat reduced={reduced} />
-              </Suspense>
-            </group>
+            <Suspense fallback={null}>
+              <Pillow daylightRef={clock.sun}>
+                <Suspense fallback={null}>
+                  <SleepingCat reduced={reduced} />
+                </Suspense>
+              </Pillow>
+            </Suspense>
             <Suspense fallback={null}>
               <CoffeeMug reduced={reduced} daylightRef={clock.sun} />
             </Suspense>
           </Canvas>
         </Suspense>
       </SceneBoundary>
+      <ProgressBar clock={clock} progress={clockProgress} label="Break progress" />
       <SrLabel id={labelId}>A cat sleeping beside a cup of coffee</SrLabel>
       <SrLabel id={timerLabelId}>Break time remaining</SrLabel>
       <span role="timer" aria-labelledby={timerLabelId} className="sol:sr-only">
