@@ -9,6 +9,7 @@ import type { SolanumHost } from "@/types/host";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { formatTime } from "@/lib/time";
 import { seasonOf } from "@/lib/scene/seasons";
+import { focusSession } from "./helpers/sessions";
 import { updatePresets, updateSeason } from "@/state/appStore";
 
 vi.mock("@/components/crops/CropScene", () => ({
@@ -428,6 +429,14 @@ describe("sidebar workflows backed by the real timer service", () => {
     });
     f.advance(5 * 60_000);
     await f.host.timer.tick();
+    // A session from another year, so "work/client" exists to filter by but not in 2026.
+    await f.store.append(
+      focusSession("old", new Date(2025, 5, 3, 9), 25, {
+        tags: ["work/client"],
+        notePath: "Other.md",
+      }),
+    );
+    await f.host.timer.refresh();
     return f;
   }
 
@@ -481,6 +490,19 @@ describe("sidebar workflows backed by the real timer service", () => {
       );
     });
 
+    it("offers only the tags and notes that crops have used", async () => {
+      const f = await harvestedFixture();
+      f.host.tags = () => ["work/client", "study", "vault-only"];
+      f.host.notes = () => ["Project.md", "Other.md", "Unused.md"];
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      const optionsOf = (label: string) =>
+        within(screen.getByLabelText(label))
+          .getAllByRole("option")
+          .map((option) => option.textContent);
+      expect(optionsOf("Filter by tag")).toEqual(["All tags", "study", "work/client"]);
+      expect(optionsOf("Filter by note")).toEqual(["All notes", "Other.md", "Project.md"]);
+    });
+
     it("does not show a crop that was stopped early", async () => {
       const f = fixture();
       const id = await f.host.timer.start({
@@ -498,19 +520,7 @@ describe("sidebar workflows backed by the real timer service", () => {
   });
 
   describe("year overview", () => {
-    async function plantedFixture() {
-      const f = fixture();
-      await f.host.timer.start({
-        durationMs: 5 * 60_000,
-        breakMs: 5 * 60_000,
-        autoBreak: false,
-        tags: ["study"],
-        notePath: "Project.md",
-      });
-      f.advance(5 * 60_000);
-      await f.host.timer.tick();
-      return f;
-    }
+    const plantedFixture = harvestedFixture;
     const monthButtons = () =>
       screen.getAllByRole("button", { name: /^[A-Z][a-z]+ \d{4}, \d+ focused minutes$/ });
 

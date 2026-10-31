@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useAppStore, useServices } from "@/state/hooks";
+import { useAppStore } from "@/state/hooks";
+import { harvestFilterOptions } from "@/lib/harvest/filters";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
 import { buildHarvestYear } from "@/lib/harvest/year";
 import { resolveSeason } from "@/lib/scene/seasons";
@@ -18,7 +19,6 @@ interface HarvestPanelProps {
 const MONTHS_PER_YEAR = 12;
 
 export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
-  const services = useServices();
   const history = useAppStore((state) => state.sessions);
   const conflicts = useAppStore((state) => state.conflicts);
   const seasonChoice = useAppStore((state) => state.season);
@@ -47,12 +47,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   );
   const yearTotal = yearMonths.reduce((sum, item) => sum + item.minutes, 0);
   const total = view === "year" ? yearTotal : summary.minutes;
-  const tags = [
-    ...new Set([...services.tags(), ...sessions.flatMap((session) => session.tags)]),
-  ].sort();
-  const notes = [
-    ...new Set(sessions.flatMap((session) => (session.notePath ? [session.notePath] : []))),
-  ].sort();
+  const { tags, notes } = useMemo(() => harvestFilterOptions(sessions), [sessions]);
 
   function step(direction: number) {
     const delta = view === "year" ? direction * MONTHS_PER_YEAR : direction;
