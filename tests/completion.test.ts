@@ -4,6 +4,43 @@ import type { CompletionEvent, Revision } from "@/lib/timer/types";
 import { celebrationFrame } from "@/lib/scene/celebration";
 
 describe("one-shot completion effects", () => {
+  it("notifies exactly once when a background refresh wins the expiry race", async () => {
+    let now = 1_000_000;
+    let sequence = 0;
+    const files = new Map<string, Revision>();
+    const store = {
+      readAll: async () => [...files.values()],
+      append: async (revision: Revision) => {
+        files.set(revision.id, revision);
+      },
+    };
+    const events: CompletionEvent[] = [];
+    const sounds: string[] = [];
+    const timer = new TimerService(store, {
+      now: () => now,
+      id: () => `refresh-${++sequence}`,
+      notify: (phase) => sounds.push(phase),
+    });
+    timer.subscribeCompletion((event) => events.push(event));
+    await timer.start({
+      durationMs: 300_000,
+      breakMs: 300_000,
+      autoBreak: true,
+      tags: [],
+      notePath: null,
+    });
+    now += 300_001;
+    await timer.refresh();
+    await timer.tick();
+    await timer.refresh();
+    expect(events.map((event) => event.phase)).toEqual(["focus"]);
+    expect(sounds).toEqual(["focus"]);
+    now += 300_000;
+    await timer.refresh();
+    await timer.tick();
+    expect(sounds).toEqual(["focus", "break"]);
+  });
+
   it("emits only a new live completion, never cancellation or recovered history", async () => {
     let now = 1_000_000;
     let sequence = 0;

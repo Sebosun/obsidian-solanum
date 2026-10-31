@@ -10,6 +10,9 @@ import type {
 } from "@/lib/timer/types";
 import { completePhase } from "@/lib/timer/transitions";
 
+/** Expiries newer than this are announced; older ones are restored history. */
+const RECENT_COMPLETION_MS = 10_000;
+
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
 export class TimerService {
   private revisions = new Map<string, Revision>();
@@ -86,13 +89,13 @@ export class TimerService {
   refresh() {
     return this.serial(async () => {
       await this.load();
-      await this.reconcile(false);
+      await this.reconcile();
     });
   }
 
   tick() {
     return this.serial(async () => {
-      await this.reconcile(true);
+      await this.reconcile();
       this.publish();
     });
   }
@@ -100,7 +103,7 @@ export class TimerService {
   start(options: StartOptions): Promise<string> {
     return this.serial(async () => {
       await this.load();
-      await this.reconcile(false);
+      await this.reconcile();
       if (this.state.sessions.some(isActive) || this.state.conflicts.length)
         throw new Error("Finish the active session before planting another crop.");
       if (
@@ -138,7 +141,7 @@ export class TimerService {
   private transition(sessionId: string, change: (next: Revision) => void) {
     return this.serial(async () => {
       await this.load();
-      await this.reconcile(false);
+      await this.reconcile();
       const next = this.next(this.current(sessionId));
       change(next);
       await this.save(next);
@@ -208,7 +211,7 @@ export class TimerService {
       const next = this.next(chosen);
       next.parents = conflict.versions.map((r) => r.id);
       await this.save(next);
-      await this.reconcile(false);
+      await this.reconcile();
     });
   }
 
@@ -232,7 +235,12 @@ export class TimerService {
     });
   }
 
-  private async reconcile(notify: boolean) {
+  /**
+   * Completes every elapsed phase. Whichever call notices an expiry first (tick, refresh, or a
+   * user action) announces it, since the deterministic expiry revision means nobody else will.
+   * Expiries older than the recency window are restored history and stay silent.
+   */
+  private async reconcile() {
     for (const initial of this.state.sessions) {
       if (this.state.conflicts.some((c) => c.sessionId === initial.sessionId)) continue;
       let s = initial;
@@ -244,7 +252,7 @@ export class TimerService {
         next.id = `${s.id}-elapsed`;
         completePhase(next, deadline);
         await this.save(next);
-        if (notify && this.env.now() - deadline < 10_000 && phase !== "done") {
+        if (this.env.now() - deadline < RECENT_COMPLETION_MS && phase !== "done") {
           this.notifyCompletion({ sessionId: s.sessionId, crop: s.crop, phase, at: deadline });
         }
         s = next;
