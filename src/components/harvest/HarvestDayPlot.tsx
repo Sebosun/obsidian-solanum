@@ -1,9 +1,12 @@
+import { useRef } from "react";
 import { Html } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import type { Group } from "three";
 import type { HarvestDay } from "@/lib/harvest/model";
 import { cropStage } from "@/lib/crops/growth";
 import { Color } from "three";
 import { HARVEST_GRID } from "@/lib/scene/constants";
+import { plotEntrance } from "@/lib/scene/motion";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { Plant } from "@/components/scene/Plant";
 
@@ -12,10 +15,15 @@ interface HarvestDayPlotProps {
   hovered: boolean;
   selected: boolean;
   season: SeasonId;
+  /** Position in the month; later plots rise a beat after earlier ones. */
+  index: number;
+  reduced: boolean;
   onHover(key: string | null): void;
   onSelect(key: string): void;
 }
 
+const MAX_STEP_SECONDS = 0.05;
+const MIN_SCALE = 0.0001;
 const BASE_HEIGHT = 0.14;
 const SOIL_INSET = 0.12;
 const SOIL_HEIGHT = 0.2;
@@ -55,10 +63,24 @@ export function HarvestDayPlot({
   hovered,
   selected,
   season,
+  index,
+  reduced,
   onHover,
   onSelect,
 }: HarvestDayPlotProps) {
   const lift = hovered || selected ? HOVER_LIFT : 0;
+  const group = useRef<Group>(null);
+  const age = useRef(0);
+  const settled = useRef(reduced);
+  const invalidate = useThree((state) => state.invalidate);
+  useFrame((_state, delta) => {
+    if (settled.current || !group.current) return;
+    age.current += Math.min(delta, MAX_STEP_SECONDS);
+    const frame = plotEntrance(age.current, index, reduced);
+    group.current.scale.setScalar(Math.max(MIN_SCALE, frame.scale));
+    settled.current = frame.done;
+    invalidate();
+  });
   const soilSize = HARVEST_GRID.plotSize - SOIL_INSET;
   let labelClass = "solanum-plot-date";
   if (selected) labelClass += " is-selected";
@@ -77,6 +99,8 @@ export function HarvestDayPlot({
   }
   return (
     <group
+      ref={group}
+      scale={reduced ? 1 : MIN_SCALE}
       position={[day.position[0], lift, day.position[2]]}
       name={`day-${day.key}`}
       onPointerOver={hover}

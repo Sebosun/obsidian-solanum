@@ -19,6 +19,8 @@ describe("3D plot pointer interaction", () => {
         hovered={false}
         selected={false}
         season="summer"
+        index={0}
+        reduced
         onHover={onHover}
         onSelect={onSelect}
       />,
@@ -46,6 +48,8 @@ describe("3D plot pointer interaction", () => {
           hovered={false}
           selected={false}
           season={season}
+          index={0}
+          reduced
           onHover={vi.fn()}
           onSelect={vi.fn()}
         />,
@@ -61,5 +65,43 @@ describe("3D plot pointer interaction", () => {
     const summer = await soilColorIn("summer");
     expect(winter.brightness).toBeGreaterThan(summer.brightness + 0.15);
     expect(winter.b).toBeGreaterThan(winter.r);
+  });
+
+  it("raises plots into place a beat apart, and leaves them standing", async () => {
+    const days = buildHarvestMonth([], new Date(2026, 9, 1));
+    const plot = (index: number) => (
+      <HarvestDayPlot
+        key={index}
+        day={days[index]}
+        hovered={false}
+        selected={false}
+        season="summer"
+        index={index}
+        reduced={false}
+        onHover={vi.fn()}
+        onSelect={vi.fn()}
+      />
+    );
+    const renderer = await ReactThreeTestRenderer.create(
+      <>
+        {plot(0)}
+        {plot(20)}
+      </>,
+    );
+    const scaleOf = (index: number) =>
+      renderer.scene.findByProps({ name: `day-${days[index].key}` }).instance.scale.x;
+    expect(scaleOf(0)).toBeLessThan(0.01);
+    expect(scaleOf(20)).toBeLessThan(0.01);
+    await ReactThreeTestRenderer.act(async () => {
+      await renderer.advanceFrames(4, 0.05);
+    });
+    expect(scaleOf(0)).toBeGreaterThan(0.3);
+    expect(scaleOf(20)).toBeLessThan(0.01);
+    await ReactThreeTestRenderer.act(async () => {
+      await renderer.advanceFrames(30, 0.05);
+    });
+    expect(scaleOf(0)).toBe(1);
+    expect(scaleOf(20)).toBe(1);
+    await renderer.unmount();
   });
 });

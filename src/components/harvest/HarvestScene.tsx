@@ -4,6 +4,7 @@ import { Bounds } from "@react-three/drei";
 import type { HarvestDay } from "@/lib/harvest/model";
 import { adjacentDayKey } from "@/lib/harvest/navigation";
 import { harvestAspectRatio, weekdayHeaderOffset } from "@/lib/scene/harvestFraming";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useServices } from "@/state/hooks";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { HarvestDayPlot } from "@/components/harvest/HarvestDayPlot";
@@ -41,6 +42,7 @@ export function HarvestScene({
 }: HarvestSceneProps) {
   const services = useServices();
   const [attempt, setAttempt] = useState(0);
+  const reduced = useReducedMotion();
   const rows = days[days.length - 1].row + 1;
   const theme = SEASON_THEMES[season];
 
@@ -105,13 +107,15 @@ export function HarvestScene({
             <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>
               <group>
                 <HarvestWeekdays z={weekdayHeaderOffset(rows)} />
-                {days.map((day) => (
+                {days.map((day, index) => (
                   <HarvestDayPlot
                     key={day.key}
                     day={day}
                     hovered={day.key === hoverKey}
                     selected={day.key === selectedKey}
                     season={season}
+                    index={index}
+                    reduced={reduced}
                     onHover={onHover}
                     onSelect={onSelect}
                   />

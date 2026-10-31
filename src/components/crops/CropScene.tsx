@@ -4,10 +4,12 @@ import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { CropSwap } from "@/components/scene/CropSwap";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
 import { SceneCountdown } from "@/components/scene/SceneCountdown";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useSceneColor } from "@/hooks/useSceneColor";
 import { formatTime } from "@/lib/time";
 import { CompletionFlourish } from "@/components/scene/CompletionFlourish";
@@ -38,18 +40,11 @@ export function CropScene({
   const container = useRef<HTMLDivElement>(null);
   const color = useSceneColor(container);
   const [visible, setVisible] = useState(true);
-  const [reduced, setReduced] = useState(false);
+  const reduced = useReducedMotion();
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener("change", update);
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     if (container.current) observer.observe(container.current);
-    return () => {
-      media.removeEventListener("change", update);
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
@@ -66,7 +61,7 @@ export function CropScene({
   if (immersive) classes.push("is-immersive");
   return (
     <div ref={container} className={classes.join(" ")} style={seasonStyle}>
-      <SceneBoundary key={crop} fallback={fallback}>
+      <SceneBoundary resetKey={crop} fallback={fallback}>
         <Suspense fallback={fallback}>
           <Canvas
             orthographic
@@ -79,7 +74,17 @@ export function CropScene({
             <SceneCountdown remaining={remaining} color={color} />
             <SeasonScenery season={season} animate={animate} />
             <CompletionFlourish reduced={reduced}>
-              <GrowingCrop key={crop} crop={crop} stage={stage} moving={moving} reduced={reduced} />
+              <CropSwap crop={crop} reduced={reduced}>
+                {(planted) => (
+                  <GrowingCrop
+                    key={planted}
+                    crop={planted}
+                    stage={stage}
+                    moving={moving}
+                    reduced={reduced}
+                  />
+                )}
+              </CropSwap>
             </CompletionFlourish>
           </Canvas>
         </Suspense>

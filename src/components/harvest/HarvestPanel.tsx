@@ -122,7 +122,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         onNote={setNotePath}
       />
       {content}
-      {view === "month" && details && <HarvestDetails day={details} />}
+      {view === "month" && details && <HarvestDetails key={details.key} day={details} />}
     </section>
   );
 }

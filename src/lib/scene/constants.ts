@@ -56,3 +56,17 @@ export const HARVEST_FLOURISH = {
   ringExpansion: 0.45,
   ringOpacity: 0.35,
 } as const;
+
+/** Swapping the planted crop: the old one shrinks away, the new one pops in. Seconds and radians. */
+export const CROP_SWAP = {
+  durationSeconds: 0.45,
+  overshoot: 1.6,
+  spinRadians: 0.9,
+} as const;
+
+/** Calendar plots rising into place when a month opens. */
+export const PLOT_ENTRANCE = {
+  durationSeconds: 0.32,
+  staggerSeconds: 0.014,
+  overshoot: 1.3,
+} as const;

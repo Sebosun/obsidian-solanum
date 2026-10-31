@@ -38,3 +38,19 @@ for (const season of ["winter", "spring", "summer", "autumn"] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test("changing the crop animates inside the same canvas without errors", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/?view=timer");
+  const canvas = await page.locator(".solanum-scene canvas").elementHandle();
+  await page.waitForTimeout(1500);
+  for (const crop of ["Carrot", "Corn", "Pumpkin", "Tomato"]) {
+    await page.getByRole("radio", { name: crop }).click();
+    await page.waitForTimeout(150);
+  }
+  await page.waitForTimeout(1000);
+  expect(await canvas?.evaluate((element) => element.isConnected)).toBe(true);
+  await expect(page.getByRole("radio", { name: "Tomato" })).toHaveAttribute("aria-checked", "true");
+  expect(errors).toEqual([]);
+});

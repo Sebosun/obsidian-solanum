@@ -20,4 +20,14 @@ describe("Obsidian-safe Tailwind bundle", () => {
     expect(css).not.toMatch(/(?:^|\})\s*(?:html|body|button|input|h1)\s*\{/);
     expect(css).toContain(".solanum-app");
   });
+
+  it("keeps every animation inside the plugin namespace and switches them off for reduced motion", () => {
+    const css = readFileSync("src/styles.css", "utf8");
+    const keyframes = [...css.matchAll(/@keyframes\s+([\w-]+)/g)].map((match) => match[1]);
+    expect(keyframes.length).toBeGreaterThan(2);
+    expect(keyframes.every((name) => name.startsWith("solanum-"))).toBe(true);
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    expect(reduced).toMatch(/\.solanum-app \*\s*\{[^}]*animation:\s*none/);
+    expect(reduced).toMatch(/transition:\s*none/);
+  });
 });
