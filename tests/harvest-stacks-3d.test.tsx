@@ -1,10 +1,28 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import type { Object3D } from "three";
+import { Box3, Mesh, MeshBasicMaterial, type Object3D } from "three";
 import { YearStackMesh } from "@/components/models/YearStackMesh";
 import { layoutYearStacks, type YearMonth, type YearStack } from "@/lib/harvest/year";
 import { YEAR_STACKS } from "@/lib/scene/constants";
 import { stackHeight, stackPosition } from "@/lib/scene/yearLayout";
+
+const crateModel = vi.hoisted(() => ({ current: null as GLTF | null }));
+vi.mock("@/hooks/useModel", () => ({
+  useModel: (path: string) => {
+    if (path !== "harvest/Crate.glb" || !crateModel.current)
+      throw new Error("Unexpected crate model");
+    return crateModel.current;
+  },
+}));
+beforeAll(async () => {
+  const bytes = readFileSync("assets/harvest/Crate.glb");
+  crateModel.current = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    "",
+  );
+});
 
 vi.mock("@react-three/drei", () => ({ Html: () => null }));
 vi.mock("@/components/models/Plant", () => ({
@@ -22,7 +40,7 @@ function months(hours: number[]): YearMonth[] {
     minutes: value * HOUR,
     harvests: value > 0 ? 1 : 0,
     activeDays: 0,
-    crops: { tomato: 3, carrot: 1, corn: 0, pumpkin: 0, coconut: 0 },
+    crops: { tomato: 3, carrot: 1, corn: 0, pumpkin: 0, coconut: 0, apple: 0 },
     tags: [],
   }));
 }
@@ -104,11 +122,37 @@ describe("a month's stack in the scene", () => {
     expect(renderer.scene.findAll((node) => node.instance.name.startsWith("plant-"))).toHaveLength(
       0,
     );
-    const side = crates(renderer)[0].instance.children[1] as unknown as {
-      geometry: { parameters: { height: number } };
-    };
-    expect(side.geometry.parameters.height).toBeCloseTo(YEAR_STACKS.emptyCrateHeight, 6);
+    const crate = crates(renderer)[0].instance;
+    crate.updateWorldMatrix(true, true);
+    const bounds = new Box3().setFromObject(crate);
+    expect(bounds.max.y - bounds.min.y).toBeCloseTo(0.3, 6);
     await renderer.unmount();
+  });
+
+  it("uses the Blender crate with private baked materials, shared geometry, and safe highlighting", async () => {
+    if (!crateModel.current) throw new Error("Crate not loaded");
+    const source = crateModel.current.scene.getObjectByProperty("type", "Mesh");
+    if (!(source instanceof Mesh) || !(source.material instanceof MeshBasicMaterial))
+      throw new Error("Invalid crate");
+    const sourceDispose = vi.spyOn(source.geometry, "dispose");
+    const renderer = await ReactThreeTestRenderer.create(mount().element);
+    const found = crates(renderer);
+    const materials: MeshBasicMaterial[] = [];
+    for (const crate of found) {
+      const mesh = crate.instance.getObjectByProperty("type", "Mesh");
+      if (!(mesh instanceof Mesh) || !(mesh.material instanceof MeshBasicMaterial))
+        throw new Error("Crate must use its unlit Blender material");
+      expect(mesh.geometry).toBe(source.geometry);
+      expect(mesh.material.toneMapped).toBe(false);
+      expect(mesh.material).not.toBe(source.material);
+      materials.push(mesh.material);
+    }
+    expect(new Set(materials).size).toBe(found.length);
+    await renderer.update(mount({ active: true }).element);
+    expect(materials[0].color.r).toBeGreaterThan(1);
+    expect(source.material.color.r).toBe(1);
+    await renderer.unmount();
+    expect(sourceDispose).not.toHaveBeenCalled();
   });
 
   it("sits in its place in the grid", async () => {

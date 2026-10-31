@@ -1,0 +1,18 @@
+Crate.glb
+Original work made for Solanum in Blender. No external models, textures, or source art.
+Used by the harvest/year overview. Crates are not crops or produce.
+
+Rebuild with Blender 5.2:
+  blender --background --python scripts/build-harvest-crate.py
+This uses the deterministic vertex-light baker and GLB encoder in
+scripts/build-farm-platform.py. The script rebuilds the GLB byte for byte.
+
+An empty, open wooden produce crate: chunky slats and corner posts, simple handle
+cutouts, and one-segment bevels. No lid, fruit, nails, or fine grain detail.
+Warm key light, soft fill, and ray-cast contact shading are baked into vertex colours.
+The GLB contains 604 triangles, one mesh and one unlit material; no lights, cameras, or textures.
+Keep its material unlit and disable tone mapping when integrating it.
+
+glTF coordinates: Y up; bottom at Y=0, rim at Y=0.6, inside floor at Y=0.08.
+Dimensions: 1.9 wide x 1.5 deep x 0.6 high world units.
+This matches the year overview's 0.62-unit stack spacing and 0.10-unit produce floor.

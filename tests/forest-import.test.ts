@@ -139,7 +139,7 @@ describe("turning Forest tags into Obsidian tags", () => {
   });
 
   it("starts over on the crops when there are more trees than crops", () => {
-    const rows = ["Oak", "Elm", "Fir", "Ash", "Yew", "Box"]
+    const rows = ["Oak", "Elm", "Fir", "Ash", "Yew", "Box", "Birch"]
       .map(
         (tree, i) =>
           `"Wed Jul ${10 + i} 12:00:00 GMT+02:00 2021","Wed Jul ${10 + i} 12:25:00 GMT+02:00 2021","","","${tree}","True"`,
@@ -148,6 +148,7 @@ describe("turning Forest tags into Obsidian tags", () => {
     const csv = `"Start Time","End Time","Tag","Note","Tree Type","Is Success"\n${rows}\n`;
     const { trees } = defaultForestMapping(previewForest(parseForestCsv(csv)));
     expect(Object.values(trees).sort()).toEqual([
+      "apple",
       "carrot",
       "coconut",
       "corn",

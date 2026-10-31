@@ -564,14 +564,18 @@ describe("sidebar workflows backed by the real timer service", () => {
       const f = fixture();
       render(<App host={f.host} screen="timer" />);
       const group = screen.getByRole("radiogroup", { name: "Crop" });
-      expect(within(group).getAllByRole("radio")).toHaveLength(5);
-      for (const name of ["Tomato", "Carrot", "Corn", "Pumpkin", "Coconut"])
+      expect(within(group).getAllByRole("radio")).toHaveLength(6);
+      for (const name of ["Tomato", "Carrot", "Corn", "Pumpkin", "Coconut", "Apple"])
         expect(within(group).getByRole("radio", { name })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Tomato" }).getAttribute("aria-checked")).toBe(
         "true",
       );
       fireEvent.click(screen.getByRole("radio", { name: "Corn" }));
       expect(screen.getByRole("radio", { name: "Corn" }).getAttribute("aria-checked")).toBe("true");
+      fireEvent.click(screen.getByRole("radio", { name: "Apple" }));
+      expect(screen.getByRole("radio", { name: "Apple" }).getAttribute("aria-checked")).toBe(
+        "true",
+      );
     });
   });
 

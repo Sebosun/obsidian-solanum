@@ -60,7 +60,7 @@ function months(hours: number[], mix?: Partial<Record<string, number>>): YearMon
     minutes: value * HOUR,
     harvests: value > 0 ? 1 : 0,
     activeDays: value > 0 ? 1 : 0,
-    crops: { tomato: 1, carrot: 0, corn: 0, pumpkin: 0, coconut: 0, ...mix },
+    crops: { tomato: 1, carrot: 0, corn: 0, pumpkin: 0, coconut: 0, apple: 0, ...mix },
     tags: [],
   }));
 }

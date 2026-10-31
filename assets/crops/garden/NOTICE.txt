@@ -1,0 +1,28 @@
+Original Blender crop models made for Solanum. No external models, source art,
+textures, or runtime dependencies. These are deliberately stylised, low-poly crops
+with oversized produce and vibrant colours for a small presentational scene.
+
+Tomato_1.glb through Tomato_4.glb; Tomato_produce.glb
+Corn_1.glb through Corn_4.glb; Corn_produce.glb
+Apple_1.glb through Apple_4.glb; Apple_produce.glb
+
+Each family progresses through seedling, juvenile plant, fruit-setting growth,
+and a mature fruit-bearing plant. Stage 4 is always the plant. The separate
+_produce model contains only the picked tomato, ear of corn, or apple (with its
+attached calyx, husk, or stem/leaf), never the whole plant or tree.
+
+Rebuild with Blender 5.2:
+  blender --background --python scripts/build-garden-crops.py -- tomato
+  blender --background --python scripts/build-garden-crops.py -- corn
+  blender --background --python scripts/build-garden-crops.py -- apple
+
+The authoring script uses the deterministic vertex-light baker and GLB encoder in
+scripts/build-farm-platform.py and rebuilds the files byte for byte. Interactive
+runs create separate Blender lifecycle review scenes without changing other scenes.
+Lighting, soft fill and contact shading are baked into vertex colours. Each GLB
+contains one mesh and one unlit material, with no cameras, lights, or textures.
+The app must keep these materials unlit and disable tone mapping.
+
+All models are grounded at local Y=0 in glTF (Z=0 in Blender). Growth stages share
+their family's coordinate system and are sized against stage 4, not independently.
+Produce is independently sized as produce, rather than using a plant's dimensions.

@@ -146,7 +146,7 @@ def bake():
     return colours
 
 
-def glb(colours):
+def glb(colours, *, name="Farm_platform", label="Farm platform", generator="Solanum low-poly farm platform builder", material_name="Baked earth and turf"):
     positions, normals, rgba = [], [], []
     for face in TRIANGLES:
         n = (face[1] - face[0]).cross(face[2] - face[0]).normalized()
@@ -159,13 +159,13 @@ def glb(colours):
     binary = b''.join(chunks)
     count = len(positions) // 3
     document = {
-        'asset': {'version': '2.0', 'generator': 'Solanum low-poly farm platform builder'},
+        'asset': {'version': '2.0', 'generator': generator},
         'extensionsUsed': ['KHR_materials_unlit'],
         'extensionsRequired': ['KHR_materials_unlit'],
-        'scene': 0, 'scenes': [{'name': 'Farm platform', 'nodes': [0]}],
-        'nodes': [{'name': 'Farm_platform', 'mesh': 0}],
-        'meshes': [{'name': 'Farm_platform', 'primitives': [{'attributes': {'POSITION': 0, 'NORMAL': 1, 'COLOR_0': 2}, 'material': 0}]}],
-        'materials': [{'name': 'Baked earth and turf', 'doubleSided': True, 'extensions': {'KHR_materials_unlit': {}}, 'pbrMetallicRoughness': {'baseColorFactor': [1, 1, 1, 1], 'metallicFactor': 0, 'roughnessFactor': 1}}],
+        'scene': 0, 'scenes': [{'name': label, 'nodes': [0]}],
+        'nodes': [{'name': name, 'mesh': 0}],
+        'meshes': [{'name': name, 'primitives': [{'attributes': {'POSITION': 0, 'NORMAL': 1, 'COLOR_0': 2}, 'material': 0}]}],
+        'materials': [{'name': material_name, 'doubleSided': True, 'extensions': {'KHR_materials_unlit': {}}, 'pbrMetallicRoughness': {'baseColorFactor': [1, 1, 1, 1], 'metallicFactor': 0, 'roughnessFactor': 1}}],
         'buffers': [{'byteLength': len(binary)}],
         'bufferViews': [{'buffer': 0, 'byteOffset': sum(len(c) for c in chunks[:i]), 'byteLength': len(chunk), 'target': 34962} for i, chunk in enumerate(chunks)],
         'accessors': [

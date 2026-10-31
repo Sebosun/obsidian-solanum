@@ -13,8 +13,7 @@ const reader = async (filename: string) => {
 describe("produce rather than the plant", () => {
   it("is something only crops whose plant is not the harvest have", () => {
     expect(produceModel("coconut")).toBe("Coconut_produce");
-    for (const crop of ["tomato", "carrot", "corn", "pumpkin"] as CropId[])
-      expect(produceModel(crop)).toBeNull();
+    for (const crop of ["carrot", "pumpkin"] as CropId[]) expect(produceModel(crop)).toBeNull();
   });
 
   it("names a model file that ships, for every crop that has one", () => {
@@ -29,7 +28,7 @@ describe("produce rather than the plant", () => {
     const first = assets.loadProduce("coconut");
     expect(assets.loadProduce("coconut")).toBe(first);
     expect((await first).scene.children.length).toBeGreaterThan(0);
-    await expect(assets.loadProduce("tomato")).rejects.toThrow(/no produce model/);
+    await expect(assets.loadProduce("carrot")).rejects.toThrow(/no produce model/);
   });
 
   it("is sized and grounded on its own, since it has no growth stages to compare with", async () => {

@@ -14,3 +14,8 @@ Coconut growth models (Coconut_1.glb through Coconut_4.glb)
 Original work made for Solanum; not from the pack above. Generated entirely from code, with no
 source art, by scripts/build-coconut-models.mjs (node scripts/build-coconut-models.mjs), which
 writes the same files every time. Low poly, flat shaded, colour in vertex colours.
+
+New Blender-authored tomato, corn and apple models are under garden/. See
+garden/NOTICE.txt for the lifecycle/produce distinction and rebuild commands.
+The original Quaternius tomato/corn files above remain unchanged for provenance;
+the crop catalog now selects the new garden/ models instead.

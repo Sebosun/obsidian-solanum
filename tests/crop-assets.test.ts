@@ -37,7 +37,7 @@ describe("vault binary crop loading", () => {
     await repository.ready("coconut");
     expect(read).toHaveBeenCalledTimes(5);
     await repository.ready("tomato");
-    expect(read).toHaveBeenCalledTimes(9); // no produce model, so four more
+    expect(read).toHaveBeenCalledTimes(10); // four plant stages and separate picked produce
     read.mockRejectedValueOnce(new Error("Vault unavailable"));
     await expect(repository.ready("corn")).rejects.toThrow("Vault unavailable");
   });

@@ -1,13 +1,21 @@
-import { Mesh, type Material, type Object3D } from "three";
+import { Mesh, MeshBasicMaterial, type Material, type Object3D } from "three";
+
+interface PlantMaterialOptions {
+  animated?: boolean;
+}
 
 /** GLTF caches share materials. Only animated instances may mutate these private clones. */
-export function clonePlantMaterials(object: Object3D): Material[] {
+export function clonePlantMaterials(
+  object: Object3D,
+  { animated = true }: PlantMaterialOptions = {},
+): Material[] {
   const clones = new Map<Material, Material>();
   function cloneMaterial(original: Material): Material {
     let clone = clones.get(original);
     if (!clone) {
       clone = original.clone();
-      clone.transparent = true;
+      clone.transparent = original.transparent || animated;
+      if (clone instanceof MeshBasicMaterial) clone.toneMapped = false;
       clones.set(original, clone);
     }
     return clone;

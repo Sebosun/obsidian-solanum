@@ -1,17 +1,18 @@
 export const CROPS = {
-  tomato: { name: "Tomato", model: "Tomato", emoji: "🍅" },
+  tomato: { name: "Tomato", model: "garden/Tomato", emoji: "🍅", produce: "garden/Tomato_produce" },
   carrot: { name: "Carrot", model: "Carrot", emoji: "🥕" },
-  corn: { name: "Corn", model: "Corn", emoji: "🌽" },
+  corn: { name: "Corn", model: "garden/Corn", emoji: "🌽", produce: "garden/Corn_produce" },
   pumpkin: { name: "Pumpkin", model: "Pumpkin", emoji: "🎃" },
   // The palm is the plant; what the overview shows is the harvest, a pile of nuts.
   coconut: { name: "Coconut", model: "Coconut", emoji: "🥥", produce: "Coconut_produce" },
+  apple: { name: "Apple", model: "garden/Apple", emoji: "🍎", produce: "garden/Apple_produce" },
 } as const;
 
 export type CropId = keyof typeof CROPS;
 
 /**
- * The model of what a crop yields, for crops whose plant is not the thing you harvest (a coconut
- * palm). Crops without one are shown as their mature plant, which carries its fruit.
+ * The picked fruit or vegetable, separate from the mature plant used by the timer.
+ * Older crops without a dedicated produce asset still use their mature model.
  */
 export function produceModel(crop: CropId): string | null {
   const entry = CROPS[crop];
