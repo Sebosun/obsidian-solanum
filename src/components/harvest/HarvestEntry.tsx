@@ -24,20 +24,24 @@ export function HarvestEntry({ session, minutes }: HarvestEntryProps) {
   }
   return (
     <article>
-      <strong>
-        {crop.emoji} {crop.name} · {Math.round(minutes)} min
-      </strong>
-      <span className="solanum-hint"> · {status}</span>
+      <div className="solanum-entry-head">
+        <strong>
+          {crop.emoji} {crop.name}
+        </strong>
+        <span>{Math.round(minutes)} min</span>
+      </div>
       <div className="solanum-hint">
-        {started} · {Math.round(session.durationMs / 60_000)} min planned
+        {status} · {started} · {Math.round(session.durationMs / 60_000)} min planned
       </div>
-      <div>
-        {session.tags.map((tag) => (
-          <span className="solanum-tag" key={tag}>
-            #{tag}
-          </span>
-        ))}
-      </div>
+      {session.tags.length > 0 && (
+        <div className="solanum-entry-tags">
+          {session.tags.map((tag) => (
+            <span className="solanum-tag" key={tag}>
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
       {session.notePath && (
         <button className="solanum-note-link" onClick={openNote}>
           {session.notePath}

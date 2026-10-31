@@ -1,25 +1,39 @@
-import { Suspense, useState } from "react";
+import { Suspense, useState, type KeyboardEvent } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
 import type { HarvestDay } from "@/lib/harvest/model";
+import { adjacentDayKey } from "@/lib/harvest/navigation";
+import { harvestAspectRatio, weekdayHeaderOffset } from "@/lib/scene/harvestFraming";
 import { useServices } from "@/state/hooks";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { HarvestDayPlot } from "@/components/harvest/HarvestDayPlot";
+import { HarvestDayList } from "@/components/harvest/HarvestDayList";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
+import { HarvestWeekdays } from "@/components/harvest/HarvestWeekdays";
 import { getCropAssets } from "@/state/cropAssets";
 import { HARVEST_SCENE } from "@/lib/scene/constants";
 
 interface HarvestSceneProps {
   days: HarvestDay[];
-  activeKey: string | null;
+  selectedKey: string | null;
+  hoverKey: string | null;
   onHover(key: string | null): void;
   onSelect(key: string): void;
+  onClear(): void;
 }
 
-export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestSceneProps) {
+export function HarvestScene({
+  days,
+  selectedKey,
+  hoverKey,
+  onHover,
+  onSelect,
+  onClear,
+}: HarvestSceneProps) {
   const services = useServices();
   const [attempt, setAttempt] = useState(0);
+  const rows = days[days.length - 1].row + 1;
 
   function retry() {
     getCropAssets(services).retry();
@@ -28,11 +42,36 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
   function clearHover() {
     onHover(null);
   }
-  const fallback = <HarvestUnavailable onRetry={retry} />;
+  function navigate(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      onClear();
+      return;
+    }
+    const target = adjacentDayKey(days, selectedKey, event.key);
+    if (target === null) return;
+    event.preventDefault();
+    onSelect(target);
+  }
+
+  const fallback = (
+    <div className="solanum-harvest-fallback">
+      <HarvestUnavailable onRetry={retry} />
+      <HarvestDayList days={days} selectedKey={selectedKey} onSelect={onSelect} />
+    </div>
+  );
+  let className = "solanum-harvest-scene";
+  if (hoverKey) className += " is-hovering";
 
   return (
-    <div className="solanum-harvest-scene">
-      <SceneBoundary key={attempt} fallback={fallback}>
+    <SceneBoundary key={attempt} fallback={fallback}>
+      <div
+        className={className}
+        role="group"
+        aria-label="Monthly harvest calendar"
+        tabIndex={0}
+        style={{ aspectRatio: harvestAspectRatio(rows) }}
+        onKeyDown={navigate}
+      >
         <Suspense fallback={<HarvestLoading onRetry={retry} />}>
           <Canvas
             orthographic
@@ -47,11 +86,13 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
             <directionalLight position={[2, 8, 4]} intensity={2.8} color="#fff2d6" />
             <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>
               <group>
+                <HarvestWeekdays z={weekdayHeaderOffset(rows)} />
                 {days.map((day) => (
                   <HarvestDayPlot
                     key={day.key}
                     day={day}
-                    active={day.key === activeKey}
+                    hovered={day.key === hoverKey}
+                    selected={day.key === selectedKey}
                     onHover={onHover}
                     onSelect={onSelect}
                   />
@@ -60,7 +101,7 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
             </Bounds>
           </Canvas>
         </Suspense>
-      </SceneBoundary>
-    </div>
+      </div>
+    </SceneBoundary>
   );
 }

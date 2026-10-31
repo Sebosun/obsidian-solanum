@@ -259,7 +259,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
   });
 
-  it("previews crop details on hover and pins them on click", async () => {
+  it("keeps the clicked day's details while hovering other days", async () => {
     const f = fixture();
     await f.host.timer.start({
       durationMs: 5 * 60_000,
@@ -273,15 +273,26 @@ describe("sidebar workflows backed by the real timer service", () => {
     await f.host.timer.tick();
     render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
     const day = screen.getByRole("button", { name: "2026-10-31" });
+    const other = screen.getByRole("button", { name: "2026-10-30" });
+
     fireEvent.pointerEnter(day);
-    expect(screen.getByText(/Carrot/)).toBeTruthy();
-    expect(
-      within(screen.getByRole("region", { name: "Harvest details" })).getByText("#study"),
-    ).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+
     fireEvent.click(day);
     fireEvent.pointerLeave(day);
+    fireEvent.pointerEnter(other);
+    const details = screen.getByRole("region", { name: "Harvest details" });
+    expect(within(details).getByText(/October 31/)).toBeTruthy();
+    expect(within(details).getByText("#study")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
     expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
+  });
+
+  it("presents a single month grid instead of a second expandable day list", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+    expect(screen.queryByText("Days")).toBeNull();
+    expect(screen.queryByLabelText("Monthly harvest day list")).toBeNull();
   });
 
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {

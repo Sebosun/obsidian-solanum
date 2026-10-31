@@ -47,7 +47,14 @@ describe("farm loading recovery", () => {
     renderer.loading = true;
     render(
       <AppStoreProvider store={getAppStore(host)}>
-        <HarvestScene days={days} activeKey={null} onHover={vi.fn()} onSelect={vi.fn()} />
+        <HarvestScene
+          days={days}
+          selectedKey={null}
+          hoverKey={null}
+          onHover={vi.fn()}
+          onSelect={vi.fn()}
+          onClear={vi.fn()}
+        />
       </AppStoreProvider>,
     );
     expect(screen.getByRole("status", { name: "Loading harvest" })).toBeTruthy();

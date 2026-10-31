@@ -10,7 +10,8 @@ export function HarvestDetails({ day }: HarvestDetailsProps) {
   return (
     <section className="solanum-day-details" aria-label="Harvest details" aria-live="polite">
       <h3>
-        {date} · {Math.round(day.minutes)} min
+        {date}
+        <span>{Math.round(day.minutes)} min focused</span>
       </h3>
       {day.entries.length === 0 && <p>No harvests</p>}
       {day.entries.map((entry) => (

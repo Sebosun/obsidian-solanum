@@ -3,7 +3,6 @@ import { useAppStore, useServices } from "@/state/hooks";
 import { buildHarvestMonth } from "@/lib/harvest/model";
 import { HarvestScene } from "@/components/harvest/HarvestScene";
 import { HarvestDetails } from "@/components/harvest/HarvestDetails";
-import { HarvestDayList } from "@/components/harvest/HarvestDayList";
 import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
 
 interface HarvestPanelProps {
@@ -23,8 +22,8 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   const [tag, setTag] = useState("");
   const [notePath, setNotePath] = useState("");
   const days = buildHarvestMonth(sessions, month, { tag, notePath });
-  const activeKey = hoverKey ?? selectedKey;
-  const details = days.find((day) => day.key === activeKey);
+  // Hover only highlights a plot; the details always follow the clicked day.
+  const details = days.find((day) => day.key === selectedKey);
   const total = days.reduce((sum, day) => sum + day.minutes, 0);
   const tags = [
     ...new Set([...services.tags(), ...sessions.flatMap((session) => session.tags)]),
@@ -50,13 +49,23 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   function changeNote(event: ChangeEvent<HTMLSelectElement>) {
     setNotePath(event.target.value);
   }
+  function clearSelection() {
+    setSelected(null);
+  }
   function clearFilters() {
     setTag("");
     setNotePath("");
   }
 
   let scene = (
-    <HarvestScene days={days} activeKey={activeKey} onHover={setHover} onSelect={setSelected} />
+    <HarvestScene
+      days={days}
+      selectedKey={selectedKey}
+      hoverKey={hoverKey}
+      onHover={setHover}
+      onSelect={setSelected}
+      onClear={clearSelection}
+    />
   );
   if (total === 0)
     scene = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
@@ -72,10 +81,10 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           ›
         </button>
       </div>
-      <p className="solanum-month-total sol:text-center sol:text-xs sol:text-(--text-muted) sol:mt-0 sol:mb-5">
+      <p className="solanum-month-total sol:text-center sol:text-[11px] sol:text-(--text-muted) sol:mt-0 sol:mb-3.5 sol:tabular-nums">
         {Math.round(total)} min this month
       </p>
-      <div className="solanum-filters sol:flex sol:gap-[7px] sol:mb-4">
+      <div className="solanum-filters sol:flex sol:gap-2 sol:mb-3">
         <select aria-label="Filter by tag" value={tag} onChange={changeTag}>
           <option value="">All tags</option>
           {tags.map((value) => (
@@ -92,7 +101,6 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         </select>
       </div>
       {scene}
-      <HarvestDayList days={days} selectedKey={selectedKey} onSelect={setSelected} />
       {details && <HarvestDetails day={details} />}
     </section>
   );

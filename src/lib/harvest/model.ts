@@ -1,5 +1,6 @@
 import { dailyHarvest, monthDays, type HarvestFilter } from "@/lib/harvest/aggregate";
 import type { Revision } from "@/lib/timer/types";
+import { HARVEST_GRID } from "@/lib/scene/constants";
 
 export const dayKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -42,8 +43,9 @@ export function buildHarvestMonth(
     const units = entries.map((e) => Math.max(1, Math.ceil(e.minutes / 25)));
     const count = units.reduce((sum, n) => sum + n, 0);
     const items: HarvestItem[] = [];
-    for (let unit = 0; items.length < Math.min(9, count); unit++) {
-      for (let i = 0; i < entries.length && items.length < 9; i++) {
+    const visibleLimit = Math.min(HARVEST_GRID.maxCropsPerPlot, count);
+    for (let unit = 0; items.length < visibleLimit; unit++) {
+      for (let i = 0; i < entries.length && items.length < visibleLimit; i++) {
         if (unit >= units[i]) continue;
         const s = entries[i].session;
         const focused = s.intervals.reduce(
@@ -56,9 +58,9 @@ export function buildHarvestMonth(
           session: s,
           progress: s.focusEndedAt !== null ? 1 : Math.min(0.99, focused / s.durationMs),
           position: [
-            ((items.length % 3) - 1) * 0.31,
-            0.09,
-            (Math.floor(items.length / 3) - 1) * 0.31,
+            ((items.length % 3) - 1) * HARVEST_GRID.cropSpacing,
+            HARVEST_GRID.cropBaseHeight,
+            (Math.floor(items.length / 3) - 1) * HARVEST_GRID.cropSpacing,
           ],
         });
       }
@@ -68,7 +70,11 @@ export function buildHarvestMonth(
       date,
       column,
       row,
-      position: [(column - 3) * 1.3, 0, (row - (rows - 1) / 2) * 1.4],
+      position: [
+        (column - (HARVEST_GRID.columns - 1) / 2) * HARVEST_GRID.cellSpacing,
+        0,
+        (row - (rows - 1) / 2) * HARVEST_GRID.cellSpacing,
+      ],
       minutes: harvest.minutes,
       entries,
       items,
