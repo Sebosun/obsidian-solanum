@@ -31,7 +31,7 @@ async function changedPixels(page: Page, a: Buffer, b: Buffer, tolerance: number
   );
 }
 
-/** Every timer scene has the same frame: time centred at the top, a bar along the bottom, no sun. */
+/** Every timer scene has the same frame: time centred at the top, a bar along the very bottom, no sun. */
 async function expectFrame(page: Page, progressName: string) {
   await expect(page.locator(".solanum-clock-arc, .solanum-clock-sun, .solanum-sky")).toHaveCount(0);
   const frame = await page.locator(".solanum-scene").boundingBox();
@@ -40,8 +40,12 @@ async function expectFrame(page: Page, progressName: string) {
   expect(frame && header && bar).toBeTruthy();
   expect(header!.y + header!.height).toBeLessThan(frame!.y + frame!.height * 0.3);
   expect(Math.abs(header!.x + header!.width / 2 - (frame!.x + frame!.width / 2))).toBeLessThan(4);
-  expect(bar!.y).toBeGreaterThan(frame!.y + frame!.height * 0.88);
-  expect(bar!.width).toBeGreaterThan(frame!.width * 0.7);
+  // The bar is flush with the very bottom edge and spans the whole width; the scene's rounded
+  // corners clip its ends, so it follows the border.
+  expect(Math.abs(bar!.y + bar!.height - (frame!.y + frame!.height))).toBeLessThan(1.5);
+  expect(Math.abs(bar!.x - frame!.x)).toBeLessThan(1.5);
+  expect(Math.abs(bar!.width - frame!.width)).toBeLessThan(1.5);
+  expect(bar!.height).toBeLessThan(10);
 }
 
 test("the clock stays readable in a narrow immersive scene", async ({ page }) => {

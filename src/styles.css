@@ -80,19 +80,15 @@
   margin-bottom: 1.2cqh;
   opacity: 0.85;
 }
+/* Flush along the very bottom edge and as wide as the view: the scene's rounded corners clip it, so it follows the border. */
 .solanum-progress {
-  @apply sol:absolute sol:overflow-hidden sol:pointer-events-none;
-  left: 7cqw;
-  right: 7cqw;
-  bottom: 3.5cqh;
-  height: clamp(3px, 1cqh, 8px);
-  border-radius: 999px;
+  @apply sol:absolute sol:inset-x-0 sol:bottom-0 sol:pointer-events-none;
+  height: clamp(3px, 0.9cqh, 6px);
   background: color-mix(in srgb, var(--text-normal) 14%, transparent);
 }
 .solanum-progress-fill {
   @apply sol:h-full sol:w-full;
   transform-origin: left center;
-  border-radius: inherit;
 }
 /* Debug builds only: a way to force-finish a phase that fills the whole view. */
 .solanum-debug-shortcut {
