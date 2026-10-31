@@ -1,4 +1,4 @@
-import { Suspense, useState, type CSSProperties } from "react";
+import { Suspense, useId, useState, type CSSProperties } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
 import type { HarvestBlocks } from "@/lib/harvest/month";
@@ -7,6 +7,7 @@ import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
+import { SrLabel } from "@/components/app/SrLabel";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { SeasonLights } from "@/components/scene/SeasonLights";
 import { HarvestBlockMesh } from "@/components/harvest/HarvestBlockMesh";
@@ -32,6 +33,7 @@ const SPACER_HEIGHT = 2.6;
 export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
   const services = useServices();
   const reduced = useReducedMotion();
+  const labelId = useId();
   const [attempt, setAttempt] = useState(0);
   const theme = SEASON_THEMES[season];
   const width = layout.columns * HARVEST_BLOCKS.pitch + PLINTH_MARGIN;
@@ -51,6 +53,7 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
   return (
     <SceneBoundary key={attempt} fallback={fallback}>
       <div className={`solanum-harvest-scene is-${season}`} style={style}>
+        <SrLabel id={labelId}>Blocks showing this month's harvests</SrLabel>
         <Suspense fallback={<HarvestLoading onRetry={retry} />}>
           <Canvas
             orthographic
@@ -58,7 +61,8 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
             dpr={[1, 1.5]}
             frameloop="demand"
             fallback={fallback}
-            aria-label="Blocks showing this month's harvests"
+            role="img"
+            aria-labelledby={labelId}
           >
             <SeasonLights theme={theme} showGlow={false} />
             <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>

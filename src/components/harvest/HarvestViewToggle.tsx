@@ -1,3 +1,5 @@
+import { useId } from "react";
+import { SrLabel } from "@/components/app/SrLabel";
 export type HarvestView = "month" | "year";
 
 interface HarvestViewToggleProps {
@@ -11,8 +13,10 @@ const VIEWS: { id: HarvestView; label: string }[] = [
 ];
 
 export function HarvestViewToggle({ view, onChange }: HarvestViewToggleProps) {
+  const labelId = useId();
   return (
-    <div className="solanum-view-toggle" role="group" aria-label="Harvest range">
+    <div className="solanum-view-toggle" role="group" aria-labelledby={labelId}>
+      <SrLabel id={labelId}>Harvest range</SrLabel>
       {VIEWS.map((item) => (
         <button key={item.id} aria-pressed={view === item.id} onClick={() => onChange(item.id)}>
           {item.label}

@@ -53,3 +53,31 @@ test("the year is a stack of crates per month, and a stack opens its month", asy
   await expectBlocksLoaded(page);
   expect(errors).toEqual([]);
 });
+
+/** Obsidian shows every aria-label and title as a tooltip over the element and what is inside it. */
+function tooltipSources(page: Page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll("[aria-label], [title]")]
+      .filter(
+        (element) => !["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A"].includes(element.tagName),
+      )
+      .map(
+        (element) =>
+          `${element.tagName.toLowerCase()}: ${element.getAttribute("aria-label") ?? element.getAttribute("title")}`,
+      ),
+  );
+}
+
+test("hovering the 3D views never pops up a label", async ({ page }) => {
+  await page.goto("/");
+  await expectBlocksLoaded(page);
+  expect(await tooltipSources(page)).toEqual([]);
+  await page.getByRole("button", { name: "Year" }).click();
+  await expectBlocksLoaded(page);
+  expect(await tooltipSources(page)).toEqual([]);
+  await page.goto("/?view=timer");
+  await expect(page.locator(".solanum-scene canvas")).toBeVisible();
+  expect(await tooltipSources(page)).toEqual([]);
+  // The scenes keep their names for assistive technology.
+  await expect(page.getByRole("img", { name: "Growing crop" })).toBeVisible();
+});

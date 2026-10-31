@@ -9,3 +9,8 @@ Source commit: 722c39e964360beff2728a8ee4d103e2d11d457c
 Source directory: public/glb/crops_pack/
 Copied without modification. Only models and upstream license metadata are included,
 not the showcase application. See UPSTREAM-LICENSES.md for pack license provenance.
+
+Coconut growth models (Coconut_1.glb through Coconut_4.glb)
+Original work made for Solanum; not from the pack above. Generated entirely from code, with no
+source art, by scripts/build-coconut-models.mjs (node scripts/build-coconut-models.mjs), which
+writes the same files every time. Low poly, flat shaded, colour in vertex colours.

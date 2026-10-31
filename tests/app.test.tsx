@@ -27,7 +27,7 @@ vi.mock("@/components/crops/CropScene", () => ({
     clockRate: number;
   }) => (
     <figure
-      aria-label={`Crop growth ${Math.round(progress * 100)}%`}
+      data-progress={Math.round(progress * 100)}
       data-season={season}
       data-clock={clockProgress.toFixed(3)}
       data-rate={clockRate.toFixed(5)}
@@ -46,11 +46,15 @@ vi.mock("@/components/harvest/HarvestMonthScene", () => ({
   }) => (
     <div
       role="img"
-      aria-label="Month blocks"
+      aria-labelledby="month-blocks-label"
       data-blocks={layout.blocks.length}
       data-crops={layout.blocks.map((block) => block.crop).join(",")}
       data-season={season}
-    />
+    >
+      <span id="month-blocks-label" hidden>
+        Month blocks
+      </span>
+    </div>
   ),
 }));
 vi.mock("@/components/harvest/HarvestYearScene", () => ({
@@ -407,11 +411,9 @@ describe("sidebar workflows backed by the real timer service", () => {
       const f = fixture();
       render(<App host={f.host} screen="timer" />);
       const group = screen.getByRole("radiogroup", { name: "Crop" });
-      expect(
-        within(group)
-          .getAllByRole("radio")
-          .map((radio) => radio.getAttribute("aria-label")),
-      ).toEqual(["Tomato", "Carrot", "Corn", "Pumpkin"]);
+      expect(within(group).getAllByRole("radio")).toHaveLength(5);
+      for (const name of ["Tomato", "Carrot", "Corn", "Pumpkin", "Coconut"])
+        expect(within(group).getByRole("radio", { name })).toBeTruthy();
       expect(screen.getByRole("radio", { name: "Tomato" }).getAttribute("aria-checked")).toBe(
         "true",
       );
@@ -667,6 +669,44 @@ describe("sidebar workflows backed by the real timer service", () => {
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
       expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
       expect(screen.getByText(/Busiest: October/)).toBeTruthy();
+    });
+  });
+
+  describe("hover tooltips", () => {
+    // Obsidian shows every aria-label (and title) as a tooltip when hovering the element or what is inside it.
+    const CONTROLS = new Set(["BUTTON", "INPUT", "SELECT", "TEXTAREA", "A"]);
+    const tooltips = (root: HTMLElement) =>
+      [...root.querySelectorAll("[aria-label], [title]")]
+        .filter((element) => !CONTROLS.has(element.tagName))
+        .map(
+          (element) =>
+            `${element.tagName.toLowerCase()}: ${element.getAttribute("aria-label") ?? element.getAttribute("title")}`,
+        );
+
+    it("does not label scenes, groups or regions on the timer in a way that pops up", async () => {
+      const f = await harvestedFixture();
+      const view = render(<App host={f.host} screen="timer" />);
+      expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
+      expect(tooltips(view.container)).toEqual([]);
+    });
+
+    it("does not label the harvest views in a way that pops up", async () => {
+      const f = await harvestedFixture();
+      const view = render(
+        <App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />,
+      );
+      expect(await screen.findByRole("region", { name: "Month summary" })).toBeTruthy();
+      expect(tooltips(view.container)).toEqual([]);
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      expect(tooltips(view.container)).toEqual([]);
+    });
+
+    it("still names the scenes for assistive technology", async () => {
+      const f = await harvestedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      expect(await screen.findByRole("region", { name: "Month summary" })).toBeTruthy();
+      expect(screen.getByRole("group", { name: "Harvest range" })).toBeTruthy();
+      expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
     });
   });
 

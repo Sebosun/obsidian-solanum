@@ -1,4 +1,5 @@
-import type { MouseEvent } from "react";
+import { useId, type MouseEvent } from "react";
+import { SrLabel } from "@/components/app/SrLabel";
 import type { CropId } from "@/lib/crops/catalog";
 import { useAppStore } from "@/state/hooks";
 import { CropPicker } from "@/components/crops/CropPicker";
@@ -6,6 +7,7 @@ import { ControlIcon } from "@/components/timer/ControlIcon";
 import { SessionDetailsForm } from "@/components/timer/SessionDetailsForm";
 
 export function TimerSetup() {
+  const presetsId = useId();
   const draft = useAppStore((state) => state.draft);
   const presets = useAppStore((state) => state.presets);
   const busy = useAppStore((state) => state.busy);
@@ -35,7 +37,13 @@ export function TimerSetup() {
           <ControlIcon kind="play" />
         </button>
       </div>
-      <div className="solanum-presets" aria-label="Focus duration" onClick={changeDuration}>
+      <div
+        className="solanum-presets"
+        role="group"
+        aria-labelledby={presetsId}
+        onClick={changeDuration}
+      >
+        <SrLabel id={presetsId}>Focus duration</SrLabel>
         {presets.map((minutes) => (
           <button key={minutes} data-minutes={minutes} aria-pressed={draft.minutes === minutes}>
             {minutes} min

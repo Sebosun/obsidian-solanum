@@ -1,4 +1,4 @@
-import { Suspense, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { Suspense, useId, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
 import { adjacentBed } from "@/lib/harvest/navigation";
@@ -7,6 +7,7 @@ import { HARVEST_SCENE, YEAR_STACKS } from "@/lib/scene/constants";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
+import { SrLabel } from "@/components/app/SrLabel";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
@@ -31,6 +32,8 @@ const SPACER_HEIGHT = YEAR_STACKS.maxCrates * YEAR_STACKS.crateStep + 0.9;
 export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestYearSceneProps) {
   const services = useServices();
   const reduced = useReducedMotion();
+  const groupId = useId();
+  const canvasId = useId();
   const [attempt, setAttempt] = useState(0);
   const [active, setActive] = useState<number | null>(null);
   const width = YEAR_STACKS.columns * YEAR_STACKS.pitchX + PLINTH_MARGIN;
@@ -68,11 +71,13 @@ export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestY
       <div
         className="solanum-harvest-scene solanum-year-scene"
         role="group"
-        aria-label="Harvest by month"
+        aria-labelledby={groupId}
         tabIndex={0}
         style={style}
         onKeyDown={navigate}
       >
+        <SrLabel id={groupId}>Harvest by month</SrLabel>
+        <SrLabel id={canvasId}>A stack of crates for each month of the year</SrLabel>
         <Suspense fallback={<HarvestLoading onRetry={retry} />}>
           <Canvas
             orthographic
@@ -80,7 +85,8 @@ export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestY
             dpr={[1, 1.5]}
             frameloop="demand"
             fallback={fallback}
-            aria-label="A stack of crates for each month of the year"
+            role="img"
+            aria-labelledby={canvasId}
           >
             <ambientLight color={LIGHT.ambient} intensity={LIGHT.ambientIntensity} />
             <directionalLight

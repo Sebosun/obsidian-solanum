@@ -22,7 +22,7 @@ function months(hours: number[]): YearMonth[] {
     minutes: value * HOUR,
     harvests: value > 0 ? 1 : 0,
     activeDays: 0,
-    crops: { tomato: 3, carrot: 1, corn: 0, pumpkin: 0 },
+    crops: { tomato: 3, carrot: 1, corn: 0, pumpkin: 0, coconut: 0 },
     tags: [],
   }));
 }

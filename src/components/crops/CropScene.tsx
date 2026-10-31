@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Suspense, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { Canvas } from "@react-three/fiber";
 import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
@@ -9,6 +9,7 @@ import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
 import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { SrLabel } from "@/components/app/SrLabel";
 import { SunClockFace } from "@/components/clock/SunClockFace";
 import { useSunClock } from "@/hooks/useSunClock";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -53,6 +54,8 @@ export function CropScene({
     if (container.current) observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
+  const labelId = useId();
+  const timerLabelId = useId();
   const clock = useSunClock(clockProgress, clockRate, reduced, visible);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
@@ -84,7 +87,8 @@ export function CropScene({
             dpr={[1, 1.5]}
             frameloop={animate ? "always" : "demand"}
             fallback={fallback}
-            aria-label="Growing crop"
+            role="img"
+            aria-labelledby={labelId}
           >
             <TimerCamera />
             <SeasonScenery
@@ -109,7 +113,9 @@ export function CropScene({
           </Canvas>
         </Suspense>
       </SceneBoundary>
-      <span role="timer" aria-label="Remaining time" className="sol:sr-only">
+      <SrLabel id={labelId}>Growing crop</SrLabel>
+      <SrLabel id={timerLabelId}>Remaining time</SrLabel>
+      <span role="timer" aria-labelledby={timerLabelId} className="sol:sr-only">
         {formatTime(remaining)}
       </span>
     </div>

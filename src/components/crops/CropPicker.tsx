@@ -14,25 +14,13 @@ export function CropPicker({ value, onChange }: CropPickerProps) {
   return (
     <div className="solanum-field">
       <span id="solanum-crop-label">Crop</span>
-      <div
-        className="solanum-crops"
-        role="radiogroup"
-        aria-labelledby="solanum-crop-label"
-        aria-label="Crop"
-      >
+      <div className="solanum-crops" role="radiogroup" aria-labelledby="solanum-crop-label">
         {Object.entries(CROPS).map(([id, crop]) => (
-          <button
-            key={id}
-            role="radio"
-            aria-checked={value === id}
-            aria-label={crop.name}
-            data-crop={id}
-            onClick={pick}
-          >
+          <button key={id} role="radio" aria-checked={value === id} data-crop={id} onClick={pick}>
             <span className="solanum-crop-emoji" aria-hidden="true">
               {crop.emoji}
             </span>
-            <span aria-hidden="true">{crop.name}</span>
+            <span>{crop.name}</span>
           </button>
         ))}
       </div>

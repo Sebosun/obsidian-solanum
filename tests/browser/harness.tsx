@@ -1,4 +1,5 @@
 import { createRoot } from "react-dom/client";
+import { isCropId, type CropId } from "@/lib/crops/catalog";
 import { App } from "@/components/app/App";
 import { TimerService } from "@/lib/timer/TimerService";
 import { seedMonth } from "@/lib/debug/seeder";
@@ -13,7 +14,7 @@ const history = Array.from({ length: 10 }, (_, index) =>
   seedMonth(new Date(2026, index, 1), seededUntil),
 ).flat();
 const files = new Map(history.map((session) => [session.id, session]));
-// ?elapsed=<minutes> opens the timer already that far into a 25 minute focus.
+// ?crop=<id> picks the running crop. ?elapsed=<minutes> opens the timer already that far into a 25 minute focus.
 const elapsedMinutes = Number(parameters.get("elapsed"));
 if (elapsedMinutes > 0) {
   const startedAt = Date.now() - elapsedMinutes * 60_000;
@@ -31,7 +32,7 @@ if (elapsedMinutes > 0) {
     remainingMs: 25 * 60_000,
     focusEndedAt: null,
     intervals: [{ start: startedAt, end: null }],
-    crop: "tomato",
+    crop: isCropId(parameters.get("crop")) ? (parameters.get("crop") as CropId) : "tomato",
   });
 }
 const timer = new TimerService(

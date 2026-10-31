@@ -50,6 +50,7 @@ export function HarvestBlockMesh({ block, index, season, reduced }: HarvestBlock
             crop={block.crop}
             stage={Math.max(1, cropStage(block.progress))}
             scale={plantSize(block.minutes, block.progress)}
+            harvested={block.progress >= 1}
           />
         </group>
       </RiseGroup>

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CROPS } from "@/lib/crops/catalog";
 import { readDebugConfig } from "@/lib/debug/config";
 import { seedMonth } from "@/lib/debug/seeder";
 import { DebugTools } from "@/lib/debug/DebugTools";
@@ -123,7 +124,7 @@ describe("debug controls and seeded history", () => {
         (r) => isRevision(r) && r.source === "seed" && r.phase === "done" && r.focusEndedAt! <= now,
       ),
     ).toBe(true);
-    expect(new Set(first.map((r) => r.crop)).size).toBe(4);
+    expect(new Set(first.map((r) => r.crop)).size).toBe(Object.keys(CROPS).length);
     expect(seedMonth(new Date(2027, 1, 1), now)).toEqual([]);
     const f = fixture();
     await f.tools.seed(new Date(2026, 9, 1));

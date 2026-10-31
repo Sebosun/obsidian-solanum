@@ -152,7 +152,7 @@ describe("the month in numbers", () => {
 
   it("counts each crop type once per harvest and ranks tags by use", () => {
     const summary = summarizeMonth(sessions, OCTOBER, {}, NOW);
-    expect(summary.crops).toEqual({ tomato: 1, carrot: 2, corn: 1, pumpkin: 0 });
+    expect(summary.crops).toEqual({ tomato: 1, carrot: 2, corn: 1, pumpkin: 0, coconut: 0 });
     expect(summary.tags).toEqual([
       { tag: "study", count: 2 },
       { tag: "deep", count: 1 },
@@ -165,7 +165,7 @@ describe("the month in numbers", () => {
       minutes: 0,
       harvests: 0,
       activeDays: 0,
-      crops: { tomato: 0, carrot: 0, corn: 0, pumpkin: 0 },
+      crops: { tomato: 0, carrot: 0, corn: 0, pumpkin: 0, coconut: 0 },
       tags: [],
     });
   });

@@ -1,3 +1,5 @@
+import { useId } from "react";
+import { SrLabel } from "@/components/app/SrLabel";
 import { CROPS, type CropId } from "@/lib/crops/catalog";
 import type { MonthSummary } from "@/lib/harvest/month";
 import { formatFocus } from "@/lib/time";
@@ -12,9 +14,13 @@ interface HarvestMonthSummaryProps {
 const CROP_IDS = Object.keys(CROPS) as CropId[];
 
 export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSummaryProps) {
+  const summaryId = useId();
+  const cropsId = useId();
+  const tagsId = useId();
   const grown = CROP_IDS.filter((id) => summary.crops[id] > 0);
   return (
-    <section className="solanum-month-summary" aria-label="Month summary">
+    <section className="solanum-month-summary" aria-labelledby={summaryId}>
+      <SrLabel id={summaryId}>Month summary</SrLabel>
       <dl className="solanum-summary-stats">
         <div>
           <dt>Focused</dt>
@@ -30,24 +36,30 @@ export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSumma
         </div>
       </dl>
       {grown.length > 0 && (
-        <ul className="solanum-summary-crops" aria-label="Crops grown">
-          {grown.map((id) => (
-            <li key={id}>
-              <span aria-hidden="true">{CROPS[id].emoji}</span> {CROPS[id].name}
-              <b>{summary.crops[id]}</b>
-            </li>
-          ))}
-        </ul>
+        <>
+          <SrLabel id={cropsId}>Crops grown</SrLabel>
+          <ul className="solanum-summary-crops" aria-labelledby={cropsId}>
+            {grown.map((id) => (
+              <li key={id}>
+                <span aria-hidden="true">{CROPS[id].emoji}</span> {CROPS[id].name}
+                <b>{summary.crops[id]}</b>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       {summary.tags.length > 0 && (
-        <ul className="solanum-summary-tags" aria-label="Most used tags">
-          {summary.tags.map(({ tag, count }) => (
-            <li className="solanum-tag" key={tag}>
-              {tag}
-              <b>{count}</b>
-            </li>
-          ))}
-        </ul>
+        <>
+          <SrLabel id={tagsId}>Most used tags</SrLabel>
+          <ul className="solanum-summary-tags" aria-labelledby={tagsId}>
+            {summary.tags.map(({ tag, count }) => (
+              <li className="solanum-tag" key={tag}>
+                {tag}
+                <b>{count}</b>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <p className="solanum-hint">
         One block per harvest; longer sessions are taller.

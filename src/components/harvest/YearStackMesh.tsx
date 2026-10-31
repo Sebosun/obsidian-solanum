@@ -89,7 +89,7 @@ export function YearStackMesh({
               key={`${crop}-${slot}`}
               position={[offsetX, (stack.crates - 1) * YEAR_STACKS.crateStep + FLOOR, offsetZ]}
             >
-              <Plant crop={crop} stage={4} scale={PLANT_SCALE} />
+              <Plant crop={crop} stage={4} scale={PLANT_SCALE} harvested />
             </group>
           );
         })}
