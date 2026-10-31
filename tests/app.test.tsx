@@ -8,6 +8,10 @@ import { DEFAULT_SETTINGS, type SolanumHost } from "../src/host";
 vi.mock("../src/CropScene", () => ({ CropScene: ({ progress }: { progress: number }) => <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} /> }));
 afterEach(cleanup);
 
+async function revealControls() {
+  fireEvent.click(await screen.findByRole("button", { name: "Show timer controls" }));
+}
+
 function fixture() {
   let now = new Date(2026, 9, 31, 12).getTime();
   let sequence = 0;
@@ -34,6 +38,28 @@ function fixture() {
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
+  it("persists crop choice and hides the normal interface while focusing", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.change(screen.getByLabelText("Crop"), { target: { value: "pumpkin" } });
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    expect(screen.queryByText("Timer preferences")).toBeNull();
+    expect(f.host.timer.getState().sessions[0].crop).toBe("pumpkin");
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+    await screen.findByRole("button", { name: "Resume" });
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(screen.queryByRole("navigation")).toBeNull();
+    f.advance(25 * 60_000);
+    await act(() => f.host.timer.tick());
+    expect(screen.getByRole("navigation")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
+  });
+
   it("persists break preferences and uses them in the next planted session", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
@@ -44,6 +70,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     await waitFor(() => expect(f.host.settings.autoBreak).toBe(true));
     fireEvent.click(screen.getByRole("button", { name: "5 min" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await revealControls();
     await screen.findByRole("button", { name: "Pause" });
     f.advance(5 * 60_000);
     await act(() => f.host.timer.tick());
@@ -58,6 +85,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "#work/client" } });
     fireEvent.click(screen.getByRole("button", { name: "Use active note" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await revealControls();
     await screen.findByRole("button", { name: "Pause" });
     f.advance(2 * 60_000);
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
@@ -72,6 +100,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
     expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await revealControls();
     await screen.findByRole("button", { name: "Pause" });
     f.advance(3 * 60_000);
     await act(() => f.host.timer.tick());

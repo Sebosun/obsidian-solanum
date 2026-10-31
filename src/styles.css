@@ -59,3 +59,7 @@
 .solanum-day-details h3 { @apply sol:text-sm; }
 .solanum-day-details article { @apply sol:py-3 sol:border-b sol:border-solid sol:border-(--background-modifier-border) sol:text-xs; }
 @media (prefers-reduced-motion: reduce) { .solanum-app * { animation: none !important; transition: none !important; } }
+.solanum-focus-mode { @apply sol:relative sol:h-full sol:min-h-[400px] sol:p-0; }
+.solanum-focus-mode .solanum-scene.is-immersive { @apply sol:h-full sol:min-h-[400px] sol:rounded-none; background: var(--background-primary); }
+.solanum-app .solanum-reveal-controls { @apply sol:absolute sol:right-3 sol:bottom-3 sol:opacity-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted); }
+.solanum-focus-mode:hover .solanum-reveal-controls, .solanum-app .solanum-reveal-controls:focus-visible { @apply sol:opacity-100; }

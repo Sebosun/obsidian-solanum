@@ -1,9 +1,12 @@
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CropScene } from "./CropScene";
 import { PRESETS, type SolanumHost } from "./host";
 import { isActive, normalizeTags, type Revision } from "./timer";
 import { dailyHarvest, monthDays } from "./harvest";
 import { DebugPanel } from "./components/debug/DebugPanel";
+import { FocusMode } from "./components/timer/FocusMode";
+import { CropPicker } from "./components/crops/CropPicker";
+import type { CropId } from "./lib/crops/catalog";
 
 const formatTime = (ms: number) => {
   const seconds = Math.ceil(ms / 1000);
@@ -15,14 +18,23 @@ export function App({ host, screen, initialMonth }: { host: SolanumHost; screen:
   const state = useSyncExternalStore(host.timer.subscribe, host.timer.getState);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const focusing = screen === "timer" ? state.sessions.find((s) => s.phase === "focus" && s.status === "running") : undefined;
+  const immersive = focusing && revealed !== focusing.id && !error && !state.conflicts.length;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && focusing) setRevealed(focusing.id); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusing]);
   const act = async (action: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true); setError("");
     try { await action(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   };
+  if (immersive) return <FocusMode session={focusing} host={host} onReveal={() => setRevealed(focusing.id)} />;
   return <main className="solanum-app sol:mx-auto sol:max-w-[560px] sol:px-4 sol:pt-5 sol:pb-7 sol:text-(--text-normal)">
-    <header className="solanum-header sol:flex sol:items-center sol:justify-between sol:mb-[18px]"><div><span className="solanum-eyebrow">A LITTLE EVERY DAY</span><h1>Solanum <span aria-hidden="true">🍅</span></h1></div></header>
+    <header className="solanum-header sol:flex sol:items-center sol:justify-between sol:mb-[18px]"><div><span className="solanum-eyebrow">A LITTLE EVERY DAY</span><h1>Solanum <span aria-hidden="true">🍅</span></h1></div>{focusing && <button onClick={() => setRevealed(null)}>Hide timer controls</button>}</header>
     <nav className="solanum-tabs" aria-label="Solanum views">
       <button aria-current={screen === "timer" ? "page" : undefined} onClick={() => host.navigate("timer")}>Timer</button>
       <button aria-current={screen === "harvest" ? "page" : undefined} onClick={() => host.navigate("harvest")}>Harvest</button>
@@ -46,6 +58,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
   host: SolanumHost; sessions: Revision[]; conflicted: string[]; busy: boolean; act: Action;
 }) {
   const [minutes, setMinutes] = useState(host.settings.defaultMinutes);
+  const [crop, setCrop] = useState<CropId>("tomato");
   const [tags, setTags] = useState("");
   const [note, setNote] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
@@ -62,7 +75,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
         {active.map((s) => <option key={s.sessionId} value={s.sessionId}>{new Date(s.startedAt).toLocaleString()} · {s.notePath ?? "Unlinked crop"}</option>)}
       </select>
     </label>}
-    <CropScene progress={Math.max(0, Math.min(1, progress))} running={session?.status === "running"} assetUrl={host.assetUrl} />
+    <CropScene crop={session?.crop ?? crop} progress={Math.max(0, Math.min(1, progress))} running={session?.status === "running"} assetUrl={host.assetUrl} />
     <section className="solanum-clock sol:text-center sol:pt-[23px] sol:pb-3.5">
       <span className="solanum-eyebrow">{session ? session.phase === "break" ? "REST & REPLENISH" : session.status === "paused" ? "GROWTH PAUSED" : "TIME TO GROW" : "READY WHEN YOU ARE"}</span>
       <div role="timer" aria-label="Remaining time" className="solanum-countdown sol:text-[clamp(40px,15cqi,64px)] sol:font-light sol:leading-[1.2] sol:tracking-[-3px] sol:tabular-nums sol:mt-2">{formatTime(remaining)}</div>
@@ -81,6 +94,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
       <p className="solanum-hint">Saved in your vault. Closing Obsidian won’t stop this crop.</p>
     </> : <>
       <div className="solanum-presets sol:flex sol:flex-wrap sol:justify-center sol:gap-1.5 sol:mb-[22px]" aria-label="Focus duration">{PRESETS.map((preset) => <button key={preset} aria-pressed={minutes === preset} onClick={() => setMinutes(preset)}>{preset} min</button>)}</div>
+      <CropPicker value={crop} onChange={setCrop} />
       <label className="solanum-field">Tags<input aria-label="Tags" list="solanum-tags" placeholder="#work, #study" value={tags} onChange={(e) => setTags(e.target.value)} /></label>
       <datalist id="solanum-tags">{allTags.map((t) => <option key={t} value={`#${t}`} />)}</datalist>
       <label className="solanum-field">Linked note<input aria-label="Linked note" list="solanum-notes" placeholder="Choose a note (optional)" value={note} onChange={(e) => setNote(e.target.value)} /></label>
@@ -90,7 +104,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
         host.unlockAudio();
         void act(async () => {
           if (note && !host.notes().includes(note)) throw new Error("Choose an existing note from this vault.");
-          await host.timer.start({ durationMs: minutes * 60_000, breakMs: host.settings.breakMinutes * 60_000, autoBreak: host.settings.autoBreak,
+          await host.timer.start({ crop, durationMs: minutes * 60_000, breakMs: host.settings.breakMinutes * 60_000, autoBreak: host.settings.autoBreak,
             tags: normalizeTags(tags.split(/[\s,]+/)), notePath: note || null });
         });
       }}>Start focus</button>
