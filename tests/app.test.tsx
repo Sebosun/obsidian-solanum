@@ -19,14 +19,20 @@ vi.mock("@/components/crops/CropScene", () => ({
     season,
     clockProgress,
     clockRate,
+    crop,
+    preview,
   }: {
     progress: number;
     remaining: number;
     season: string;
     clockProgress: number;
     clockRate: number;
+    crop: string;
+    preview?: boolean;
   }) => (
     <figure
+      data-crop={crop}
+      data-preview={String(!!preview)}
       data-progress={Math.round(progress * 100)}
       data-season={season}
       data-clock={clockProgress.toFixed(3)}
@@ -207,6 +213,20 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("figure")).toBe(scene);
     expect(screen.getByRole("navigation")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
+  });
+
+  it("previews the finished crop while choosing, then shows it growing once started", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const scene = () => screen.getByRole("figure");
+    expect(scene().getAttribute("data-preview")).toBe("true");
+    fireEvent.click(screen.getByRole("radio", { name: "Coconut" }));
+    expect(scene().getAttribute("data-crop")).toBe("coconut");
+    expect(scene().getAttribute("data-preview")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(scene().getAttribute("data-crop")).toBe("coconut");
+    expect(scene().getAttribute("data-preview")).toBe("false");
   });
 
   it("shows pause and stop as quiet icon-only buttons with accessible names", async () => {

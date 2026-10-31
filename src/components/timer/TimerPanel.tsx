@@ -66,6 +66,7 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
         running={session?.status === "running"}
         remaining={remaining}
         immersive={immersive}
+        preview={!session}
         clockProgress={Math.max(0, Math.min(1, clockProgress))}
         clockRate={clockRate}
         season={resolveSeason(seasonChoice, new Date())}

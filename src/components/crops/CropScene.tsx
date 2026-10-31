@@ -5,6 +5,7 @@ import type { CropId } from "@/lib/crops/catalog";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { sunState } from "@/lib/scene/sunClock";
 import { CropSwap } from "@/components/scene/CropSwap";
+import { CropPreview } from "@/components/scene/CropPreview";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
@@ -34,6 +35,8 @@ interface CropSceneProps {
   /** How fast the clock advances, per second: 0 while paused or waiting. */
   clockRate: number;
   season: SeasonId;
+  /** Show what the crop will become instead of its growth: while choosing, before a session. */
+  preview?: boolean;
 }
 
 export function CropScene({
@@ -45,6 +48,7 @@ export function CropScene({
   clockProgress,
   clockRate,
   season,
+  preview = false,
 }: CropSceneProps) {
   const container = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
@@ -99,15 +103,19 @@ export function CropScene({
             />
             <CompletionFlourish reduced={reduced}>
               <CropSwap crop={crop} reduced={reduced}>
-                {(planted) => (
-                  <GrowingCrop
-                    key={planted}
-                    crop={planted}
-                    stage={stage}
-                    moving={moving}
-                    reduced={reduced}
-                  />
-                )}
+                {(planted) =>
+                  preview ? (
+                    <CropPreview key={planted} crop={planted} />
+                  ) : (
+                    <GrowingCrop
+                      key={planted}
+                      crop={planted}
+                      stage={stage}
+                      moving={moving}
+                      reduced={reduced}
+                    />
+                  )
+                }
               </CropSwap>
             </CompletionFlourish>
           </Canvas>
