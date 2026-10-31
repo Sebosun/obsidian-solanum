@@ -1,8 +1,8 @@
 import type { Revision, SessionStore } from "@/lib/timer/types";
 import { isRevision } from "@/lib/storage/validation";
 
-export const SESSION_FOLDER = "Solanum/sessions";
-export const DEBUG_SESSION_FOLDER = "Solanum/debug-sessions";
+import { ensureFolder } from "@/lib/storage/ensureFolder";
+import { DEBUG_SESSION_FOLDER, DEFAULT_SESSION_FOLDER } from "@/lib/storage/folder";
 
 export interface DirectoryListing {
   files: string[];
@@ -10,6 +10,8 @@ export interface DirectoryListing {
 }
 export interface StorageOptions {
   debug?: boolean;
+  /** Vault-relative folder for real sessions. Debug sessions always use their own folder. */
+  folder?: string;
 }
 
 export interface FileAdapter {
@@ -22,14 +24,22 @@ export interface FileAdapter {
 
 /** Flat, immutable revision files sync without overwriting another device's edits. */
 export class VaultSessionStore implements SessionStore {
+  folder: string;
+
   constructor(
     private adapter: FileAdapter,
     private options: StorageOptions = {},
-  ) {}
+  ) {
+    this.folder = options.folder ?? DEFAULT_SESSION_FOLDER;
+  }
+
+  setFolder(folder: string): void {
+    this.folder = folder;
+  }
 
   async readAll(): Promise<Revision[]> {
     const revisions: Revision[] = [];
-    const folders = this.options.debug ? [SESSION_FOLDER, DEBUG_SESSION_FOLDER] : [SESSION_FOLDER];
+    const folders = this.options.debug ? [this.folder, DEBUG_SESSION_FOLDER] : [this.folder];
     for (const folder of folders) {
       if (!(await this.adapter.exists(folder))) continue;
       const { files } = await this.adapter.list(folder);
@@ -56,16 +66,8 @@ export class VaultSessionStore implements SessionStore {
     if (!isRevision(revision)) throw new Error("Invalid session revision.");
     if (revision.source && !this.options.debug)
       throw new Error("Debug session storage is disabled.");
-    const folder = revision.source ? DEBUG_SESSION_FOLDER : SESSION_FOLDER;
-    for (const path of ["Solanum", folder]) {
-      if (!(await this.adapter.exists(path))) {
-        try {
-          await this.adapter.mkdir(path);
-        } catch (error) {
-          if (!(await this.adapter.exists(path))) throw error;
-        }
-      }
-    }
+    const folder = revision.source ? DEBUG_SESSION_FOLDER : this.folder;
+    await ensureFolder(this.adapter, folder);
     const path = `${folder}/${revision.sessionId}--${revision.id}.json`;
     const text = JSON.stringify(revision, null, 2);
     if (await this.adapter.exists(path)) {
