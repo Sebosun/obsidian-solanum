@@ -27,6 +27,7 @@ interface Overrides {
   caption?: string;
   camera?: { center?: number };
   resetKey?: unknown;
+  controls?: ReactNode;
   children?: (state: SceneFrameState) => ReactNode;
 }
 function frame(over: Overrides = {}) {
@@ -41,6 +42,7 @@ function frame(over: Overrides = {}) {
       caption={over.caption}
       camera={over.camera}
       resetKey={over.resetKey}
+      controls={over.controls}
       label="What the view shows"
       timerLabel="Time left"
       progressLabel="How far along"
@@ -86,6 +88,16 @@ describe("the frame every timer scene shares", () => {
   it("is not immersive unless asked", () => {
     const { container } = render(frame());
     expect(container.firstElementChild!.classList.contains("is-immersive")).toBe(false);
+  });
+
+  it("holds the controls it is given in the scene itself, and none otherwise", () => {
+    const { container, rerender } = render(frame());
+    expect(container.querySelector(".solanum-scene-controls")).toBeNull();
+    rerender(frame({ controls: <button>Pause</button> }));
+    const holder = container.querySelector(".solanum-scene-controls");
+    expect(holder).not.toBeNull();
+    expect(container.firstElementChild!.contains(holder)).toBe(true);
+    expect(holder!.contains(screen.getByRole("button", { name: "Pause" }))).toBe(true);
   });
 
   it("darkens the sky as the phase wears on, and tints it with the season", () => {

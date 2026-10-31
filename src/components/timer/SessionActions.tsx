@@ -2,7 +2,11 @@ import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
 import { ControlIcon, type ControlIconKind } from "@/components/timer/ControlIcon";
 
-export function SessionControls() {
+/**
+ * Pause (or resume, or start the break) and end the current session. They sit inside the scene,
+ * since the timer fills the view while a session is under way.
+ */
+export function SessionActions() {
   const services = useServices();
   const session = useAppStore(selectCurrentSession);
   const busy = useAppStore((state) => state.busy);
@@ -40,44 +44,27 @@ export function SessionControls() {
   function handleEnd() {
     void run(endSession);
   }
-  function openNote() {
-    if (session?.notePath) services.openNote(session.notePath);
-  }
 
   return (
     <>
-      <div className="solanum-session-context sol:flex sol:flex-wrap sol:gap-1.5 sol:items-center sol:justify-center sol:mb-3">
-        {session.tags.map((tag) => (
-          <span className="solanum-tag" key={tag}>
-            {tag}
-          </span>
-        ))}
-        {session.notePath && (
-          <button className="solanum-note-link" onClick={openNote}>
-            {session.notePath}
-          </button>
-        )}
-      </div>
-      <div className="solanum-actions">
-        <button
-          className="solanum-control"
-          aria-label={primaryLabel}
-          title={primaryLabel}
-          disabled={blocked}
-          onClick={handlePrimary}
-        >
-          <ControlIcon kind={primaryIcon} />
-        </button>
-        <button
-          className="solanum-control"
-          aria-label={endLabel}
-          title={endLabel}
-          disabled={blocked}
-          onClick={handleEnd}
-        >
-          <ControlIcon kind={endIcon} />
-        </button>
-      </div>
+      <button
+        className="solanum-control"
+        aria-label={primaryLabel}
+        title={primaryLabel}
+        disabled={blocked}
+        onClick={handlePrimary}
+      >
+        <ControlIcon kind={primaryIcon} />
+      </button>
+      <button
+        className="solanum-control"
+        aria-label={endLabel}
+        title={endLabel}
+        disabled={blocked}
+        onClick={handleEnd}
+      >
+        <ControlIcon kind={endIcon} />
+      </button>
     </>
   );
 }

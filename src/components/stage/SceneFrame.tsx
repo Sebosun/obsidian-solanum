@@ -53,6 +53,8 @@ interface SceneFrameProps extends SceneFrameLook {
   clockRate: number;
   season: SeasonId;
   immersive?: boolean;
+  /** Buttons over the bottom left of the scene, above the progress bar. */
+  controls?: ReactNode;
   /** What to draw in the 3D view. */
   children(state: SceneFrameState): ReactNode;
 }
@@ -69,6 +71,7 @@ export function SceneFrame({
   clockRate,
   season,
   immersive = false,
+  controls,
   classNames = [],
   caption,
   label,
@@ -114,6 +117,7 @@ export function SceneFrame({
         </Suspense>
       </SceneBoundary>
       <ProgressBar clock={clock} progress={clockProgress} label={progressLabel} />
+      {controls && <div className="solanum-scene-controls">{controls}</div>}
       <SrLabel id={labelId}>{label}</SrLabel>
       <SrLabel id={timerLabelId}>{timerLabel}</SrLabel>
       <span role="timer" aria-labelledby={timerLabelId} className="sol:sr-only">

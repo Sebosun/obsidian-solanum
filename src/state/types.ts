@@ -16,7 +16,6 @@ export interface AppState extends TimerState {
   services: SolanumHost;
   draft: TimerDraft;
   selectedSessionId: string | null;
-  revealedRevisionId: string | null;
   busy: boolean;
   error: string;
   celebration: HarvestCelebration | null;
@@ -31,8 +30,6 @@ export interface AppState extends TimerState {
   setSeason(season: SeasonChoice): void;
   setPresets(presets: number[], defaultMinutes: number): void;
   selectSession(id: string): void;
-  revealControls(id: string): void;
-  hideControls(): void;
   clearError(): void;
 }
 

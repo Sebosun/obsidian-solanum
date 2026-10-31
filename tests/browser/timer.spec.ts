@@ -89,7 +89,6 @@ test("a light, reduced-motion sidebar keeps keyboard controls accessible", async
   await page.evaluate(() => document.body.classList.replace("theme-dark", "theme-light"));
   await page.getByRole("button", { name: "Start focus" }).click();
   await expect(page.getByRole("timer")).toHaveText("25:00");
-  await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
@@ -179,10 +178,13 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   await expect
     .poll(async () => changedPixels(page, first, await scene.screenshot(), 12), { timeout: 10_000 })
     .toBeGreaterThan(20);
-  // The break fills the view, like the focus; Escape brings back its controls: pause or skip.
-  await expect(page.getByRole("button", { name: "Skip break" })).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Skip break" })).toBeVisible();
+  // The break fills the view, like the focus, with its controls (pause, skip) in the scene's bottom left.
+  const skip = page.getByRole("button", { name: "Skip break" });
+  await expect(skip).toBeVisible();
+  const frame = await page.locator(".solanum-scene").boundingBox();
+  const button = await skip.boundingBox();
+  expect(frame && button && button.x < frame.x + frame.width / 2).toBe(true);
+  expect(frame && button && button.y > frame.y + frame.height / 2).toBe(true);
   expect(errors).toEqual([]);
 });
 

@@ -3,10 +3,9 @@ import type { KeyboardEvent } from "react";
 
 interface SettingsMenuProps {
   onPreferences(): void;
-  onHide?: () => void;
 }
 
-export function SettingsMenu({ onPreferences, onHide }: SettingsMenuProps) {
+export function SettingsMenu({ onPreferences }: SettingsMenuProps) {
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -27,10 +26,6 @@ export function SettingsMenu({ onPreferences, onHide }: SettingsMenuProps) {
   function openPreferences() {
     setOpen(false);
     onPreferences();
-  }
-  function hideControls() {
-    setOpen(false);
-    onHide?.();
   }
   function handleKey(event: KeyboardEvent) {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -77,11 +72,6 @@ export function SettingsMenu({ onPreferences, onHide }: SettingsMenuProps) {
           <button role="menuitem" onClick={openPreferences}>
             Preferences
           </button>
-          {onHide && (
-            <button role="menuitem" onClick={hideControls}>
-              Hide controls
-            </button>
-          )}
         </div>
       )}
     </div>

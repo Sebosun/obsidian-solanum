@@ -7,8 +7,8 @@ import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
 import { TimerScene } from "@/components/scenes/TimerScene";
 import { TimerSetup } from "@/components/timer/TimerSetup";
-import { SessionControls } from "@/components/timer/SessionControls";
-import { CloseIcon } from "@/components/ui/CloseIcon";
+import { SessionActions } from "@/components/timer/SessionActions";
+import { SessionContext } from "@/components/timer/SessionContext";
 import { useCropAssets } from "@/hooks/useCropAssets";
 
 interface TimerPanelProps {
@@ -23,7 +23,6 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
   const session = useAppStore(selectCurrentSession);
   const seasonChoice = useAppStore((state) => state.season);
   const selectSession = useAppStore((state) => state.selectSession);
-  const revealControls = useAppStore((state) => state.revealControls);
   const active = sessions.filter(isActive);
   const display = timerDisplay(session, session ? services.timer.remaining(session) : 0, draft);
   const hasSession = !!session;
@@ -37,11 +36,8 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
   function changeSession(event: ChangeEvent<HTMLSelectElement>) {
     selectSession(event.target.value);
   }
-  function reveal() {
-    if (session) revealControls(session.id);
-  }
-  let controls = <TimerSetup />;
-  if (session) controls = <SessionControls />;
+  let below = <TimerSetup />;
+  if (session) below = <SessionContext />;
 
   return (
     <>
@@ -61,20 +57,11 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
         {...display}
         running={session?.status === "running"}
         immersive={immersive}
+        controls={session && <SessionActions />}
         preview={!session}
         season={resolveSeason(seasonChoice, new Date())}
       />
-      {!immersive && controls}
-      {immersive && (
-        <button
-          className="solanum-reveal-controls"
-          aria-label="Show timer controls"
-          title="Show controls (Escape)"
-          onClick={reveal}
-        >
-          <CloseIcon size={16} />
-        </button>
-      )}
+      {!immersive && below}
     </>
   );
 }

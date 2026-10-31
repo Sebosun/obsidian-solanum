@@ -37,7 +37,6 @@ export function getAppStore(services: SolanumHost): AppStore {
       note: "",
     },
     selectedSessionId: null,
-    revealedRevisionId: null,
     busy: false,
     error: "",
     celebration: null,
@@ -75,12 +74,6 @@ export function getAppStore(services: SolanumHost): AppStore {
     },
     selectSession(id) {
       set({ selectedSessionId: id });
-    },
-    revealControls(id) {
-      set({ revealedRevisionId: id });
-    },
-    hideControls() {
-      set({ revealedRevisionId: null });
     },
     clearError() {
       set({ error: "" });

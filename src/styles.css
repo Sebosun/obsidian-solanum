@@ -279,16 +279,6 @@
 .solanum-app .solanum-start svg {
   @apply sol:fill-current;
 }
-.solanum-actions {
-  @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-3 sol:my-3;
-}
-/* Quiet, icon-only controls: the crop is the focus, not the buttons. */
-.solanum-app .solanum-actions .solanum-control {
-  @apply sol:flex sol:items-center sol:justify-center sol:w-10 sol:h-10 sol:p-0 sol:rounded-full sol:bg-transparent sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:text-(--text-muted) sol:transition-colors;
-}
-.solanum-app .solanum-actions .solanum-control:hover:not(:disabled) {
-  @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
-}
 .solanum-tag {
   @apply sol:inline-block sol:text-[10px] sol:rounded-[5px] sol:bg-[#87a87918] sol:text-(--text-muted) sol:py-1 sol:px-1.5 sol:m-0.5 sol:wrap-anywhere;
 }
@@ -387,15 +377,16 @@
 .solanum-toolbar-actions {
   @apply sol:flex sol:items-center sol:gap-0.5;
 }
-.solanum-app .solanum-reveal-controls {
-  @apply sol:absolute sol:right-3 sol:top-3 sol:z-10 sol:flex sol:items-center sol:justify-center sol:w-8 sol:h-8 sol:p-0 sol:rounded-full sol:opacity-30 sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted) sol:transition-opacity;
+/* Over the canvas, bottom left, clear of the progress bar along the very bottom. */
+.solanum-scene-controls {
+  @apply sol:absolute sol:left-3 sol:bottom-4 sol:z-10 sol:flex sol:items-center sol:gap-2;
 }
-.solanum-app .solanum-reveal-controls:hover {
-  @apply sol:opacity-100 sol:bg-(--background-secondary);
+.solanum-app .solanum-scene-controls .solanum-control {
+  @apply sol:flex sol:items-center sol:justify-center sol:w-10 sol:h-10 sol:p-0 sol:rounded-full sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:bg-(--background-primary)/60 sol:text-(--text-muted) sol:opacity-70 sol:transition-[opacity,background-color];
 }
-.solanum-focus-mode:hover .solanum-reveal-controls,
-.solanum-app .solanum-reveal-controls:focus-visible {
-  @apply sol:opacity-100;
+.solanum-app .solanum-scene-controls .solanum-control:hover:not(:disabled),
+.solanum-app .solanum-scene-controls .solanum-control:focus-visible {
+  @apply sol:opacity-100 sol:bg-(--background-secondary) sol:text-(--text-normal);
 }
 .solanum-harvest-scene {
   @apply sol:relative sol:rounded-xl sol:overflow-hidden sol:outline-none;
@@ -502,10 +493,5 @@
 @keyframes solanum-loading {
   to {
     transform: rotate(360deg);
-  }
-}
-@media (hover: none) {
-  .solanum-app .solanum-reveal-controls {
-    @apply sol:opacity-40;
   }
 }

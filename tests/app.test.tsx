@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, act, within } from "@testing-library/react";
 import { App } from "@/components/app/App";
@@ -22,6 +23,7 @@ vi.mock("@/components/scenes/TimerScene", () => ({
     crop,
     preview,
     resting,
+    controls,
   }: {
     progress: number;
     remaining: number;
@@ -31,6 +33,7 @@ vi.mock("@/components/scenes/TimerScene", () => ({
     crop: string;
     preview?: boolean;
     resting: boolean;
+    controls?: ReactNode;
   }) => (
     <figure
       data-scene={resting ? "break" : "crop"}
@@ -42,6 +45,7 @@ vi.mock("@/components/scenes/TimerScene", () => ({
       data-rate={clockRate.toFixed(5)}
     >
       <span role="timer">{formatTime(remaining)}</span>
+      {controls && <div data-testid="scene-controls">{controls}</div>}
     </figure>
   ),
 }));
@@ -89,8 +93,9 @@ vi.mock("@/components/scenes/HarvestYearScene", () => ({
 }));
 afterEach(cleanup);
 
-async function revealControls() {
-  fireEvent.click(await screen.findByRole("button", { name: "Show timer controls" }));
+/** A session is running: the timer fills the view and its controls are in the scene. */
+async function sessionRunning() {
+  return screen.findByRole("button", { name: "Pause" });
 }
 
 function fixture(debug = false) {
@@ -158,8 +163,8 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.click(screen.getByRole("button", { name: "Seed demo harvests" }));
     await waitFor(() => expect(f.host.timer.getState().sessions.length).toBeGreaterThan(10));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await revealControls();
-    fireEvent.click(screen.getByText("Debug tools · simulated data"));
+    await sessionRunning();
+    // The full view keeps only the debug shortcut, which is enough to finish the focus.
     fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
     await screen.findByRole("button", { name: "Start break" });
     expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe("break");
@@ -169,14 +174,14 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture(true);
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     // The focus fills the view, yet force-finishing it needs no digging for the controls.
     expect(screen.queryByText("Debug tools · simulated data")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
     await screen.findByRole("button", { name: "Start break" });
     fireEvent.click(screen.getByRole("button", { name: "Start break" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull(); // the break fills the view
+    await sessionRunning();
+    expect(screen.queryByRole("navigation")).toBeNull(); // the break fills the view
     fireEvent.click(screen.getByRole("button", { name: "Finish break now" }));
     await waitFor(() =>
       expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe(
@@ -189,7 +194,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     expect(screen.queryByRole("button", { name: /Finish focus now/ })).toBeNull();
   });
 
@@ -212,7 +217,8 @@ describe("sidebar workflows backed by the real timer service", () => {
     await f.host.timer.refresh();
     render(<App host={f.host} screen="timer" />);
     expect(screen.getByLabelText(/Multiple active crops/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Show timer controls" })).toBeNull();
+    // Choosing between crops needs the rest of the interface, so the view is not full.
+    expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/Multiple active crops/), {
       target: { value: "offline-root" },
     });
@@ -227,29 +233,28 @@ describe("sidebar workflows backed by the real timer service", () => {
     ).toBe("running");
   });
 
-  it("persists crop choice and hides the normal interface while focusing", async () => {
+  it("persists crop choice and fills the view for as long as a session is under way", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     const scene = screen.getByRole("figure");
     fireEvent.click(screen.getByRole("radio", { name: "Pumpkin" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     expect(screen.getByRole("figure")).toBe(scene);
     expect(screen.queryByRole("navigation")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
     expect(screen.queryByText("Timer preferences")).toBeNull();
     expect(f.host.timer.getState().sessions[0].crop).toBe("pumpkin");
-    fireEvent.keyDown(window, { key: "Escape" });
-    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
     await screen.findByRole("button", { name: "Resume" });
+    expect(screen.queryByRole("navigation")).toBeNull(); // paused is still full view
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
-    expect(screen.queryByRole("navigation")).toBeNull();
+    await sessionRunning();
     f.advance(25 * 60_000);
     await act(() => f.host.timer.tick());
+    // The focus is over and the break waits to be started: still the full view, same scene.
     expect(screen.getByRole("figure")).toBe(scene);
-    expect(screen.getByRole("navigation")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(within(scene).getByRole("button", { name: "Start break" })).toBeTruthy();
   });
 
   it("previews the finished crop while choosing, then shows it growing once started", async () => {
@@ -261,7 +266,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(scene().getAttribute("data-crop")).toBe("coconut");
     expect(scene().getAttribute("data-preview")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     expect(scene().getAttribute("data-crop")).toBe("coconut");
     expect(scene().getAttribute("data-preview")).toBe("false");
   });
@@ -270,9 +275,10 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await revealControls();
+    await sessionRunning();
+    const controls = within(screen.getByTestId("scene-controls"));
     for (const name of ["Pause", "End focus"]) {
-      const button = screen.getByRole("button", { name });
+      const button = controls.getByRole("button", { name });
       expect(button.textContent).toBe("");
       expect(button.querySelector("svg")).not.toBeNull();
       expect(button.getAttribute("title")).toBe(name);
@@ -340,7 +346,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const clock = () => Number(screen.getByRole("figure").getAttribute("data-clock"));
     expect(clock()).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     f.advance(10 * 60_000);
     await act(() => f.host.timer.tick());
     expect(clock()).toBeCloseTo(0.4, 2);
@@ -361,7 +367,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const scene = () => screen.getByRole("figure").getAttribute("data-scene");
     expect(scene()).toBe("crop"); // choosing a crop
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     expect(scene()).toBe("crop"); // growing it
     f.advance(25 * 60_000);
     await act(() => f.host.timer.tick());
@@ -370,8 +376,6 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start break" }));
     await waitFor(() => expect(scene()).toBe("break")); // resting
     expect(screen.queryByRole("navigation")).toBeNull(); // and full screen, like the focus
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
-    fireEvent.keyDown(window, { key: "Escape" });
     fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
     await screen.findByRole("button", { name: "Resume" });
     expect(scene()).toBe("break"); // a paused break is still the break
@@ -385,28 +389,47 @@ describe("sidebar workflows backed by the real timer service", () => {
     const rate = () => Number(screen.getByRole("figure").getAttribute("data-rate"));
     expect(rate()).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await screen.findByRole("button", { name: "Show timer controls" });
+    await sessionRunning();
     expect(rate()).toBeCloseTo(1 / (25 * 60), 5); // across the 25 minute focus
-    fireEvent.keyDown(window, { key: "Escape" });
     fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
     await screen.findByRole("button", { name: "Resume" });
     expect(rate()).toBe(0);
   });
 
-  it("returns to the immersive view from the revealed controls, by button or Escape", async () => {
+  it("keeps pause and stop in the scene, with no way to reveal or hide them", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    expect(screen.queryByTestId("scene-controls")).toBeNull(); // choosing a crop: nothing to pause
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await sessionRunning();
+    const inScene = () => within(screen.getByTestId("scene-controls"));
+    expect(inScene().getByRole("button", { name: "Pause" })).toBeTruthy();
+    expect(inScene().getByRole("button", { name: "End focus" })).toBeTruthy();
+    // There is no corner button, no toolbar button and no Escape toggle any more.
+    expect(screen.queryByRole("button", { name: "Show timer controls" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enter focus view" })).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(inScene().getByRole("button", { name: "Pause" })).toBeTruthy();
+    fireEvent.click(inScene().getByRole("button", { name: "End focus" }));
+    // Ending the session returns to choosing a crop, with the rest of the interface.
+    await screen.findByRole("button", { name: "Start focus" });
+    expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
+    expect(screen.queryByTestId("scene-controls")).toBeNull();
+  });
+
+  it("brings the interface back for a failure, while the controls stay in the scene", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await revealControls();
-    expect(screen.getByRole("button", { name: "Pause" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Enter focus view" }));
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Enter focus view" })).toBeNull();
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.getByRole("button", { name: "Pause" })).toBeTruthy();
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Show timer controls" })).toBeTruthy();
+    await sessionRunning();
+    vi.spyOn(f.host.timer, "pause").mockRejectedValueOnce(new Error("Disk is full"));
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(await screen.findByText("Disk is full")).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
+    expect(
+      within(screen.getByTestId("scene-controls")).getByRole("button", { name: "Pause" }),
+    ).toBeTruthy();
   });
 
   describe("session details pickers", () => {
@@ -562,7 +585,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     });
   });
 
-  it("opens native preferences from the icon menu without changing the active session", async () => {
+  it("opens native preferences from the icon menu, and settings changed meanwhile shape the break", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
     expect(screen.queryByRole("heading", { name: "Solanum" })).toBeNull();
@@ -570,14 +593,13 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.queryByText("Timer preferences")).toBeNull();
     await f.host.saveSettings({ ...f.host.settings, breakMinutes: 20, autoBreak: true });
     fireEvent.click(screen.getByRole("button", { name: "5 min" }));
-    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await revealControls();
-    await screen.findByRole("button", { name: "Pause" });
-    const before = structuredClone(f.host.timer.getState().sessions[0]);
     fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Preferences" }));
     expect(f.host.openSettings).toHaveBeenCalledOnce();
-    expect(f.host.timer.getState().sessions[0]).toEqual(before);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await sessionRunning();
+    // While a session is under way the view is full: there is no menu to open.
+    expect(screen.queryByRole("button", { name: "Open menu" })).toBeNull();
     f.advance(5 * 60_000);
     await act(() => f.host.timer.tick());
     expect(f.host.timer.getState().sessions[0]).toMatchObject({
@@ -597,7 +619,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.keyDown(tagInput, { key: "Enter" });
     fireEvent.click(screen.getByRole("button", { name: "Use active note" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
-    await revealControls();
+    await sessionRunning();
     await screen.findByRole("button", { name: "Pause" });
     f.advance(2 * 60_000);
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
@@ -608,11 +630,12 @@ describe("sidebar workflows backed by the real timer service", () => {
     await f.host.timer.refresh();
     render(<App host={f.host} screen="timer" />);
     expect(screen.getByRole("timer").textContent).toBe("03:00");
-    expect(screen.getByText("work/client")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
-    expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
+    expect(f.host.timer.getState().sessions[0]).toMatchObject({
+      tags: ["work/client"],
+      notePath: "Project.md",
+    });
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
-    await revealControls();
+    await sessionRunning();
     await screen.findByRole("button", { name: "Pause" });
     f.advance(3 * 60_000);
     await act(() => f.host.timer.tick());
@@ -834,7 +857,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     it("does not label scenes, groups or regions on the timer in a way that pops up", async () => {
       const f = await harvestedFixture();
       const view = render(<App host={f.host} screen="timer" />);
-      expect(screen.getByRole("navigation", { name: "Solanum views" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
       expect(tooltips(view.container)).toEqual([]);
     });
 

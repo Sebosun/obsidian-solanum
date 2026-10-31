@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { BREAK_FRAME, BreakScene } from "@/components/scenes/BreakScene";
 import { CropScene, cropFrame } from "@/components/scenes/CropScene";
 import { SceneFrame } from "@/components/stage/SceneFrame";
@@ -7,6 +8,8 @@ import type { SeasonId } from "@/lib/scene/seasons";
 interface TimerSceneProps extends TimerDisplay {
   running: boolean;
   immersive: boolean;
+  /** Buttons for the bottom left of the scene; none while choosing a crop. */
+  controls?: ReactNode;
   season: SeasonId;
   /** Show what the crop will become instead of its growth: while choosing, before a session. */
   preview: boolean;
@@ -23,6 +26,7 @@ export function TimerScene({
   resting,
   remaining,
   immersive,
+  controls,
   preview,
   clockProgress,
   clockRate,
@@ -36,6 +40,7 @@ export function TimerScene({
       clockRate={clockRate}
       season={season}
       immersive={immersive}
+      controls={controls}
       {...look}
     >
       {(frame) =>
