@@ -1,8 +1,11 @@
-import type { ChangeEvent } from "react";
+import { useEffect, type ChangeEvent } from "react";
 import { isActive } from "@/lib/timer/selectors";
 import { resolveSeason } from "@/lib/scene/seasons";
+import { BREAK_SCENE } from "@/lib/scene/constants";
+import { getCropAssets } from "@/state/cropAssets";
 import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
+import { BreakScene } from "@/components/crops/BreakScene";
 import { CropScene } from "@/components/crops/CropScene";
 import { TimerSetup } from "@/components/timer/TimerSetup";
 import { SessionControls } from "@/components/timer/SessionControls";
@@ -37,6 +40,17 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
     const phaseMs = session.phase === "focus" ? session.durationMs : session.breakMs;
     if (session.status === "running" && session.phase !== "done") clockRate = 1000 / phaseMs;
   }
+  // The break is its own view: once the break is under way the cat takes over from the crop.
+  const resting = session?.phase === "break" && session.status !== "waiting";
+  const hasSession = !!session;
+  useEffect(() => {
+    // Have the cat and the mug ready before the break starts, so they are there the moment they
+    // are wanted.
+    if (!hasSession) return;
+    const assets = getCropAssets(services);
+    for (const model of [BREAK_SCENE.catModel, BREAK_SCENE.mug.model])
+      void assets.loadModel(model).catch(() => {});
+  }, [hasSession, services]);
   function changeSession(event: ChangeEvent<HTMLSelectElement>) {
     selectSession(event.target.value);
   }
@@ -60,17 +74,27 @@ export function TimerPanel({ immersive }: TimerPanelProps) {
           </select>
         </label>
       )}
-      <CropScene
-        crop={crop}
-        progress={Math.max(0, Math.min(1, progress))}
-        running={session?.status === "running"}
-        remaining={remaining}
-        immersive={immersive}
-        preview={!session}
-        clockProgress={Math.max(0, Math.min(1, clockProgress))}
-        clockRate={clockRate}
-        season={resolveSeason(seasonChoice, new Date())}
-      />
+      {resting ? (
+        <BreakScene
+          remaining={remaining}
+          immersive={immersive}
+          clockProgress={Math.max(0, Math.min(1, clockProgress))}
+          clockRate={clockRate}
+          season={resolveSeason(seasonChoice, new Date())}
+        />
+      ) : (
+        <CropScene
+          crop={crop}
+          progress={Math.max(0, Math.min(1, progress))}
+          running={session?.status === "running"}
+          remaining={remaining}
+          immersive={immersive}
+          preview={!session}
+          clockProgress={Math.max(0, Math.min(1, clockProgress))}
+          clockRate={clockRate}
+          season={resolveSeason(seasonChoice, new Date())}
+        />
+      )}
       {!immersive && controls}
       {immersive && (
         <button

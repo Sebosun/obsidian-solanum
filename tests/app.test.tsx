@@ -31,9 +31,32 @@ vi.mock("@/components/crops/CropScene", () => ({
     preview?: boolean;
   }) => (
     <figure
+      data-scene="crop"
       data-crop={crop}
       data-preview={String(!!preview)}
       data-progress={Math.round(progress * 100)}
+      data-season={season}
+      data-clock={clockProgress.toFixed(3)}
+      data-rate={clockRate.toFixed(5)}
+    >
+      <span role="timer">{formatTime(remaining)}</span>
+    </figure>
+  ),
+}));
+vi.mock("@/components/crops/BreakScene", () => ({
+  BreakScene: ({
+    remaining,
+    season,
+    clockProgress,
+    clockRate,
+  }: {
+    remaining: number;
+    season: string;
+    clockProgress: number;
+    clockRate: number;
+  }) => (
+    <figure
+      data-scene="break"
       data-season={season}
       data-clock={clockProgress.toFixed(3)}
       data-rate={clockRate.toFixed(5)}
@@ -316,6 +339,30 @@ describe("sidebar workflows backed by the real timer service", () => {
     f.advance(2 * 60_000);
     await act(() => f.host.timer.tick());
     expect(clock()).toBeCloseTo(0.4, 2); // 2 of the 5 break minutes
+  });
+
+  it("gives the break a view of its own, once it is under way", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const scene = () => screen.getByRole("figure").getAttribute("data-scene");
+    expect(scene()).toBe("crop"); // choosing a crop
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(scene()).toBe("crop"); // growing it
+    f.advance(25 * 60_000);
+    await act(() => f.host.timer.tick());
+    await screen.findByRole("button", { name: "Start break" });
+    expect(scene()).toBe("crop"); // harvested, the break waiting to be started
+    fireEvent.click(screen.getByRole("button", { name: "Start break" }));
+    await waitFor(() => expect(scene()).toBe("break")); // resting
+    expect(screen.queryByRole("navigation")).toBeNull(); // and full screen, like the focus
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    fireEvent.keyDown(window, { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: "Pause" }));
+    await screen.findByRole("button", { name: "Resume" });
+    expect(scene()).toBe("break"); // a paused break is still the break
+    fireEvent.click(screen.getByRole("button", { name: "Skip break" }));
+    await waitFor(() => expect(scene()).toBe("crop")); // over: back to choosing a crop
   });
 
   it("keeps the sun moving only while a phase is actually running", async () => {

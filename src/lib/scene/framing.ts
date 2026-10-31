@@ -2,6 +2,12 @@ import type { OrthographicCamera } from "three";
 import { Box3, Vector3 } from "three";
 import { TIMER_SCENE } from "@/lib/scene/constants";
 
+/** The box the camera has to keep in view, as corner coordinates. */
+export interface SceneBounds {
+  readonly min: readonly number[];
+  readonly max: readonly number[];
+}
+
 export interface SceneSize {
   width: number;
   height: number;
@@ -11,11 +17,12 @@ export interface SceneSize {
  * Fits the plot and the crop into the scene, with the middle of the plot at a fixed height so the
  * sky above it keeps its room. The sun clock is not part of this: it is drawn in the page.
  */
-export function fitTimerCamera(camera: OrthographicCamera, size: SceneSize): void {
-  const plot = new Box3(
-    new Vector3(...TIMER_SCENE.bounds.min),
-    new Vector3(...TIMER_SCENE.bounds.max),
-  );
+export function fitTimerCamera(
+  camera: OrthographicCamera,
+  size: SceneSize,
+  bounds: SceneBounds = TIMER_SCENE.bounds,
+): void {
+  const plot = new Box3(new Vector3(...bounds.min), new Vector3(...bounds.max));
   const target = new Vector3(...TIMER_SCENE.target);
   const direction = new Vector3(...TIMER_SCENE.direction)
     .normalize()

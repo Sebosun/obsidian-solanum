@@ -12,16 +12,12 @@ export function useFocusMode(screen: Screen) {
   const hide = useAppStore((state) => state.hideControls);
   const active = sessions.filter(isActive);
   let id: string | undefined;
-  if (
-    screen === "timer" &&
-    active.length === 1 &&
-    active[0].phase === "focus" &&
-    active[0].status === "running"
-  ) {
+  // Both the focus and the break fill the view while they run; waiting or paused, the controls show.
+  if (screen === "timer" && active.length === 1 && active[0].status === "running") {
     id = active[0].id;
   }
   useEffect(() => {
-    // Escape toggles: the first press shows the controls, the next returns to the focus view.
+    // Escape toggles: the first press shows the controls, the next returns to the full view.
     function handleEscape(event: KeyboardEvent) {
       if (event.key !== "Escape" || !id) return;
       if (revealed === id) hide();

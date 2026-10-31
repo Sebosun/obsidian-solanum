@@ -148,3 +148,37 @@ export const YEAR_STACKS = {
   /** Width ÷ height of the scene box; stacks are tall, so it is a little narrower than the month. */
   sceneAspect: 0.95,
 } as const;
+
+/**
+ * The break: a cat asleep on a fuzzy pillow beside a steaming mug, on a small wooden platform.
+ * Lengths are world units in the same space as the timer's plot, so the same camera frames it.
+ */
+export const BREAK_SCENE = {
+  /** The cat model, which lives with the crop models because the plugin reads its models there. */
+  catModel: "Cat_sleeping.glb",
+  /** Height of the platform's top, the same as the plot's. */
+  groundY: -0.54,
+  platform: { radius: 1.2, rim: "#5c4130", top: "#a9794d", sides: 8 },
+  /** What the camera must keep in view, in place of the plot's bounds. */
+  bounds: { min: [-1.1, -0.85, -1.1], max: [1.1, 0.95, 1.1] } as const,
+  pillow: {
+    width: 1.7,
+    depth: 1.35,
+    height: 0.5,
+    /** Turned about the vertical, in radians. */
+    turn: -0.5,
+    position: [0.12, -0.1] as [number, number],
+  },
+  /** The cat sits in the middle of the pillow, sunk a little into it. */
+  cat: { scale: 1.1, sink: 0.07, turn: -0.15 },
+  /** The mug model, which stands as tall as `height` in the scene and has its steam over the coffee. */
+  mug: {
+    model: "mug.glb",
+    position: [-0.78, 0.5] as [number, number],
+    height: 0.24,
+    /** Where the coffee stands, as a share of the mug's height, so the steam starts there. */
+    coffeeLevel: 0.88,
+    turn: 0.6,
+  },
+  steam: { count: 56, height: 0.8, turns: 1.6, riseSeconds: 5, size: 0.16 },
+} as const;

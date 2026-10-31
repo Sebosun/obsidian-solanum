@@ -27,6 +27,11 @@ export class CropAssets {
     return this.loadFile(`${model}.glb`);
   }
 
+  /** Any model in the plugin's model folder by file name, shared and cached like the crops. */
+  loadModel(filename: string): Promise<GLTF> {
+    return this.loadFile(filename);
+  }
+
   private loadFile(filename: string): Promise<GLTF> {
     const cached = this.entries.get(filename);
     if (cached) return cached.promise;

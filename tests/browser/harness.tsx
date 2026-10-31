@@ -35,6 +35,29 @@ if (elapsedMinutes > 0) {
     crop: isCropId(parameters.get("crop")) ? (parameters.get("crop") as CropId) : "tomato",
   });
 }
+// ?break=<minutes> opens the timer that far into a running 5 minute break, after a finished focus.
+const breakMinutes = Number(parameters.get("break"));
+if (parameters.get("break") !== null && breakMinutes >= 0) {
+  const startedAt = Date.now() - (25 + breakMinutes) * 60_000;
+  const focusEndedAt = startedAt + 25 * 60_000;
+  files.set("harness-break", {
+    ...history[0],
+    id: "harness-break",
+    sessionId: "harness-break",
+    source: undefined,
+    startedAt,
+    updatedAt: focusEndedAt,
+    durationMs: 25 * 60_000,
+    breakMs: 5 * 60_000,
+    phase: "break",
+    status: "running",
+    deadline: focusEndedAt + 5 * 60_000,
+    remainingMs: 5 * 60_000,
+    focusEndedAt,
+    intervals: [{ start: startedAt, end: focusEndedAt }],
+    crop: isCropId(parameters.get("crop")) ? (parameters.get("crop") as CropId) : "tomato",
+  });
+}
 const timer = new TimerService(
   {
     readAll: async () => [...files.values()],

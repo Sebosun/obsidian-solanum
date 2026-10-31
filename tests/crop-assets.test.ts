@@ -41,4 +41,30 @@ describe("vault binary crop loading", () => {
     read.mockRejectedValueOnce(new Error("Vault unavailable"));
     await expect(repository.ready("corn")).rejects.toThrow("Vault unavailable");
   });
+
+  it("loads any model in the folder by name, shared like the crops", async () => {
+    const read = vi.fn(async (filename: string) => {
+      const bytes = readFileSync(`assets/crops/${filename}`);
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    });
+    const repository = new CropAssets(read);
+    const first = repository.loadModel("Cat_sleeping.glb");
+    expect(repository.loadModel("Cat_sleeping.glb")).toBe(first);
+    const cat = await first;
+    expect(cat.animations.map((clip) => clip.name)).toEqual(["Sleep"]);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads any model in the folder by name, shared like the crops", async () => {
+    const read = vi.fn(async (filename: string) => {
+      const bytes = readFileSync(`assets/crops/${filename}`);
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    });
+    const repository = new CropAssets(read);
+    const first = repository.loadModel("Cat_sleeping.glb");
+    expect(repository.loadModel("Cat_sleeping.glb")).toBe(first);
+    const cat = await first;
+    expect(cat.animations.map((clip) => clip.name)).toEqual(["Sleep"]);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
 });
