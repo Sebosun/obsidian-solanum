@@ -1,4 +1,9 @@
-import type { Suggestion } from "@/components/ui/SuggestionList";
+export interface Suggestion {
+  value: string;
+  label: string;
+  /** Muted secondary text, such as a note's folder. */
+  detail?: string;
+}
 
 /** Notes are searched, so a few best matches will do; tags are few enough to all be shown. */
 const MAX_NOTE_SUGGESTIONS = 8;

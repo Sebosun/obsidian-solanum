@@ -1,6 +1,6 @@
-import { readFileSync } from "node:fs";
 import { Texture, TextureLoader } from "three";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { loadAsset } from "./glb";
 
 // Node cannot decode images. A model's textures become empty ones: tests care that one is attached.
 Object.assign(globalThis, { self: globalThis });
@@ -15,12 +15,8 @@ export const MUG_FILE = "assets/break/mug.glb";
 export const PILLOW_FILE = "assets/break/pillow.glb";
 
 /** A shipped model, parsed the way the plugin parses it. */
-export async function loadModel(path: string): Promise<GLTF> {
-  const bytes = readFileSync(path);
-  return new GLTFLoader().parseAsync(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-    "",
-  );
+export function loadModel(path: string): Promise<GLTF> {
+  return loadAsset(path.replace(/^assets\//, ""));
 }
 
 export const loadCat = () => loadModel(CAT_FILE);

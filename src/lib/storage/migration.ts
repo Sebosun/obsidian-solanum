@@ -1,5 +1,6 @@
 import { ensureFolder } from "@/lib/storage/ensureFolder";
 import { isRevision } from "@/lib/storage/validation";
+import { errorMessage } from "@/lib/text";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 
 export interface MigrationAdapter extends FileAdapter {
@@ -135,7 +136,7 @@ export async function moveSessions(
       }
       await removeSource(adapter, candidate.source);
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = errorMessage(error);
       // `cause` needs an ES2022 lib; the bundle targets ES2020.
       throw Object.assign(
         new Error(

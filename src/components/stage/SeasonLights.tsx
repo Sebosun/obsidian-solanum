@@ -3,7 +3,6 @@ import { useFrame } from "@react-three/fiber";
 import type { AmbientLight, DirectionalLight } from "three";
 import type { SeasonTheme } from "@/lib/scene/seasons";
 import type { SunState } from "@/lib/scene/sunClock";
-import { SunHalo } from "@/components/stage/SunHalo";
 
 /** The sun clock's state for the light: where the sun shines from and how much of it is left. */
 export interface Daylight {
@@ -19,12 +18,11 @@ interface SeasonLightsProps {
   daylight?: Daylight;
   /** The sun as animated frame by frame; the light follows it smoothly between `daylight` updates. */
   daylightRef?: MutableRefObject<SunState>;
-  /** The summer sun and its halo are sized for the timer scene; larger scenes switch them off. */
-  showGlow?: boolean;
 }
 
-export function SeasonLights({ theme, daylight, daylightRef, showGlow = true }: SeasonLightsProps) {
-  const { ambient, sun, glow } = theme;
+/** The season's light: an ambient fill and one sun, which is only a light, never drawn. */
+export function SeasonLights({ theme, daylight, daylightRef }: SeasonLightsProps) {
+  const { ambient, sun } = theme;
   const ambientLight = useRef<AmbientLight>(null);
   const sunLight = useRef<DirectionalLight>(null);
   useFrame(() => {
@@ -50,19 +48,6 @@ export function SeasonLights({ theme, daylight, daylightRef, showGlow = true }: 
         intensity={sun.intensity * (daylight?.lightFactor ?? 1)}
         position={daylight?.lightPosition ?? sun.position}
       />
-      {glow && showGlow && (
-        <>
-          <pointLight
-            name="season-glow-light"
-            color={glow.color}
-            intensity={glow.intensity}
-            position={glow.position}
-            distance={8}
-            decay={1.4}
-          />
-          <SunHalo color={glow.haloColor} position={glow.position} />
-        </>
-      )}
     </>
   );
 }

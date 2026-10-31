@@ -1,8 +1,8 @@
-import { useEffect, useMemo, type MutableRefObject } from "react";
+import { useMemo, type MutableRefObject } from "react";
 import { useModel } from "@/hooks/useModel";
-import { useBakedDimming } from "@/hooks/useBakedDimming";
 import { FARM_PLATFORM, prepareFarmPlatform } from "@/lib/models/platform";
 import type { SunState } from "@/lib/scene/sunClock";
+import { useBakedModel } from "@/components/models/useBakedModel";
 
 interface FarmPlatformProps {
   daylightRef?: MutableRefObject<SunState>;
@@ -23,14 +23,7 @@ export function FarmPlatform({
     () => prepareFarmPlatform(scene, { width, soilHeight }),
     [scene, width, soilHeight],
   );
-  useEffect(
-    () => () => {
-      platform.materials.forEach((material) => material.dispose());
-      platform.geometries.forEach((geometry) => geometry.dispose());
-    },
-    [platform],
-  );
-  useBakedDimming(platform.materials, daylightRef);
+  useBakedModel(platform, daylightRef);
   return (
     <group name="farm-platform" position={[0, plantingSurfaceY, 0]} scale={platform.factor}>
       <primitive object={platform.object} dispose={null} />

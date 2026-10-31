@@ -1,6 +1,7 @@
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import { ensureFolder } from "@/lib/storage/ensureFolder";
 import { dayNotePath } from "@/lib/notes/path";
+import { errorMessage } from "@/lib/text";
 
 export interface DayNoteMove {
   from: string;
@@ -13,6 +14,11 @@ export interface DayNoteMigrationPlan {
   moves: DayNoteMove[];
   conflicts: string[];
   leftBehind: string[];
+}
+
+/** The error for a migration that would overwrite documents already at the destination. */
+export function migrationConflictError(conflicts: string[]): Error {
+  return new Error(`Documents already exist at ${conflicts.join(", ")}. Nothing was moved.`);
 }
 
 function ownedDate(path: string, text: string): string | null {
@@ -61,8 +67,7 @@ export async function moveDayNotes(
   rename: (from: string, to: string) => Promise<void>,
 ): Promise<number> {
   const plan = await planDayNoteMigration(adapter, from, to);
-  if (plan.conflicts.length > 0)
-    throw new Error(`Documents already exist at ${plan.conflicts.join(", ")}. Nothing was moved.`);
+  if (plan.conflicts.length > 0) throw migrationConflictError(plan.conflicts);
   let moved = 0;
   for (const move of plan.moves) {
     try {
@@ -71,7 +76,7 @@ export async function moveDayNotes(
       await rename(move.from, move.to);
       moved += 1;
     } catch (error) {
-      const reason = error instanceof Error ? error.message : String(error);
+      const reason = errorMessage(error);
       throw Object.assign(
         new Error(
           `${moved} documents moved. ${reason}. Retry the document update or use “Write documents for all history”.`,

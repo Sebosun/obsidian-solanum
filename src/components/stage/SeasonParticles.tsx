@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { BufferAttribute, BufferGeometry } from "three";
 import type { SeasonTheme } from "@/lib/scene/seasons";
+import { frameStep } from "@/lib/scene/motion";
 import { WeatherField, type WeatherBounds } from "@/lib/scene/weather";
 import { createWeatherMaterial } from "@/lib/scene/weatherShaders";
 
@@ -17,8 +18,6 @@ interface SeasonParticlesProps {
  */
 const WEATHER_BOUNDS: WeatherBounds = { halfWidth: 1.3, halfDepth: 1, floor: -0.85, ceiling: 1.35 };
 const FIELD_SEED = 20_261_031;
-/** Longest simulated step; a backgrounded tab must not throw the weather forward on return. */
-const MAX_STEP_SECONDS = 0.05;
 /** The attributes that change every frame. Colours and sizes are fixed. */
 const MOVING_ATTRIBUTES = ["position", "aAlpha", "aRotation"] as const;
 
@@ -42,7 +41,7 @@ export function SeasonParticles({ theme, animate }: SeasonParticlesProps) {
   useFrame((_state, delta) => {
     material.uniforms.uPixelsPerUnit.value = camera.zoom * pixelRatio;
     if (!animate) return;
-    elapsed.current += Math.min(Math.max(delta, 0), MAX_STEP_SECONDS);
+    elapsed.current += frameStep(delta);
     field.step(elapsed.current);
     material.uniforms.uTime.value = elapsed.current;
     for (const name of MOVING_ATTRIBUTES) {

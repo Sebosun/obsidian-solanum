@@ -18,5 +18,3 @@ export interface SettingsContext {
 export function addHeading(context: SettingsContext, name: string): void {
   new Setting(context.containerEl).setName(name).setHeading();
 }
-
-export const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;

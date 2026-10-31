@@ -14,3 +14,8 @@ with a baked, unlit texture.
 
 The baked models (mug, pillow) carry their lighting in their textures, so the scene draws them as
 they are, without tone mapping. The steam above the mug is a shader that uses no external art.
+
+Provenance: all three models were authored by hand in Blender for Solanum and exported to GLB.
+No generating script and no .blend source are kept in this repository, so unlike the models under
+stage/, harvest/ and crops/garden/ they cannot be rebuilt byte for byte; the committed GLBs are
+the source of truth. Edit them by importing the GLB into Blender and exporting again.

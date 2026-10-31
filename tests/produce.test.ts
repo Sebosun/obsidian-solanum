@@ -4,11 +4,7 @@ import { Box3, Vector3 } from "three";
 import { CropAssets } from "@/lib/crops/CropAssets";
 import { CROPS, produceModel, type CropId } from "@/lib/crops/catalog";
 import { prepareProduce } from "@/lib/crops/geometry";
-
-const reader = async (filename: string) => {
-  const bytes = readFileSync(`assets/${filename}`);
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-};
+import { assetReader } from "./helpers/glb";
 
 describe("produce rather than the plant", () => {
   it("is something only crops whose plant is not the harvest have", () => {
@@ -24,7 +20,7 @@ describe("produce rather than the plant", () => {
   });
 
   it("loads the produce model once and shares it, and refuses crops without one", async () => {
-    const assets = new CropAssets(reader);
+    const assets = new CropAssets(assetReader);
     const first = assets.loadProduce("coconut");
     expect(assets.loadProduce("coconut")).toBe(first);
     expect((await first).scene.children.length).toBeGreaterThan(0);
@@ -32,7 +28,7 @@ describe("produce rather than the plant", () => {
   });
 
   it("is sized and grounded on its own, since it has no growth stages to compare with", async () => {
-    const assets = new CropAssets(reader);
+    const assets = new CropAssets(assetReader);
     const { scene } = await assets.loadProduce("coconut");
     const { object, factor } = prepareProduce(scene);
     const box = new Box3().setFromObject(object);

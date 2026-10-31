@@ -5,8 +5,7 @@ import type { CropId } from "@/lib/crops/catalog";
 import { GrowthTransition } from "@/lib/scene/GrowthTransition";
 import { GrowthLayer } from "@/components/models/GrowthLayer";
 import { GrowthSeed } from "@/components/models/GrowthSeed";
-import { getCropAssets } from "@/state/cropAssets";
-import { useServices } from "@/state/hooks";
+import { useCropAssets } from "@/hooks/useCropAssets";
 import { GROWTH_MOTION } from "@/lib/scene/constants";
 
 interface GrowingCropProps {
@@ -17,7 +16,7 @@ interface GrowingCropProps {
 }
 
 export function GrowingCrop({ crop, stage, moving, reduced }: GrowingCropProps) {
-  const assets = getCropAssets(useServices());
+  const assets = useCropAssets();
   const transition = useRef(new GrowthTransition(stage)).current;
   const clock = useThree((state) => state.clock);
   const invalidate = useThree((state) => state.invalidate);

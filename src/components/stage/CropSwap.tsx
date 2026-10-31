@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
 import type { CropId } from "@/lib/crops/catalog";
-import { swapFrame } from "@/lib/scene/motion";
+import { MIN_SCALE, frameStep, swapFrame } from "@/lib/scene/motion";
 
 interface CropSwapProps {
   crop: CropId;
@@ -16,11 +16,6 @@ interface SwapItem {
   entering: boolean;
   leaving: boolean;
 }
-
-/** Longest simulated step, so a stalled frame cannot skip the animation. */
-const MAX_STEP_SECONDS = 0.05;
-/** A scale of exactly zero would make the group's matrix singular. */
-const MIN_SCALE = 0.0001;
 
 /** Keeps the previous crop on screen just long enough to shrink away as the new one pops in. */
 export function CropSwap({ crop, reduced, children }: CropSwapProps) {
@@ -52,7 +47,7 @@ export function CropSwap({ crop, reduced, children }: CropSwapProps) {
   }, [crop, reduced, invalidate]);
 
   useFrame((_state, delta) => {
-    const step = Math.min(delta, MAX_STEP_SECONDS);
+    const step = frameStep(delta);
     let animating = false;
     let changed = false;
     const survivors: SwapItem[] = [];

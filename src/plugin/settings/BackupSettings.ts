@@ -6,11 +6,16 @@ import {
   summarizeForestImport,
 } from "@/lib/import/forest";
 import { summarizeImport } from "@/lib/storage/exchange";
+import { plural } from "@/lib/text";
 import { askForestMapping } from "@/plugin/ForestImportModal";
 import { confirmDocumentOrganization } from "@/plugin/confirmDocumentOrganization";
 import { pickTextFile } from "@/plugin/pickTextFile";
 import { pickVaultFile } from "@/plugin/pickVaultFile";
 import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsContext";
+
+/** How long the result of an import stays on screen, and the hint about a missing file dialog. */
+const IMPORT_SUMMARY_NOTICE_MS = 10_000;
+const NO_DIALOG_NOTICE_MS = 8_000;
 
 /** Moving the whole session history in and out as a file. */
 export function displayBackupSettings(context: SettingsContext): void {
@@ -18,19 +23,26 @@ export function displayBackupSettings(context: SettingsContext): void {
   let createDocuments = true;
   addHeading(context, "Backup");
 
+  /** Backup actions report their failures as notices instead of throwing into Obsidian. */
+  const reporting = (action: () => Promise<void>) => async () => {
+    try {
+      await action();
+    } catch (error) {
+      context.reportError(error);
+    }
+  };
+
   new Setting(containerEl)
     .setName("Export sessions")
     .setDesc("Save your whole session history to one file in the vault.")
     .addButton((control) => {
-      control.setButtonText("Export").onClick(async function exportSessions() {
-        try {
-          const { path, count } = await services.exportSessions();
-          new Notice(`Exported ${count} revisions to ${path}`);
-        } catch (error) {
-          context.reportError(error);
-        }
-      });
+      control.setButtonText("Export").onClick(reporting(exportSessions));
     });
+  async function exportSessions(): Promise<void> {
+    const { path, sessions } = await services.exportSessions();
+    new Notice(`Exported ${plural(sessions, "session")} to ${path}`);
+  }
+
   const NO_DIALOG_HINT =
     "No file dialog appeared? Put the file in your vault and use “From vault…” instead.";
 
@@ -52,7 +64,7 @@ export function displayBackupSettings(context: SettingsContext): void {
     const result = await whileImporting((onDocumentProgress) =>
       services.importSessions(text, { createDocuments, onDocumentProgress }),
     );
-    new Notice(summarizeImport(result), 10_000);
+    new Notice(summarizeImport(result), IMPORT_SUMMARY_NOTICE_MS);
   }
 
   async function importForestFrom(text: string | null): Promise<void> {
@@ -73,18 +85,24 @@ export function displayBackupSettings(context: SettingsContext): void {
     const result = await whileImporting((onDocumentProgress) =>
       services.importForest(text, mapping, { onDocumentProgress }),
     );
-    new Notice(summarizeForestImport(result), 10_000);
+    new Notice(summarizeForestImport(result), IMPORT_SUMMARY_NOTICE_MS);
   }
 
   async function confirmCalendarDocuments(enabled: boolean): Promise<boolean> {
-    if (!enabled || host.settings.dayNotesLayout !== "flat") return true;
+    if (!enabled || services.dayNoteMigrationState() === "settled") return true;
     return confirmDocumentOrganization(app, await services.planDayNoteMigration());
   }
 
   const fromSystem = (accept: string) =>
-    pickTextFile({ accept, onNoDialog: () => new Notice(NO_DIALOG_HINT, 8000) });
+    pickTextFile({ accept, onNoDialog: () => new Notice(NO_DIALOG_HINT, NO_DIALOG_NOTICE_MS) });
   const fromVault = async (extensions: string[]) =>
     (await pickVaultFile(app, extensions))?.text ?? null;
+
+  const importSessionsFromFile = async () =>
+    importSessionsFrom(await fromSystem(".json,application/json"));
+  const importSessionsFromVault = async () => importSessionsFrom(await fromVault(["json"]));
+  const importForestFromFile = async () => importForestFrom(await fromSystem(".csv,text/csv"));
+  const importForestFromVault = async () => importForestFrom(await fromVault(["csv"]));
 
   new Setting(containerEl)
     .setName("Create/update documents when importing")
@@ -101,22 +119,10 @@ export function displayBackupSettings(context: SettingsContext): void {
     .setName("Import sessions")
     .setDesc("Merge sessions from an export file. Existing sessions are never overwritten.")
     .addButton((control) => {
-      control.setButtonText("Import…").onClick(async function importSessions() {
-        try {
-          await importSessionsFrom(await fromSystem(".json,application/json"));
-        } catch (error) {
-          context.reportError(error);
-        }
-      });
+      control.setButtonText("Import…").onClick(reporting(importSessionsFromFile));
     })
     .addButton((control) => {
-      control.setButtonText("From vault…").onClick(async function importSessionsFromVault() {
-        try {
-          await importSessionsFrom(await fromVault(["json"]));
-        } catch (error) {
-          context.reportError(error);
-        }
-      });
+      control.setButtonText("From vault…").onClick(reporting(importSessionsFromVault));
     });
 
   new Setting(containerEl)
@@ -125,21 +131,9 @@ export function displayBackupSettings(context: SettingsContext): void {
       "Add the finished trees from a Forest CSV export. You choose which tag and which plant each one becomes.",
     )
     .addButton((control) => {
-      control.setButtonText("Choose CSV…").onClick(async function importForest() {
-        try {
-          await importForestFrom(await fromSystem(".csv,text/csv"));
-        } catch (error) {
-          context.reportError(error);
-        }
-      });
+      control.setButtonText("Choose CSV…").onClick(reporting(importForestFromFile));
     })
     .addButton((control) => {
-      control.setButtonText("CSV from vault…").onClick(async function importForestFromVault() {
-        try {
-          await importForestFrom(await fromVault(["csv"]));
-        } catch (error) {
-          context.reportError(error);
-        }
-      });
+      control.setButtonText("CSV from vault…").onClick(reporting(importForestFromVault));
     });
 }

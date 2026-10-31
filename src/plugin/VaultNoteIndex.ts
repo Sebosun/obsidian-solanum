@@ -44,13 +44,14 @@ export class VaultNoteIndex {
 function tagsIn(cache: CachedMetadata | null | undefined): Set<string> {
   const tags = new Set<string>();
   for (const tag of cache?.tags ?? []) tags.add(tag.tag.replace(/^#/, ""));
-  const frontmatter: unknown = cache?.frontmatter?.tags;
-  const listed = Array.isArray(frontmatter)
-    ? frontmatter
-    : typeof frontmatter === "string"
-      ? frontmatter.split(/[,\s]+/)
-      : [];
-  for (const tag of listed)
+  for (const tag of frontmatterTags(cache?.frontmatter?.tags))
     if (typeof tag === "string" && tag.trim()) tags.add(tag.trim().replace(/^#/, ""));
   return tags;
+}
+
+/** Frontmatter holds tags as a list or as one string separated by commas or spaces. */
+function frontmatterTags(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") return value.split(/[,\s]+/);
+  return [];
 }

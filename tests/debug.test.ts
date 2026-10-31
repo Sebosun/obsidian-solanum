@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CROPS } from "@/lib/crops/catalog";
-import { readDebugConfig } from "@/lib/debug/config";
+import { readBuildDebugConfig, readDebugConfig } from "@/lib/debug/config";
 import { seedMonth } from "@/lib/debug/seeder";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { TimerService } from "@/lib/timer/TimerService";
@@ -86,6 +86,48 @@ describe("debug controls and seeded history", () => {
       readDebugConfig({ SOLANUM_DEBUG: "true", SOLANUM_AUTO_FINISH_SECONDS: "NaN" }, false)
         .autoFinishSeconds,
     ).toBe(0);
+  });
+
+  describe("the build's debug switches", () => {
+    afterEach(() => vi.unstubAllGlobals());
+    const define = (debug: string, seconds: string, production: boolean) => {
+      vi.stubGlobal("__SOLANUM_DEBUG__", debug);
+      vi.stubGlobal("__SOLANUM_AUTO_FINISH_SECONDS__", seconds);
+      vi.stubGlobal("__SOLANUM_PRODUCTION__", production);
+    };
+
+    it("turns debug on in a development build that asks for it", () => {
+      define("true", "3", false);
+      expect(readBuildDebugConfig()).toEqual({ enabled: true, autoFinishSeconds: 3 });
+    });
+
+    it("keeps debug off in a production build, whatever the environment asked for", () => {
+      define("true", "3", true);
+      expect(readBuildDebugConfig()).toEqual({ enabled: false, autoFinishSeconds: 0 });
+    });
+
+    it("keeps debug off when the build says nothing, as under test", () => {
+      expect(readBuildDebugConfig()).toEqual({ enabled: false, autoFinishSeconds: 0 });
+    });
+
+    it("ignores an auto-finish time outside one second to one hour", () => {
+      for (const seconds of ["0", "3601", "-4", "soon"]) {
+        define("true", seconds, false);
+        expect(readBuildDebugConfig()).toEqual({ enabled: true, autoFinishSeconds: 0 });
+      }
+      define("true", "3600", false);
+      expect(readBuildDebugConfig().autoFinishSeconds).toBe(3600);
+    });
+  });
+
+  it("only reads and watches the debug folder when debug tools are enabled", () => {
+    const disk = { exists: async () => false } as unknown as FileAdapter;
+    const folder = "Notes/sessions";
+    expect(new VaultSessionStore(disk, { folder }).watchedFolders()).toEqual([folder]);
+    expect(new VaultSessionStore(disk, { folder, debug: true }).watchedFolders()).toEqual([
+      folder,
+      "Solanum/debug-sessions",
+    ]);
   });
 
   it("auto-finishes only opted-in simulated sessions and preserves their selected crop", async () => {

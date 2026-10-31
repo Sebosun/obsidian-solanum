@@ -19,6 +19,12 @@ function vault(label: string) {
   return { disk, store, timer, exchange, advance: (ms: number) => (now += ms) };
 }
 
+/** Imports a file's text the way the plugin does: parse it, then add what parses. */
+async function importText(exchange: SessionExchange, text: string) {
+  const parsed = parseExport(text);
+  return exchange.importRevisions(parsed.revisions, parsed.invalid);
+}
+
 async function plant(v: ReturnType<typeof vault>, tags: string[]) {
   const id = await v.timer.start({
     durationMs: 25 * 60_000,
@@ -40,7 +46,11 @@ describe("exporting sessions", () => {
     const v = vault("a");
     await plant(v, ["study"]);
     const result = await v.exchange.export();
-    expect(result).toEqual({ path: "Solanum/exports/solanum-sessions-2026-10-31.json", count: 3 });
+    expect(result).toEqual({
+      path: "Solanum/exports/solanum-sessions-2026-10-31.json",
+      count: 3,
+      sessions: 1,
+    });
     const bundle = parseExport(v.disk.files.get(result.path)!);
     expect(bundle.revisions).toHaveLength(3);
     expect(bundle.invalid).toBe(0);
@@ -91,7 +101,7 @@ describe("importing sessions", () => {
     const total = (await source.store.readAll()).length;
     const { path } = await source.exchange.export();
     const target = vault("b");
-    const result = await target.exchange.import(source.disk.files.get(path)!);
+    const result = await importText(target.exchange, source.disk.files.get(path)!);
     expect(total).toBe(7);
     expect(result).toMatchObject({ added: total, duplicates: 0, conflicts: [], invalid: 0 });
     expect(target.timer.getState().sessions).toEqual(source.timer.getState().sessions);
@@ -106,8 +116,8 @@ describe("importing sessions", () => {
     const { path } = await source.exchange.export();
     const text = source.disk.files.get(path)!;
     const target = vault("b");
-    await target.exchange.import(text);
-    const again = await target.exchange.import(text);
+    await importText(target.exchange, text);
+    const again = await importText(target.exchange, text);
     expect(again).toMatchObject({ added: 0, duplicates: 3, conflicts: [] });
   });
 
@@ -116,13 +126,13 @@ describe("importing sessions", () => {
     const id = await plant(left, ["study"]);
     const { path } = await left.exchange.export();
     const right = vault("r");
-    await right.exchange.import(left.disk.files.get(path)!);
+    await importText(right.exchange, left.disk.files.get(path)!);
     left.advance(60_000);
     await left.timer.pause(id);
     right.advance(20 * 60_000);
     await right.timer.cancel(id);
     const leftExport = await left.exchange.export();
-    const result = await right.exchange.import(left.disk.files.get(leftExport.path)!);
+    const result = await importText(right.exchange, left.disk.files.get(leftExport.path)!);
     expect(result.added).toBe(1);
     expect(right.timer.getState().conflicts).toHaveLength(1);
     expect(right.timer.getState().conflicts[0].versions).toHaveLength(2);
@@ -133,11 +143,11 @@ describe("importing sessions", () => {
     await plant(source, []);
     const target = vault("b");
     const { path } = await source.exchange.export();
-    await target.exchange.import(source.disk.files.get(path)!);
+    await importText(target.exchange, source.disk.files.get(path)!);
     const bundle = JSON.parse(source.disk.files.get(path)!);
     bundle.sessions[0] = { ...bundle.sessions[0], tags: ["tampered"] };
     const [original] = [...target.disk.files.entries()];
-    const result = await target.exchange.import(JSON.stringify(bundle));
+    const result = await importText(target.exchange, JSON.stringify(bundle));
     expect(result.conflicts).toEqual([bundle.sessions[0].id]);
     expect(target.disk.files.get(original[0])).toBe(original[1]);
   });
@@ -145,16 +155,16 @@ describe("importing sessions", () => {
   it("accepts a bare list or a single revision, and counts unusable entries", async () => {
     const [valid] = seedMonth(new Date(2026, 9, 1), NOW).map((r) => ({ ...r, source: undefined }));
     const target = vault("t");
-    const list = await target.exchange.import(JSON.stringify([valid, { nonsense: true }]));
+    const list = await importText(target.exchange, JSON.stringify([valid, { nonsense: true }]));
     expect(list).toMatchObject({ added: 1, invalid: 1 });
     const other = { ...valid, id: "other", sessionId: "other" };
-    expect(await target.exchange.import(JSON.stringify(other))).toMatchObject({ added: 1 });
+    expect(await importText(target.exchange, JSON.stringify(other))).toMatchObject({ added: 1 });
   });
 
   it("skips simulated revisions found in a file, since production history stays real", async () => {
     const [seed] = seedMonth(new Date(2026, 9, 1), NOW);
     const target = vault("t");
-    const result = await target.exchange.import(JSON.stringify([seed]));
+    const result = await importText(target.exchange, JSON.stringify([seed]));
     expect(result).toMatchObject({ added: 0, synthetic: 1 });
   });
 
@@ -165,7 +175,7 @@ describe("importing sessions", () => {
     ["42", /valid Solanum/i],
   ])("rejects %j without touching the vault", async (text, message) => {
     const target = vault("t");
-    await expect(target.exchange.import(text)).rejects.toThrow(message);
+    await expect(importText(target.exchange, text)).rejects.toThrow(message);
     expect(target.disk.files.size).toBe(0);
   });
 });

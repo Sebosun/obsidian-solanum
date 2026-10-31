@@ -12,8 +12,8 @@ import { seasonOf } from "@/lib/scene/seasons";
 import { focusSession } from "./helpers/sessions";
 import { updatePresets, updateSeason } from "@/state/appStore";
 
-vi.mock("@/components/scenes/CropScene", () => ({
-  CropScene: ({
+vi.mock("@/components/scenes/TimerScene", () => ({
+  TimerScene: ({
     progress,
     remaining,
     season,
@@ -21,6 +21,7 @@ vi.mock("@/components/scenes/CropScene", () => ({
     clockRate,
     crop,
     preview,
+    resting,
   }: {
     progress: number;
     remaining: number;
@@ -29,34 +30,13 @@ vi.mock("@/components/scenes/CropScene", () => ({
     clockRate: number;
     crop: string;
     preview?: boolean;
+    resting: boolean;
   }) => (
     <figure
-      data-scene="crop"
+      data-scene={resting ? "break" : "crop"}
       data-crop={crop}
       data-preview={String(!!preview)}
       data-progress={Math.round(progress * 100)}
-      data-season={season}
-      data-clock={clockProgress.toFixed(3)}
-      data-rate={clockRate.toFixed(5)}
-    >
-      <span role="timer">{formatTime(remaining)}</span>
-    </figure>
-  ),
-}));
-vi.mock("@/components/scenes/BreakScene", () => ({
-  BreakScene: ({
-    remaining,
-    season,
-    clockProgress,
-    clockRate,
-  }: {
-    remaining: number;
-    season: string;
-    clockProgress: number;
-    clockRate: number;
-  }) => (
-    <figure
-      data-scene="break"
       data-season={season}
       data-clock={clockProgress.toFixed(3)}
       data-rate={clockRate.toFixed(5)}
@@ -136,6 +116,7 @@ function fixture(debug = false) {
     activeNote: () => "Project.md",
     openNote: vi.fn(),
     assetUrl: (name) => name,
+    readAsset: async () => new ArrayBuffer(0),
     navigate: vi.fn(),
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
@@ -230,9 +211,11 @@ describe("sidebar workflows backed by the real timer service", () => {
     });
     await f.host.timer.refresh();
     render(<App host={f.host} screen="timer" />);
-    expect(screen.getByLabelText("Active crop")).toBeTruthy();
+    expect(screen.getByLabelText(/Multiple active crops/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Show timer controls" })).toBeNull();
-    fireEvent.change(screen.getByLabelText("Active crop"), { target: { value: "offline-root" } });
+    fireEvent.change(screen.getByLabelText(/Multiple active crops/), {
+      target: { value: "offline-root" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "End focus" }));
     await waitFor(() =>
       expect(

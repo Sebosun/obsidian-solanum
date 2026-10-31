@@ -1,12 +1,12 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { loadAsset } from "./helpers/glb";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { Box3, Mesh, MeshBasicMaterial, type Object3D } from "three";
 import { YearStackMesh } from "@/components/models/YearStackMesh";
 import { layoutYearStacks, type YearMonth, type YearStack } from "@/lib/harvest/year";
 import { YEAR_STACKS } from "@/lib/scene/constants";
-import { stackHeight, stackPosition } from "@/lib/scene/yearLayout";
+import { stackPosition } from "@/lib/scene/yearLayout";
 
 const crateModel = vi.hoisted(() => ({ current: null as GLTF | null }));
 vi.mock("@/hooks/useModel", () => ({
@@ -17,11 +17,7 @@ vi.mock("@/hooks/useModel", () => ({
   },
 }));
 beforeAll(async () => {
-  const bytes = readFileSync("assets/harvest/Crate.glb");
-  crateModel.current = await new GLTFLoader().parseAsync(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-    "",
-  );
+  crateModel.current = await loadAsset("harvest/Crate.glb");
 });
 
 vi.mock("@react-three/drei", () => ({ Html: () => null }));
@@ -91,7 +87,6 @@ describe("a month's stack in the scene", () => {
       mount({ stack: stack(1), label: "Feb" }).element,
     );
     expect(crates(tall).length).toBeGreaterThan(crates(short).length);
-    expect(stackHeight(stack(2))).toBeGreaterThan(stackHeight(stack(1)));
     await tall.unmount();
     await short.unmount();
   });

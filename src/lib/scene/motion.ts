@@ -1,5 +1,16 @@
 import { CROP_SWAP, PLOT_ENTRANCE } from "@/lib/scene/constants";
 
+/** Longest simulated step per frame, so a stalled or backgrounded frame cannot make anything jump. */
+export const MAX_STEP_SECONDS = 0.1;
+
+/** A scale of exactly zero would make an object's matrix singular, so animations start here. */
+export const MIN_SCALE = 0.0001;
+
+/** The time to simulate for a frame that took `delta` seconds, never negative or past the limit. */
+export function frameStep(delta: number): number {
+  return Math.min(Math.max(delta, 0), MAX_STEP_SECONDS);
+}
+
 /** Eases 0→1 with a small overshoot past 1 before settling. `overshoot` ≈ 1.7 gives ~10%. */
 export function easeOutBack(t: number, overshoot: number): number {
   const shifted = Math.min(1, Math.max(0, t)) - 1;

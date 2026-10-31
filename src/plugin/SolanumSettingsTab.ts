@@ -1,5 +1,6 @@
 import { Notice, PluginSettingTab, type App, type Plugin } from "obsidian";
 import type { Settings } from "@/lib/settings";
+import { errorMessage } from "@/lib/text";
 import type { SettingsServices, SolanumHost } from "@/types/host";
 import type { SettingsContext } from "@/plugin/settings/SettingsContext";
 import { displayAppearanceSettings } from "@/plugin/settings/AppearanceSettings";
@@ -54,7 +55,6 @@ export class SolanumSettingsTab extends PluginSettingTab {
   }
 
   private reportError(error: unknown): void {
-    const message = error instanceof Error ? error.message : String(error);
-    new Notice(message);
+    new Notice(errorMessage(error));
   }
 }

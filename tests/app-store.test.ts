@@ -4,10 +4,10 @@ import { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
 import type { SolanumHost } from "@/types/host";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { numberedIds, wallClock } from "./helpers/timerEnvironment";
 
 function fixture() {
   const files = new Map<string, Revision>();
-  let sequence = 0;
   const timer = new TimerService(
     {
       readAll: async () => [...files.values()],
@@ -15,7 +15,7 @@ function fixture() {
         files.set(revision.id, revision);
       },
     },
-    { now: Date.now, id: () => `store-${++sequence}` },
+    wallClock(numberedIds("store")),
   );
   const host: SolanumHost = {
     timer,
@@ -27,6 +27,7 @@ function fixture() {
     openNote: vi.fn(),
     navigate: vi.fn(),
     assetUrl: (file) => file,
+    readAsset: async () => new ArrayBuffer(0),
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
     openSettings: vi.fn(),

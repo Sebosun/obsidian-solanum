@@ -1,17 +1,16 @@
-import { Suspense, useId, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Canvas } from "@react-three/fiber";
-import { Bounds } from "@react-three/drei";
+import { useId, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { adjacentBed } from "@/lib/harvest/navigation";
 import type { YearMonth, YearStacks } from "@/lib/harvest/year";
-import { HARVEST_SCENE, YEAR_STACKS } from "@/lib/scene/constants";
+import { MONTHS_PER_YEAR, YEAR_STACKS } from "@/lib/scene/constants";
+import { YEAR_ROWS } from "@/lib/scene/yearLayout";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { getCropAssets } from "@/state/cropAssets";
-import { useServices } from "@/state/hooks";
 import { SrLabel } from "@/components/app/SrLabel";
+import { HarvestCanvas } from "@/components/stage/HarvestCanvas";
 import { SceneBoundary } from "@/components/stage/SceneBoundary";
-import { HarvestLoading } from "@/components/harvest/HarvestLoading";
+import { useHarvestRetry } from "@/components/stage/useHarvestRetry";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 import { HarvestYearFallback } from "@/components/harvest/HarvestYearFallback";
+import { Plinth } from "@/components/models/Plinth";
 import { YearStackMesh } from "@/components/models/YearStackMesh";
 
 interface HarvestYearSceneProps {
@@ -22,27 +21,24 @@ interface HarvestYearSceneProps {
 }
 
 const LIGHT = { ambient: "#fff4de", ambientIntensity: 2, sun: "#fff0d2", sunIntensity: 2.8 };
-const PLINTH = "#4a3f33";
+/** Where the year's sun shines from, in world units. */
+const SUN_POSITION: [number, number, number] = [3, 9, 6];
+/** How far the plinth reaches past the outermost stacks, in world units. */
 const PLINTH_MARGIN = 0.9;
-const PLINTH_HEIGHT = 0.2;
-const MONTHS = 12;
+/** Room above the tallest stack for its crops and label, in world units. */
+const HEADROOM = 0.9;
 /** Tallest stack plus the crops and label above it, so the camera always fits the full height. */
-const SPACER_HEIGHT = YEAR_STACKS.maxCrates * YEAR_STACKS.crateStep + 0.9;
+const SPACER_HEIGHT = YEAR_STACKS.maxCrates * YEAR_STACKS.crateStep + HEADROOM;
 
 export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestYearSceneProps) {
-  const services = useServices();
   const reduced = useReducedMotion();
   const groupId = useId();
   const canvasId = useId();
-  const [attempt, setAttempt] = useState(0);
+  const { attempt, retry } = useHarvestRetry();
   const [active, setActive] = useState<number | null>(null);
   const width = YEAR_STACKS.columns * YEAR_STACKS.pitchX + PLINTH_MARGIN;
-  const depth = (MONTHS / YEAR_STACKS.columns) * YEAR_STACKS.pitchZ + PLINTH_MARGIN;
+  const depth = YEAR_ROWS * YEAR_STACKS.pitchZ + PLINTH_MARGIN;
 
-  function retry() {
-    getCropAssets(services).retry();
-    setAttempt(attempt + 1);
-  }
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
       setActive(null);
@@ -53,7 +49,7 @@ export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestY
       onOpenMonth(active);
       return;
     }
-    const target = adjacentBed(active, event.key, YEAR_STACKS.columns, MONTHS);
+    const target = adjacentBed(active, event.key, YEAR_STACKS.columns, MONTHS_PER_YEAR);
     if (target === null) return;
     event.preventDefault();
     setActive(target);
@@ -65,6 +61,12 @@ export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestY
     </div>
   );
   const style: CSSProperties = { aspectRatio: YEAR_STACKS.sceneAspect };
+  const lights = (
+    <>
+      <ambientLight color={LIGHT.ambient} intensity={LIGHT.ambientIntensity} />
+      <directionalLight position={SUN_POSITION} color={LIGHT.sun} intensity={LIGHT.sunIntensity} />
+    </>
+  );
 
   return (
     <SceneBoundary key={attempt} fallback={fallback}>
@@ -78,51 +80,30 @@ export function HarvestYearScene({ year, months, layout, onOpenMonth }: HarvestY
       >
         <SrLabel id={groupId}>Harvest by month</SrLabel>
         <SrLabel id={canvasId}>A stack of crates for each month of the year</SrLabel>
-        <Suspense fallback={<HarvestLoading onRetry={retry} />}>
-          <Canvas
-            orthographic
-            camera={{ position: HARVEST_SCENE.cameraPosition, zoom: HARVEST_SCENE.initialZoom }}
-            dpr={[1, 1.5]}
-            frameloop="demand"
-            fallback={fallback}
-            role="img"
-            aria-labelledby={canvasId}
-          >
-            <ambientLight color={LIGHT.ambient} intensity={LIGHT.ambientIntensity} />
-            <directionalLight
-              position={[3, 9, 6]}
-              color={LIGHT.sun}
-              intensity={LIGHT.sunIntensity}
-            />
-            <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>
-              <group>
-                {/* Invisible and never animated, so the camera fits the full height while stacks rise. */}
-                <mesh visible={false} position={[0, SPACER_HEIGHT / 2, 0]}>
-                  <boxGeometry args={[width, SPACER_HEIGHT, depth]} />
-                </mesh>
-                <mesh name="year-plinth" position={[0, -PLINTH_HEIGHT / 2, 0]}>
-                  <boxGeometry args={[width, PLINTH_HEIGHT, depth]} />
-                  <meshStandardMaterial color={PLINTH} roughness={1} />
-                </mesh>
-                {layout.stacks.map((stack) => {
-                  const month = months[stack.index];
-                  return (
-                    <YearStackMesh
-                      key={stack.index}
-                      stack={stack}
-                      label={month.date.toLocaleDateString(undefined, { month: "short" })}
-                      hours={month.minutes > 0 ? Math.round(month.minutes / 60) : null}
-                      active={active === stack.index}
-                      reduced={reduced}
-                      onActivate={setActive}
-                      onOpen={onOpenMonth}
-                    />
-                  );
-                })}
-              </group>
-            </Bounds>
-          </Canvas>
-        </Suspense>
+        <HarvestCanvas
+          labelId={canvasId}
+          fallback={fallback}
+          onRetry={retry}
+          extent={{ width, depth, height: SPACER_HEIGHT }}
+          lights={lights}
+        >
+          <Plinth name="year-plinth" width={width} depth={depth} />
+          {layout.stacks.map((stack) => {
+            const month = months[stack.index];
+            return (
+              <YearStackMesh
+                key={stack.index}
+                stack={stack}
+                label={month.date.toLocaleDateString(undefined, { month: "short" })}
+                hours={month.minutes > 0 ? Math.round(month.minutes / 60) : null}
+                active={active === stack.index}
+                reduced={reduced}
+                onActivate={setActive}
+                onOpen={onOpenMonth}
+              />
+            );
+          })}
+        </HarvestCanvas>
       </div>
     </SceneBoundary>
   );

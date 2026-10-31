@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { MathUtils } from "three";
+import { MS_PER_SECOND } from "@/lib/time";
 import { SUN_CLOCK } from "@/lib/scene/constants";
+import { frameStep } from "@/lib/scene/motion";
 import { sunState, type SunState } from "@/lib/scene/sunClock";
 
-/** Longest simulated step, so a stalled frame cannot throw the sun across the sky. */
-const MAX_STEP_SECONDS = 0.1;
 /** Close enough to the target to stop drawing frames. */
 const SETTLED = 1e-4;
 
@@ -47,7 +47,7 @@ export function useSunClock(
     let last = performance.now();
     let frame = 0;
     const tick = (now: number) => {
-      const step = Math.min(Math.max((now - last) / 1000, 0), MAX_STEP_SECONDS);
+      const step = frameStep((now - last) / MS_PER_SECOND);
       last = now;
       seconds += step;
       const predicted = Math.min(1, target + rate * seconds);

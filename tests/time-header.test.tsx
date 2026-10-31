@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { TimeHeader } from "@/components/clock/TimeHeader";
+import { CLOCK_FONT_STYLE_ID } from "@/components/clock/useClockFont";
 
 afterEach(cleanup);
 
@@ -45,11 +46,28 @@ describe("the time at the top of the view", () => {
   });
 
   it("carries the clock's own typeface as a bundled file, with nothing fetched", () => {
-    const view = render(<TimeHeader remaining={60_000} reduced={false} />);
-    const css = view.container.querySelector("style")?.textContent ?? "";
+    render(<TimeHeader remaining={60_000} reduced={false} />);
+    const css = document.getElementById(CLOCK_FONT_STYLE_ID)?.textContent ?? "";
     expect(css).toContain("@font-face");
     expect(css).toContain('"Solanum Clock"');
     expect(css).toContain("bricolage-grotesque-digits.woff2");
     expect(css).not.toMatch(/https?:/);
+  });
+
+  it("adds the typeface to the page once however many clocks there are, and removes it with the last", () => {
+    const first = render(<TimeHeader remaining={60_000} reduced={false} />);
+    const second = render(<TimeHeader remaining={30_000} reduced={false} />);
+    first.rerender(<TimeHeader remaining={59_000} reduced={false} />);
+    expect(document.querySelectorAll(`#${CLOCK_FONT_STYLE_ID}`)).toHaveLength(1);
+    expect(document.querySelectorAll("style")).toHaveLength(1);
+    first.unmount();
+    expect(document.querySelectorAll(`#${CLOCK_FONT_STYLE_ID}`)).toHaveLength(1);
+    second.unmount();
+    expect(document.querySelectorAll(`#${CLOCK_FONT_STYLE_ID}`)).toHaveLength(0);
+  });
+
+  it("does not put a style element in the header itself", () => {
+    const view = render(<TimeHeader remaining={60_000} reduced={false} />);
+    expect(view.container.querySelector("style")).toBeNull();
   });
 });

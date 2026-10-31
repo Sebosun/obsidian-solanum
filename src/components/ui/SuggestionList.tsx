@@ -1,11 +1,7 @@
 import { useEffect, useRef, type MouseEvent } from "react";
+import type { Suggestion } from "@/lib/timer/suggestions";
 
-export interface Suggestion {
-  value: string;
-  label: string;
-  /** Muted secondary text, such as a note's folder. */
-  detail?: string;
-}
+export type { Suggestion };
 
 interface SuggestionListProps {
   id: string;

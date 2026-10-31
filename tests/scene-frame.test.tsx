@@ -4,40 +4,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { SceneFrame, type SceneFrameState } from "@/components/stage/SceneFrame";
 import { sunState } from "@/lib/scene/sunClock";
+import { canvasStub, resetCanvasStub } from "./helpers/fiberStub";
 
 const motion = vi.hoisted(() => ({ reduced: false }));
 vi.mock("@/hooks/useReducedMotion", () => ({ useReducedMotion: () => motion.reduced }));
 
-/** Stands in for the WebGL canvas: records how it was set up and whether it was asked to fail. */
-const canvas = vi.hoisted(() => ({
-  props: null as Record<string, unknown> | null,
-  children: null as ReactNode,
-  fail: false,
-}));
-vi.mock("@react-three/fiber", () => ({
-  Canvas: ({
-    children,
-    ...props
-  }: {
-    children: ReactNode;
-    role?: string;
-    "aria-labelledby"?: string;
-    frameloop?: string;
-  }) => {
-    if (canvas.fail) throw new Error("No WebGL");
-    canvas.props = props;
-    canvas.children = children;
-    return (
-      <div data-testid="canvas" role={props.role} aria-labelledby={props["aria-labelledby"]} />
-    );
-  },
-}));
+vi.mock("@react-three/fiber", async () => (await import("./helpers/fiberStub")).fiberStub());
 
 beforeEach(() => {
   motion.reduced = false;
-  canvas.props = null;
-  canvas.children = null;
-  canvas.fail = false;
+  resetCanvasStub();
 });
 afterEach(cleanup);
 
@@ -143,16 +119,16 @@ describe("the frame every timer scene shares", () => {
 
   it("renders its canvas continuously while animating, and only on demand under reduced motion", () => {
     render(frame());
-    expect(canvas.props?.frameloop).toBe("always");
+    expect(canvasStub.props?.frameloop).toBe("always");
     cleanup();
     motion.reduced = true;
     render(frame());
-    expect(canvas.props?.frameloop).toBe("demand");
+    expect(canvasStub.props?.frameloop).toBe("demand");
   });
 
   it("sets up the camera for the scene: its own bounds and centre when it has them", () => {
     render(frame({ camera: { center: 0.46 } }));
-    const elements = Children.toArray(canvas.children).filter(isValidElement);
+    const elements = Children.toArray(canvasStub.children).filter(isValidElement);
     const camera = elements.find(
       (element) => (element.props as { center?: number }).center === 0.46,
     );
@@ -160,7 +136,7 @@ describe("the frame every timer scene shares", () => {
   });
 
   it("falls back to what it was given when the canvas cannot be made", () => {
-    canvas.fail = true;
+    canvasStub.mode = "failing";
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     render(frame());
     error.mockRestore();

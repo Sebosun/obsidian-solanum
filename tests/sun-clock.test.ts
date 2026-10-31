@@ -2,45 +2,42 @@ import { describe, expect, it } from "vitest";
 import { sunState } from "@/lib/scene/sunClock";
 import { SUN_CLOCK } from "@/lib/scene/constants";
 
-const channel = (hex: number) => ({ r: (hex >> 16) & 255, g: (hex >> 8) & 255, b: hex & 255 });
+const channel = (css: string) => {
+  const hex = Number.parseInt(css.slice(1), 16);
+  return { r: (hex >> 16) & 255, g: (hex >> 8) & 255, b: hex & 255 };
+};
 const samples = Array.from({ length: 21 }, (_, i) => i / 20);
 
-describe("where the sun is as the session runs", () => {
-  it("rises on the left horizon, peaks halfway and sets on the right", () => {
-    const start = sunState(0);
-    const middle = sunState(0.5);
-    const end = sunState(1);
-    expect(start.x).toBeCloseTo(-SUN_CLOCK.arcRadiusX, 6);
-    expect(start.y).toBeCloseTo(0, 6);
-    expect(middle.x).toBeCloseTo(0, 6);
-    expect(middle.y).toBeCloseTo(SUN_CLOCK.arcRadiusY, 6);
-    expect(end.x).toBeCloseTo(SUN_CLOCK.arcRadiusX, 6);
-    expect(end.y).toBeCloseTo(0, 6);
+describe("where the sun shines from as the session runs", () => {
+  it("rises on the left, peaks halfway and sets on the right, as high as it rose", () => {
+    const [startX, startY] = sunState(0).lightPosition;
+    const [middleX, middleY] = sunState(0.5).lightPosition;
+    const [endX, endY] = sunState(1).lightPosition;
+    expect(startX).toBeLessThan(0);
+    expect(middleX).toBeCloseTo(0, 6);
+    expect(endX).toBeGreaterThan(0);
+    expect(endX).toBeCloseTo(-startX, 6);
+    expect(middleY).toBeGreaterThan(startY);
+    expect(endY).toBeCloseTo(startY, 6);
   });
 
-  it("moves steadily from left to right", () => {
-    const xs = samples.map((p) => sunState(p).x);
+  it("moves steadily from left to right, rising to the middle and sinking after it", () => {
+    const xs = samples.map((p) => sunState(p).lightPosition[0]);
     expect([...xs].sort((a, b) => a - b)).toEqual(xs);
-  });
-
-  it("stays on the elliptical arc at every moment", () => {
-    for (const p of samples) {
-      const { x, y } = sunState(p);
-      expect((x / SUN_CLOCK.arcRadiusX) ** 2 + (y / SUN_CLOCK.arcRadiusY) ** 2).toBeCloseTo(1, 6);
-    }
+    const ys = samples.map((p) => sunState(p).lightPosition[1]);
+    const peak = ys.indexOf(Math.max(...ys));
+    expect(peak).toBe(10);
   });
 
   it("is at full strength at the start and only a faint ember at the end", () => {
-    expect(sunState(0).brightness).toBe(1);
-    expect(sunState(1).brightness).toBeCloseTo(SUN_CLOCK.endBrightness, 6);
-    expect(SUN_CLOCK.endBrightness).toBeLessThan(0.15);
+    expect(sunState(0).lightFactor).toBe(1);
+    expect(sunState(1).lightFactor).toBeCloseTo(SUN_CLOCK.endLight, 6);
+    expect(SUN_CLOCK.endLight).toBeLessThan(0.15);
   });
 
-  it("dims, shrinks and darkens the world the closer it gets to the end", () => {
+  it("dims the lights and darkens the sky the closer it gets to the end", () => {
     const states = samples.map(sunState);
     for (let i = 1; i < states.length; i += 1) {
-      expect(states[i].brightness).toBeLessThan(states[i - 1].brightness);
-      expect(states[i].scale).toBeLessThan(states[i - 1].scale);
       expect(states[i].lightFactor).toBeLessThan(states[i - 1].lightFactor);
       expect(states[i].ambientFactor).toBeLessThan(states[i - 1].ambientFactor);
       expect(states[i].dusk).toBeGreaterThan(states[i - 1].dusk);
@@ -50,8 +47,8 @@ describe("where the sun is as the session runs", () => {
   });
 
   it("warms from pale gold towards orange as it sets", () => {
-    const dawn = channel(sunState(0).color);
-    const dusk = channel(sunState(1).color);
+    const dawn = channel(sunState(0).colorCss);
+    const dusk = channel(sunState(1).colorCss);
     expect(dusk.b).toBeLessThan(dawn.b);
     expect(dusk.g).toBeLessThan(dawn.g);
     expect(dusk.r).toBeGreaterThanOrEqual(dawn.r - 1);
@@ -63,7 +60,7 @@ describe("where the sun is as the session runs", () => {
     expect(sunState(Number.NaN)).toEqual(sunState(0));
   });
 
-  it("lights the scene from where the sun is, and from higher when it is high", () => {
+  it("lights the scene from higher when the sun is high", () => {
     expect(sunState(0.5).lightPosition[1]).toBeGreaterThan(sunState(0).lightPosition[1]);
     expect(sunState(0).lightPosition[0]).toBeLessThan(sunState(1).lightPosition[0]);
   });

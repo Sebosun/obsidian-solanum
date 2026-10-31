@@ -42,11 +42,15 @@ export class VaultSessionStore implements SessionStore {
     this.folder = folder;
   }
 
+  /** Every folder whose files make up the history; the debug folder only exists in debug builds. */
+  watchedFolders(): string[] {
+    return this.options.debug ? [this.folder, DEBUG_SESSION_FOLDER] : [this.folder];
+  }
+
   async readAll(): Promise<Revision[]> {
     const revisions: Revision[] = [];
     const seen = new Set<string>();
-    const folders = this.options.debug ? [this.folder, DEBUG_SESSION_FOLDER] : [this.folder];
-    for (const folder of folders) {
+    for (const folder of this.watchedFolders()) {
       if (!(await this.adapter.exists(folder))) continue;
       const { files } = await this.adapter.list(folder);
       for (const path of files.filter((p) => p.endsWith(".json"))) {

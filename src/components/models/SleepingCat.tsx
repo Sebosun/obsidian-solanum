@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { AnimationMixer, LoopRepeat } from "three";
 import { useCatModel } from "@/hooks/useCatModel";
 import { BREAK_SCENE } from "@/lib/scene/constants";
+import { frameStep } from "@/lib/scene/motion";
 
 interface SleepingCatProps {
   /** Holds the pose instead of breathing. */
@@ -32,7 +33,7 @@ export function SleepingCat({ reduced }: SleepingCatProps) {
   }, [mixer, animations, cat, invalidate]);
   useFrame((_state, delta) => {
     // A stalled frame must not leap through the breath.
-    if (!reduced) mixer.update(Math.min(delta, 0.1));
+    if (!reduced) mixer.update(frameStep(delta));
   });
   const { scale, sink, turn } = BREAK_SCENE.cat;
   return (

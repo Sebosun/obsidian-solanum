@@ -1,34 +1,25 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
 import { AppStoreProvider } from "@/components/app/AppStoreProvider";
 import { getAppStore, releaseAppStore } from "@/state/appStore";
-import { TimerService } from "@/lib/timer/TimerService";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { layoutHarvestBlocks } from "@/lib/harvest/month";
+import { emptyTimer } from "./helpers/timerEnvironment";
+import { canvasStub, resetCanvasStub } from "./helpers/fiberStub";
 import type { SolanumHost } from "@/types/host";
 
-const canvas = vi.hoisted(() => ({ mode: "loading" as "loading" | "ready" }));
-const pending = vi.hoisted(() => new Promise(() => {}));
-vi.mock("@react-three/fiber", () => ({
-  Canvas: () => {
-    if (canvas.mode === "loading") throw pending;
-    return <div role="img" aria-label="Loaded blocks" />;
-  },
-}));
+vi.mock("@react-three/fiber", async () => (await import("./helpers/fiberStub")).fiberStub());
 
+beforeEach(() => resetCanvasStub("loading", "Loaded blocks"));
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
-  canvas.mode = "loading";
 });
 
 function mount() {
-  const timer = new TimerService(
-    { readAll: async () => [], append: async () => {} },
-    { now: Date.now, id: () => "unused" },
-  );
+  const timer = emptyTimer();
   const host: SolanumHost = {
     timer,
     settings: DEFAULT_SETTINGS,
@@ -41,6 +32,7 @@ function mount() {
     openSettings: vi.fn(),
     navigate: vi.fn(),
     assetUrl: (name) => name,
+    readAsset: async () => new ArrayBuffer(0),
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
   };
@@ -60,7 +52,7 @@ describe("month scene recovery", () => {
     expect(screen.getByRole("status", { name: "Loading harvest" })).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(8000));
     expect(screen.getByText("Farm unavailable")).toBeTruthy();
-    canvas.mode = "ready";
+    canvasStub.mode = "ready";
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(screen.getByRole("img", { name: "Loaded blocks" })).toBeTruthy();
     release();

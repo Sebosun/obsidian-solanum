@@ -1,6 +1,8 @@
+import { MAX_DURATION_MINUTES, MIN_DURATION_MINUTES } from "@/lib/timer/limits";
+
 export const DEFAULT_PRESETS: readonly number[] = [5, 10, 25, 50, 60, 90, 120];
-export const MIN_PRESET_MINUTES = 1;
-export const MAX_PRESET_MINUTES = 24 * 60;
+export const MIN_PRESET_MINUTES = MIN_DURATION_MINUTES;
+export const MAX_PRESET_MINUTES = MAX_DURATION_MINUTES;
 export const MAX_PRESETS = 8;
 
 export type PresetsResult = { ok: true; presets: number[] } | { ok: false; reason: string };

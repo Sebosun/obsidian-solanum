@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { SrLabel } from "@/components/app/SrLabel";
-import { CROPS, type CropId } from "@/lib/crops/catalog";
+import { CROPS, CROP_IDS } from "@/lib/crops/catalog";
 import type { MonthSummary } from "@/lib/harvest/month";
 import { formatFocus } from "@/lib/time";
 
@@ -10,8 +10,6 @@ interface HarvestMonthSummaryProps {
   shown: number;
   total: number;
 }
-
-const CROP_IDS = Object.keys(CROPS) as CropId[];
 
 export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSummaryProps) {
   const summaryId = useId();

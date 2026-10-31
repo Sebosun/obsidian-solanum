@@ -1,6 +1,11 @@
-import type { Revision, TimerState } from "@/lib/timer/types";
+import type { FocusInterval, Revision, TimerState } from "@/lib/timer/types";
 
 export const isActive = (s: Revision) => s.phase !== "done";
+
+/** When a focus interval ended, or for the one still open, now (never past the session's deadline). */
+export const intervalEnd = (interval: FocusInterval, session: Revision, now: number): number =>
+  interval.end ?? Math.min(now, session.deadline ?? now);
+
 export const normalizeTags = (tags: string[]) => [
   ...new Set(tags.map((t) => t.trim().replace(/^#+/, "")).filter(Boolean)),
 ];

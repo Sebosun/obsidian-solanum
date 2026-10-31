@@ -4,53 +4,23 @@ import { buildDayNote, composeDayNote } from "@/lib/notes/dayNote";
 import { daysTouched } from "@/lib/notes/days";
 import { dayKey } from "@/lib/harvest/model";
 import { pathForDay } from "@/lib/notes/path";
+import type { DayNoteOutcome, DocumentWriteResult } from "@/lib/notes/documentReport";
+import { errorMessage } from "@/lib/text";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { Revision } from "@/lib/timer/types";
 
-export type DayNoteOutcome = "created" | "updated" | "unchanged" | "empty";
-
-export interface DayNoteTotals {
-  created: number;
-  updated: number;
-  unchanged: number;
-}
-
-export interface DocumentWriteResult extends DayNoteTotals {
-  failures: { path: string; reason: string }[];
-}
-
-export function describeDocumentTotals(totals: DayNoteTotals): string {
-  return `Documents: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`;
-}
-
-export function describeDocuments(result: DocumentWriteResult): string {
-  let message = describeDocumentTotals(result);
-  if (result.failures.length > 0)
-    message += ` ${result.failures.length} failed. Session history is safe. Retry the import or use “Write documents for all history”. ${result.failures[0].reason}`;
-  return message;
-}
-
-/** Writes one readable markdown note per day into the vault. Demo and debug data never appears. */
+/**
+ * Writes one readable markdown note per day into the vault. Demo and debug data never appears.
+ * Callers serialize their own writes; `DayNoteService` is the only one.
+ */
 export class DayNoteWriter {
-  private queue: Promise<unknown> = Promise.resolve();
-
   constructor(
     private adapter: FileAdapter,
     private folder: () => string,
   ) {}
 
-  private exclusive<T>(action: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(action);
-    this.queue = result.catch(() => {});
-    return result;
-  }
-
-  pathFor(day: Date): string {
+  private pathFor(day: Date): string {
     return pathForDay(this.folder(), day);
-  }
-
-  write(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
-    return this.exclusive(() => this.writeNow(sessions, day, now));
   }
 
   private async writeNow(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
@@ -66,22 +36,7 @@ export class DayNoteWriter {
     return existing === null ? "created" : "updated";
   }
 
-  async writeAll(sessions: Revision[], now: number): Promise<DayNoteTotals> {
-    const { failures, ...totals } = await this.writeDays(sessions, daysTouched(sessions, now), now);
-    if (failures.length > 0) throw new Error(describeDocuments({ ...totals, failures }));
-    return totals;
-  }
-
-  writeDays(
-    sessions: Revision[],
-    days: Date[],
-    now: number,
-    onProgress?: (done: number, total: number) => void,
-  ): Promise<DocumentWriteResult> {
-    return this.exclusive(() => this.writeDaysNow(sessions, days, now, onProgress));
-  }
-
-  private async writeDaysNow(
+  async writeDays(
     sessions: Revision[],
     days: Date[],
     now: number,
@@ -105,10 +60,7 @@ export class DayNoteWriter {
         const outcome = await this.writeNow(indexed.get(dayKey(day)) ?? [], day, now);
         if (outcome !== "empty") totals[outcome] += 1;
       } catch (error) {
-        totals.failures.push({
-          path: this.pathFor(day),
-          reason: error instanceof Error ? error.message : String(error),
-        });
+        totals.failures.push({ path: this.pathFor(day), reason: errorMessage(error) });
       }
       done += 1;
       onProgress?.(done, days.length);

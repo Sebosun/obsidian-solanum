@@ -3,7 +3,7 @@ import { cropStage } from "@/lib/crops/growth";
 import { HARVEST_BLOCKS } from "@/lib/scene/constants";
 import { FarmPlatform } from "@/components/models/FarmPlatform";
 import { Plant } from "@/components/models/Plant";
-import { RiseGroup } from "@/components/stage/RiseGroup";
+import { RiseGroup } from "@/components/models/RiseGroup";
 
 interface HarvestBlockMeshProps {
   block: HarvestBlock;

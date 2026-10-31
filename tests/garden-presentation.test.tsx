@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { Mesh, MeshBasicMaterial } from "three";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { Plant } from "@/components/models/Plant";
+import { loadAsset } from "./helpers/glb";
 
 const models = vi.hoisted(() => ({
   plants: new Map<string, GLTF>(),
@@ -18,21 +18,13 @@ vi.mock("@/hooks/useProduceModel", () => ({
 const families = ["tomato", "corn", "apple"] as const;
 
 beforeAll(async () => {
-  const loader = new GLTFLoader();
   for (const family of families) {
     const name = family[0].toUpperCase() + family.slice(1);
     for (const [suffix, store] of [
       ["4", models.plants],
       ["produce", models.produce],
     ] as const) {
-      const bytes = readFileSync(`assets/crops/garden/${name}_${suffix}.glb`);
-      store.set(
-        family,
-        await loader.parseAsync(
-          bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-          "",
-        ),
-      );
+      store.set(family, await loadAsset(`crops/garden/${name}_${suffix}.glb`));
     }
   }
 });

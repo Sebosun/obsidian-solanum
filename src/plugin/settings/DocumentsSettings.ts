@@ -1,7 +1,7 @@
 import { Notice, Setting } from "obsidian";
 import { DEFAULT_DAY_NOTES_FOLDER, parseDayNotesFolder } from "@/lib/storage/folder";
 import { FolderSuggest } from "@/plugin/FolderSuggest";
-import { describeDocumentTotals } from "@/lib/notes/DayNoteWriter";
+import { describeDocumentTotals } from "@/lib/notes/documentReport";
 import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsContext";
 
 const FOLDER_HELP =
@@ -10,6 +10,7 @@ const FOLDER_HELP =
 /** The markdown note written for each day. */
 export function displayDocumentsSettings(context: SettingsContext): void {
   const { app, containerEl, host, services } = context;
+  const interrupted = services.dayNoteMigrationState() === "interrupted";
   addHeading(context, "Documents");
 
   new Setting(containerEl)
@@ -24,10 +25,10 @@ export function displayDocumentsSettings(context: SettingsContext): void {
   const folder = new Setting(containerEl).setName("Documents folder").setDesc(FOLDER_HELP);
   folder.addText((control) => {
     control.setPlaceholder(DEFAULT_DAY_NOTES_FOLDER).setValue(host.settings.dayNotesFolder);
-    control.setDisabled(host.settings.dayNotesMigrationRoot !== null);
+    control.setDisabled(interrupted);
     new FolderSuggest(app, control.inputEl);
     control.onChange(async function editFolder(value) {
-      if (host.settings.dayNotesMigrationRoot !== null) return;
+      if (interrupted) return;
       const parsed = parseDayNotesFolder(value);
       if (!parsed.ok) {
         folder.setDesc(parsed.reason);
@@ -38,7 +39,7 @@ export function displayDocumentsSettings(context: SettingsContext): void {
     });
   });
 
-  if (host.settings.dayNotesMigrationRoot !== null) {
+  if (interrupted) {
     folder.setDesc(
       "A document update was interrupted. Use “Write documents for all history” to retry before changing this folder.",
     );

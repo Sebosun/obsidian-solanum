@@ -9,9 +9,20 @@ import type {
   TimerEnvironment,
 } from "@/lib/timer/types";
 import { completePhase } from "@/lib/timer/transitions";
+import { MAX_DURATION_MS, MIN_DURATION_MS } from "@/lib/timer/limits";
+import { SerialQueue } from "@/lib/serialQueue";
 
 /** Expiries newer than this are announced; older ones are restored history. */
 const RECENT_COMPLETION_MS = 10_000;
+
+/** The path a session's note has after `oldPath` was renamed, or null when it is unaffected. */
+function renamedNotePath(notePath: string | null, oldPath: string, newPath: string): string | null {
+  if (notePath === null) return null;
+  if (notePath === oldPath) return newPath;
+  // A renamed folder carries every note inside it.
+  if (notePath.startsWith(`${oldPath}/`)) return newPath + notePath.slice(oldPath.length);
+  return null;
+}
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
 export class TimerService {
@@ -19,7 +30,7 @@ export class TimerService {
   private state: TimerState = { sessions: [], conflicts: [] };
   private listeners = new Set<() => void>();
   private completionListeners = new Set<(event: CompletionEvent) => void>();
-  private queue: Promise<unknown> = Promise.resolve();
+  private queue = new SerialQueue();
 
   constructor(
     private store: SessionStore,
@@ -52,9 +63,7 @@ export class TimerService {
   }
 
   private serial<T>(action: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(action);
-    this.queue = result.catch(() => {});
-    return result;
+    return this.queue.run(action);
   }
 
   /**
@@ -124,7 +133,7 @@ export class TimerService {
         throw new Error("Finish the active session before planting another crop.");
       if (
         ![options.durationMs, options.breakMs].every(
-          (v) => Number.isFinite(v) && v >= 60_000 && v <= 24 * 60 * 60_000,
+          (v) => Number.isFinite(v) && v >= MIN_DURATION_MS && v <= MAX_DURATION_MS,
         )
       ) {
         throw new Error("Durations must be between 1 minute and 24 hours.");
@@ -236,12 +245,7 @@ export class TimerService {
       await this.load();
       for (const s of this.state.sessions) {
         if (this.state.conflicts.some((c) => c.sessionId === s.sessionId)) continue;
-        const renamed =
-          s.notePath === oldPath
-            ? newPath
-            : s.notePath?.startsWith(`${oldPath}/`)
-              ? newPath + s.notePath.slice(oldPath.length)
-              : null;
+        const renamed = renamedNotePath(s.notePath, oldPath, newPath);
         if (renamed) {
           const next = this.next(s);
           next.notePath = renamed;

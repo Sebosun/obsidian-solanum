@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import type { CropId } from "@/lib/crops/catalog";
 import { GROWTH_MOTION } from "@/lib/scene/constants";
 import { Plant } from "@/components/models/Plant";
-import { getCropAssets } from "@/state/cropAssets";
-import { useServices } from "@/state/hooks";
+import { useCropAssets } from "@/hooks/useCropAssets";
 
 interface CropPreviewProps {
   crop: CropId;
@@ -14,7 +13,7 @@ interface CropPreviewProps {
  * the mature plant where it does not, standing where the growing crop will.
  */
 export function CropPreview({ crop }: CropPreviewProps) {
-  const assets = getCropAssets(useServices());
+  const assets = useCropAssets();
   useEffect(() => {
     assets.preload(crop);
   }, [crop, assets]);

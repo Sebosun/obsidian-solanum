@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { settle } from "./helpers";
 
 for (const crop of ["Tomato", "Corn", "Apple"] as const) {
   test(`${crop} has picked produce in the picker and a mature plant at completed focus`, async ({
     page,
-  }) => {
+  }, testInfo) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.route("**/assets/crops/garden/**", (route) => route.abort());
@@ -14,20 +15,20 @@ for (const crop of ["Tomato", "Corn", "Apple"] as const) {
       "true",
     );
     await expect(page.locator(".solanum-scene canvas")).toBeVisible();
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: `/tmp/opencode/solanum-${crop.toLowerCase()}-produce.png` });
+    await settle(page);
+    await page.screenshot({ path: testInfo.outputPath(`${crop.toLowerCase()}-produce.png`) });
     await page.goto(`/?view=timer&season=summer&crop=${crop.toLowerCase()}&elapsed=25`);
     await expect(page.getByRole("button", { name: "Start break", exact: true })).toBeVisible();
     await expect(page.locator(".solanum-scene canvas")).toBeVisible();
-    await page.waitForTimeout(1000);
-    await page.screenshot({ path: `/tmp/opencode/solanum-${crop.toLowerCase()}-mature.png` });
+    await settle(page);
+    await page.screenshot({ path: testInfo.outputPath(`${crop.toLowerCase()}-mature.png`) });
     expect(errors).toEqual([]);
   });
 }
 
 test("the year loads one Blender crate and fills it with produce, not tomato or apple trees", async ({
   page,
-}) => {
+}, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   let crates = 0;
@@ -46,9 +47,9 @@ test("the year loads one Blender crate and fills it with produce, not tomato or 
   await expect(page.getByRole("status", { name: "Loading harvest" })).toBeHidden({
     timeout: 20_000,
   });
-  await page.waitForTimeout(1500);
+  await settle(page);
   expect(crates).toBe(1);
   expect(produce.size).toBe(3);
-  await page.screenshot({ path: "/tmp/opencode/solanum-blender-crates-year.png" });
+  await page.screenshot({ path: testInfo.outputPath("blender-crates-year.png") });
   expect(errors).toEqual([]);
 });

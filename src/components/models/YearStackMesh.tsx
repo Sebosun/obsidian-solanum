@@ -4,7 +4,7 @@ import type { YearStack } from "@/lib/harvest/year";
 import { YEAR_STACKS } from "@/lib/scene/constants";
 import { cratePlantOffset, stackPosition } from "@/lib/scene/yearLayout";
 import { Plant } from "@/components/models/Plant";
-import { RiseGroup } from "@/components/stage/RiseGroup";
+import { RiseGroup } from "@/components/models/RiseGroup";
 import { CrateMesh } from "@/components/models/CrateMesh";
 
 interface YearStackMeshProps {

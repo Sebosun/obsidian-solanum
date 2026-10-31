@@ -1,3 +1,10 @@
+import { isFiniteNumber, isRecord } from "@/lib/guards";
+import {
+  DEFAULT_BREAK_MINUTES,
+  DEFAULT_FOCUS_MINUTES,
+  MAX_DURATION_MINUTES,
+  MIN_DURATION_MINUTES,
+} from "@/lib/timer/limits";
 import { DEFAULT_PRESETS, readPresets } from "@/lib/timer/presets";
 import type { DayNoteLocation } from "@/lib/notes/DayNoteService";
 import { parseSoundPath } from "@/lib/audio/soundPath";
@@ -29,13 +36,15 @@ export interface Settings extends DayNoteLocation {
   season: SeasonChoice;
 }
 
+const DEFAULT_VOLUME = 0.4;
+
 export const DEFAULT_SETTINGS: Settings = {
-  defaultMinutes: 25,
+  defaultMinutes: DEFAULT_FOCUS_MINUTES,
   presets: [...DEFAULT_PRESETS],
-  breakMinutes: 5,
+  breakMinutes: DEFAULT_BREAK_MINUTES,
   autoBreak: false,
   sound: true,
-  volume: 0.4,
+  volume: DEFAULT_VOLUME,
   sessionFolder: DEFAULT_SESSION_FOLDER,
   season: "auto",
   focusSound: "",
@@ -46,40 +55,52 @@ export const DEFAULT_SETTINGS: Settings = {
   dayNotesMigrationRoot: null,
 };
 
+const withinDuration = (value: number) =>
+  value >= MIN_DURATION_MINUTES && value <= MAX_DURATION_MINUTES;
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+/** Saved settings are untrusted: each field is checked on its own, and a bad one gets its default. */
 export function readSettings(value: unknown): Settings {
-  const s = (value && typeof value === "object" ? value : {}) as Partial<Settings>;
+  const saved = isRecord(value) ? value : {};
+  const { defaultMinutes, breakMinutes, volume } = saved;
   return {
     defaultMinutes:
-      Number.isInteger(s.defaultMinutes) && s.defaultMinutes! >= 1 && s.defaultMinutes! <= 1440
-        ? s.defaultMinutes!
-        : 25,
-    presets: readPresets(s.presets),
+      isFiniteNumber(defaultMinutes) &&
+      Number.isInteger(defaultMinutes) &&
+      withinDuration(defaultMinutes)
+        ? defaultMinutes
+        : DEFAULT_SETTINGS.defaultMinutes,
+    presets: readPresets(saved.presets),
     breakMinutes:
-      Number.isFinite(s.breakMinutes) && s.breakMinutes! >= 1 && s.breakMinutes! <= 1440
-        ? s.breakMinutes!
-        : 5,
-    autoBreak: typeof s.autoBreak === "boolean" ? s.autoBreak : false,
-    sound: typeof s.sound === "boolean" ? s.sound : true,
-    volume: Number.isFinite(s.volume) ? Math.max(0, Math.min(1, s.volume!)) : 0.4,
-    sessionFolder: readSessionFolder(s.sessionFolder),
-    dayNotes: typeof s.dayNotes === "boolean" ? s.dayNotes : true,
-    dayNotesFolder: readDayNotesFolder(s.dayNotesFolder),
-    dayNotesMigrationRoot:
-      typeof s.dayNotesMigrationRoot === "string" && parseDayNotesFolder(s.dayNotesMigrationRoot).ok
-        ? readDayNotesFolder(s.dayNotesMigrationRoot)
-        : null,
-    dayNotesLayout: readDayNotesLayout(s),
-    focusSound: readSoundPath(s.focusSound),
-    breakSound: readSoundPath(s.breakSound),
-    season: SEASON_CHOICES.find((choice) => choice === s.season) ?? "auto",
+      isFiniteNumber(breakMinutes) && withinDuration(breakMinutes)
+        ? breakMinutes
+        : DEFAULT_SETTINGS.breakMinutes,
+    autoBreak: readBoolean(saved.autoBreak, DEFAULT_SETTINGS.autoBreak),
+    sound: readBoolean(saved.sound, DEFAULT_SETTINGS.sound),
+    volume: isFiniteNumber(volume) ? Math.max(0, Math.min(1, volume)) : DEFAULT_SETTINGS.volume,
+    sessionFolder: readSessionFolder(saved.sessionFolder),
+    dayNotes: readBoolean(saved.dayNotes, DEFAULT_SETTINGS.dayNotes),
+    dayNotesFolder: readDayNotesFolder(saved.dayNotesFolder),
+    dayNotesMigrationRoot: readMigrationRoot(saved.dayNotesMigrationRoot),
+    dayNotesLayout: readDayNotesLayout(saved.dayNotesLayout, saved.dayNotesFolder),
+    focusSound: readSoundPath(saved.focusSound),
+    breakSound: readSoundPath(saved.breakSound),
+    season: SEASON_CHOICES.find((choice) => choice === saved.season) ?? DEFAULT_SETTINGS.season,
   };
 }
 
-function readDayNotesLayout(settings: Partial<Settings>): DayNoteLocation["dayNotesLayout"] {
-  if (settings.dayNotesLayout === "flat" || settings.dayNotesLayout === "calendar")
-    return settings.dayNotesLayout;
-  if (typeof settings.dayNotesFolder === "string" && settings.dayNotesFolder.trim() !== "")
-    return "flat";
+function readMigrationRoot(value: unknown): string | null {
+  if (typeof value !== "string" || !parseDayNotesFolder(value).ok) return null;
+  return readDayNotesFolder(value);
+}
+
+/** Saved before layouts existed: a custom folder meant the old flat layout. */
+function readDayNotesLayout(layout: unknown, folder: unknown): DayNoteLocation["dayNotesLayout"] {
+  if (layout === "flat" || layout === "calendar") return layout;
+  if (typeof folder === "string" && folder.trim() !== "") return "flat";
   return "calendar";
 }
 

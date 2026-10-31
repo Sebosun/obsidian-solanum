@@ -1,7 +1,7 @@
 import type { HarvestFilter } from "@/lib/harvest/aggregate";
 import { summarizeMonth, type MonthSummary } from "@/lib/harvest/month";
-import { CROPS, type CropId } from "@/lib/crops/catalog";
-import { YEAR_STACKS } from "@/lib/scene/constants";
+import { CROP_IDS, type CropId } from "@/lib/crops/catalog";
+import { MONTHS_PER_YEAR, YEAR_STACKS } from "@/lib/scene/constants";
 import type { Revision } from "@/lib/timer/types";
 
 export interface YearMonth extends MonthSummary {
@@ -27,9 +27,6 @@ export interface YearStacks {
   crateMinutes: number;
   stacks: YearStack[];
 }
-
-const MONTHS_PER_YEAR = 12;
-const CROP_IDS = Object.keys(CROPS) as CropId[];
 
 export function summarizeYear(
   sessions: Revision[],

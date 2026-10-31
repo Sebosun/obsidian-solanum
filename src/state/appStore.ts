@@ -2,6 +2,8 @@ import { createStore } from "zustand/vanilla";
 import type { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
 import type { SeasonChoice } from "@/lib/scene/seasons";
+import { errorMessage } from "@/lib/text";
+import { MS_PER_MINUTE } from "@/lib/time";
 import { normalizeTags } from "@/lib/timer/selectors";
 import { effectiveDefaultMinutes } from "@/lib/timer/presets";
 import type { SolanumHost } from "@/types/host";
@@ -89,7 +91,7 @@ export function getAppStore(services: SolanumHost): AppStore {
       try {
         await action();
       } catch (error) {
-        set({ error: error instanceof Error ? error.message : String(error) });
+        set({ error: errorMessage(error) });
       } finally {
         set({ busy: false });
       }
@@ -103,8 +105,8 @@ export function getAppStore(services: SolanumHost): AppStore {
         }
         await services.timer.start({
           crop: draft.crop,
-          durationMs: draft.minutes * 60_000,
-          breakMs: services.settings.breakMinutes * 60_000,
+          durationMs: draft.minutes * MS_PER_MINUTE,
+          breakMs: services.settings.breakMinutes * MS_PER_MINUTE,
           autoBreak: services.settings.autoBreak,
           tags: normalizeTags(draft.tags),
           notePath: draft.note || null,

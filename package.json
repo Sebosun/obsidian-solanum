@@ -2,6 +2,10 @@
   "name": "solanum",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24"
+  },
   "description": "A tomato timer for the Obsidian sidebar.",
   "scripts": {
     "test:browser": "npm run build:css && playwright test",

@@ -1,7 +1,8 @@
 import { isRevision } from "@/lib/storage/validation";
 import type { Revision } from "@/lib/timer/types";
-import type { ImportResult } from "@/lib/storage/SessionExchange";
-import { describeDocuments } from "@/lib/notes/DayNoteWriter";
+import { describeDocuments, type DocumentWriteResult } from "@/lib/notes/documentReport";
+import { isRecord } from "@/lib/guards";
+import { plural } from "@/lib/text";
 
 export const EXPORT_FORMAT = "solanum-sessions";
 export const EXPORT_VERSION = 1;
@@ -18,6 +19,19 @@ export interface ParsedExport {
   revisions: Revision[];
   /** Entries that are not valid session revisions. */
   invalid: number;
+}
+
+export interface ImportResult {
+  documents?: DocumentWriteResult;
+  added: number;
+  /** Revisions the vault already held, byte-for-byte equal in content. */
+  duplicates: number;
+  /** Ids that exist locally with different content; the local copy was kept. */
+  conflicts: string[];
+  /** Entries that were not valid revisions. */
+  invalid: number;
+  /** Simulated or demo revisions, which never join real history. */
+  synthetic: number;
 }
 
 const NOT_AN_EXPORT = "This is not a valid Solanum export file.";
@@ -39,10 +53,6 @@ export function buildExport(revisions: Revision[], now: number): ExportBundle {
     exportedAt: new Date(now).toISOString(),
     sessions,
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Reads an export bundle, a bare list of revisions, or a single revision file. */
@@ -82,8 +92,6 @@ export function canonical(value: unknown): string {
       .join(",")}}`;
   return JSON.stringify(value) ?? "null";
 }
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 /** One short, readable line (or two) for the notice shown after an import. */
 export function summarizeImport(result: ImportResult): string {

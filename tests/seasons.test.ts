@@ -39,15 +39,13 @@ describe("how each season looks", () => {
     expect(winter.particles.fall).toBeGreaterThan(0);
   });
 
-  it("makes summer bright and warm, with its own sun light", () => {
+  it("makes summer bright and warm", () => {
     const summer = SEASON_THEMES.summer;
     const sun = channel(summer.sun.color);
     expect(sun.r).toBeGreaterThan(sun.b);
-    expect(summer.glow).not.toBeNull();
     const others = (["winter", "spring", "autumn"] as const).map((id) => SEASON_THEMES[id]);
     for (const other of others) {
       expect(summer.sun.intensity).toBeGreaterThan(other.sun.intensity);
-      expect(other.glow).toBeNull();
     }
     expect(SEASON_THEMES.spring.snowCover).toBe(false);
     expect(SEASON_THEMES.autumn.snowCover).toBe(false);

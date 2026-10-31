@@ -565,6 +565,27 @@ describe("Obsidian lifecycle integration", () => {
       expect(refresh).toHaveBeenCalled();
       plugin.onunload();
     });
+
+    it("does not watch the debug-session folder in a build without debug tools", async () => {
+      const { plugin, handlers } = await loaded();
+      const refresh = vi.spyOn(plugin.timer, "refresh");
+      handlers.create({ path: "Solanum/debug-sessions/x.json" });
+      await vi.advanceTimersByTimeAsync(600);
+      expect(refresh).not.toHaveBeenCalled();
+      handlers.create({ path: "Solanum/sessions/x.json" });
+      await vi.advanceTimersByTimeAsync(600);
+      expect(refresh).toHaveBeenCalledTimes(1);
+      plugin.onunload();
+    });
+
+    it("stops refreshing after unload, even for a change already waiting", async () => {
+      const { plugin, handlers } = await loaded();
+      const refresh = vi.spyOn(plugin.timer, "refresh");
+      handlers.modify({ path: "Solanum/sessions/x.json" });
+      plugin.onunload();
+      await vi.advanceTimersByTimeAsync(600);
+      expect(refresh).not.toHaveBeenCalled();
+    });
   });
 
   describe("backup", () => {
@@ -586,11 +607,15 @@ describe("Obsidian lifecycle integration", () => {
 
     it("exports the history to a vault file and says where", async () => {
       const { plugin, disk } = await loaded();
-      await plugin.timer.start(session);
+      const id = await plugin.timer.start(session);
+      await plugin.timer.pause(id);
+      await plugin.timer.resume(id);
       await nativeUi.buttons.get("Export")!();
       const file = [...disk.files.keys()].find((path) => path.startsWith("Solanum/exports/"));
       expect(file).toMatch(/solanum-sessions-\d{4}-\d{2}-\d{2}\.json$/);
       expect(nativeUi.notices.join(" ")).toContain(file);
+      // Start, pause and resume are three revisions but one session to the user.
+      expect(nativeUi.notices.join(" ")).toMatch(/Exported 1 session to /);
       plugin.onunload();
     });
 
@@ -718,6 +743,27 @@ describe("Obsidian lifecycle integration", () => {
       await plugin.timer.start({ ...shortCrop, autoBreak: false });
       await vi.advanceTimersByTimeAsync(61_000);
       expect(audioSpy.plays[1].clip).toMatchObject({ bytes: "much-longer".length });
+      plugin.onunload();
+    });
+
+    it("follows a sound changed on another device: drops the old file and decodes the new one", async () => {
+      const { plugin } = await loaded(
+        { focusSound: "Sounds/a.mp3" },
+        { "Sounds/a.mp3": "aaa", "Sounds/b.mp3": "bbbb" },
+      );
+      await finishFocusAndBreak(plugin);
+      expect(audioSpy.decodes).toBe(1);
+      plugin.loadData = async () => ({ focusSound: "Sounds/b.mp3" });
+      await plugin.onExternalSettingsChange();
+      await vi.advanceTimersByTimeAsync(0);
+      // The new file is decoded at once, as when the change is made on this device.
+      expect(audioSpy.decodes).toBe(2);
+      plugin.loadData = async () => ({ focusSound: "Sounds/a.mp3" });
+      await plugin.onExternalSettingsChange();
+      await vi.advanceTimersByTimeAsync(0);
+      // The first file was dropped when it was replaced, so it is read again.
+      expect(audioSpy.decodes).toBe(3);
+      expect(plugin.settings.focusSound).toBe("Sounds/a.mp3");
       plugin.onunload();
     });
 

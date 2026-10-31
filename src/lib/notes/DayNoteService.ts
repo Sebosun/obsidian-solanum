@@ -1,17 +1,20 @@
+import { DayNoteWriter } from "@/lib/notes/DayNoteWriter";
 import {
-  DayNoteWriter,
   describeDocuments,
   type DayNoteOutcome,
   type DayNoteTotals,
   type DocumentWriteResult,
-} from "@/lib/notes/DayNoteWriter";
+} from "@/lib/notes/documentReport";
 import { daysTouched } from "@/lib/notes/days";
 import {
+  migrationConflictError,
   moveDayNotes,
   planDayNoteMigration,
   type DayNoteMigrationPlan,
 } from "@/lib/notes/migration";
 import { pathForDay } from "@/lib/notes/path";
+import { SerialQueue } from "@/lib/serialQueue";
+import { errorMessage } from "@/lib/text";
 import { DEFAULT_DAY_NOTES_FOLDER, LEGACY_DAY_NOTES_FOLDER } from "@/lib/storage/folder";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { Revision } from "@/lib/timer/types";
@@ -35,9 +38,16 @@ export interface DayNoteServicePorts {
   rename(from: string, to: string): Promise<void>;
 }
 
+/**
+ * Where the documents stand relative to the calendar layout: `settled` is the normal state,
+ * `legacy` means older flat documents still wait to be moved, and `interrupted` means a move
+ * started and must be finished (by the next write) before the folder can change.
+ */
+export type DayNoteMigrationState = "settled" | "legacy" | "interrupted";
+
 /** The single entry point for live notes, imports, backfill, opening notes, and legacy migration. */
 export class DayNoteService {
-  private queue: Promise<unknown> = Promise.resolve();
+  private queue = new SerialQueue();
   private writer: DayNoteWriter;
 
   constructor(private ports: DayNoteServicePorts) {
@@ -45,9 +55,13 @@ export class DayNoteService {
   }
 
   private exclusive<T>(action: () => Promise<T>): Promise<T> {
-    const result = this.queue.then(action);
-    this.queue = result.catch(() => {});
-    return result;
+    return this.queue.run(action);
+  }
+
+  migrationState(): DayNoteMigrationState {
+    const location = this.ports.getLocation();
+    if (location.dayNotesMigrationRoot !== null) return "interrupted";
+    return location.dayNotesLayout === "flat" ? "legacy" : "settled";
   }
 
   private calendarRoot(): string {
@@ -90,12 +104,7 @@ export class DayNoteService {
           created: 0,
           updated: 0,
           unchanged: 0,
-          failures: [
-            {
-              path: this.calendarRoot(),
-              reason: error instanceof Error ? error.message : String(error),
-            },
-          ],
+          failures: [{ path: this.calendarRoot(), reason: errorMessage(error) }],
         };
       }
       return this.writer.writeDays(sessions, days, now, onProgress);
@@ -122,14 +131,11 @@ export class DayNoteService {
 
   private async migrateNow(): Promise<number> {
     const location = this.ports.getLocation();
-    if (location.dayNotesLayout === "calendar" && location.dayNotesMigrationRoot === null) return 0;
+    if (this.migrationState() === "settled") return 0;
     const from = location.dayNotesFolder;
     const to = this.calendarRoot();
     const plan = await this.planMigrationNow();
-    if (plan.conflicts.length > 0)
-      throw new Error(
-        `Documents already exist at ${plan.conflicts.join(", ")}. Nothing was moved.`,
-      );
+    if (plan.conflicts.length > 0) throw migrationConflictError(plan.conflicts);
     // Persist before moving, so every caller resumes rather than recreating old source documents.
     await this.ports.saveLocation({
       dayNotesFolder: from,

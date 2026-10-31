@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BLOCKS, blockHeight, layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
+import { blockHeight, layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
+import { HARVEST_BLOCKS as BLOCKS } from "@/lib/scene/constants";
 import { focusSession } from "./helpers/sessions";
 import type { Revision } from "@/lib/timer/types";
 

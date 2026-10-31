@@ -1,10 +1,16 @@
 import { ItemView, type WorkspaceLeaf } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
 import { App } from "@/components/app/App";
-import type { SolanumHost } from "@/types/host";
+import type { Screen, SolanumHost } from "@/types/host";
 
 export const VIEW_TYPE_SOLANUM = "solanum-timer";
 export const VIEW_TYPE_HARVEST = "solanum-harvest";
+
+/** How Obsidian presents each screen's view. */
+const SCREEN_VIEWS: Record<Screen, { type: string; title: string; icon: string }> = {
+  timer: { type: VIEW_TYPE_SOLANUM, title: "Solanum", icon: "timer" },
+  harvest: { type: VIEW_TYPE_HARVEST, title: "Solanum Harvest", icon: "sprout" },
+};
 
 export class SolanumView extends ItemView {
   private root: Root | null = null;
@@ -12,21 +18,21 @@ export class SolanumView extends ItemView {
   constructor(
     leaf: WorkspaceLeaf,
     private host: SolanumHost,
-    private screen: "timer" | "harvest",
+    private screen: Screen,
   ) {
     super(leaf);
   }
 
   getViewType(): string {
-    return this.screen === "timer" ? VIEW_TYPE_SOLANUM : VIEW_TYPE_HARVEST;
+    return SCREEN_VIEWS[this.screen].type;
   }
 
   getDisplayText(): string {
-    return this.screen === "timer" ? "Solanum" : "Solanum Harvest";
+    return SCREEN_VIEWS[this.screen].title;
   }
 
   getIcon(): string {
-    return this.screen === "timer" ? "timer" : "sprout";
+    return SCREEN_VIEWS[this.screen].icon;
   }
 
   async onOpen(): Promise<void> {

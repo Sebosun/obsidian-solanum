@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { assetReader, loadAsset } from "./helpers/glb";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import {
   AmbientLight,
@@ -26,11 +26,7 @@ vi.mock("@/hooks/useModel", () => ({
 }));
 
 beforeAll(async () => {
-  const bytes = readFileSync("assets/stage/Farm_platform.glb");
-  platform.model = await new GLTFLoader().parseAsync(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-    "",
-  );
+  platform.model = await loadAsset("stage/Farm_platform.glb");
 });
 
 async function mount(season: SeasonId, animate = true) {
@@ -65,15 +61,13 @@ describe("seasonal scenery in the real scene graph", () => {
     }
   });
 
-  it("adds a visible sun and its warm light only in summer", async () => {
-    const summer = await mount("summer");
-    expect(names(summer)).toEqual(expect.arrayContaining(["season-glow-light", "season-halo"]));
-    await summer.unmount();
-    for (const season of ["winter", "spring", "autumn"] as const) {
-      const other = await mount(season);
-      expect(names(other)).not.toContain("season-glow-light");
-      expect(names(other)).not.toContain("season-halo");
-      await other.unmount();
+  it("draws no sun in any season: it is only the light", async () => {
+    for (const season of Object.keys(SEASON_THEMES) as SeasonId[]) {
+      const renderer = await mount(season);
+      expect(names(renderer)).not.toContain("season-glow-light");
+      expect(names(renderer)).not.toContain("season-halo");
+      expect(renderer.scene.findAll((node) => node.instance.type === "PointLight")).toHaveLength(0);
+      await renderer.unmount();
     }
   });
 
@@ -123,10 +117,7 @@ describe("seasonal scenery in the real scene graph", () => {
   });
 
   it("reads the shipped GLB once through the shared vault-binary repository", async () => {
-    const read = vi.fn(async (path: string) => {
-      const bytes = readFileSync(`assets/${path}`);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    });
+    const read = vi.fn(assetReader);
     const repository = new CropAssets(read);
     const first = repository.loadModel("stage/Farm_platform.glb");
     expect(repository.loadModel("stage/Farm_platform.glb")).toBe(first);

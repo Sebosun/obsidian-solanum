@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
+import type { GLTF } from "three/addons/loaders/GLTFLoader.js";
+import { loadAsset } from "./helpers/glb";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import { Box3, Mesh, MeshBasicMaterial, type Object3D } from "three";
 import { HarvestBlockMesh, plantSize } from "@/components/models/HarvestBlockMesh";
@@ -16,11 +16,7 @@ vi.mock("@/hooks/useModel", () => ({
   },
 }));
 beforeAll(async () => {
-  const bytes = readFileSync("assets/stage/Farm_platform.glb");
-  platform.model = await new GLTFLoader().parseAsync(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-    "",
-  );
+  platform.model = await loadAsset("stage/Farm_platform.glb");
 });
 
 vi.mock("@/components/models/Plant", () => ({

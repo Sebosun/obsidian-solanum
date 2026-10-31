@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { settle } from "./helpers";
 
 /** How many pixels differ between two screenshots by more than `tolerance` (out of 255). */
 async function changedPixels(page: Page, a: Buffer, b: Buffer, tolerance: number) {
@@ -50,7 +51,7 @@ async function expectFrame(page: Page, progressName: string) {
 
 test("the new baked platform loads through the vault binary adapter, without resource URLs", async ({
   page,
-}) => {
+}, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/assets/stage/**", (route) => route.abort());
@@ -60,23 +61,25 @@ test("the new baked platform loads through the vault binary adapter, without res
   await page.goto("/?view=timer&season=summer");
   expect((await platform).ok()).toBe(true);
   await expect(page.locator(".solanum-scene canvas")).toBeVisible();
-  await page.waitForTimeout(1000);
+  await settle(page);
   expect(errors).toEqual([]);
-  await page.screenshot({ path: "/tmp/opencode/solanum-farm-platform.png" });
+  await page.screenshot({ path: testInfo.outputPath("farm-platform.png") });
 });
 
-test("the clock stays readable in a narrow immersive scene", async ({ page }) => {
+test("the clock stays readable in a narrow immersive scene", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 240, height: 800 });
   await page.goto("/?view=timer");
   await expect(page.getByRole("timer")).toHaveText("25:00");
   await page.getByRole("button", { name: "Start focus" }).click();
   await expect(page.getByRole("navigation")).toHaveCount(0);
   await expect(page.locator(".solanum-scene canvas")).toBeVisible();
-  await page.waitForTimeout(300);
-  await page.screenshot({ path: "/tmp/opencode/solanum-timer.png" });
+  await settle(page);
+  await page.screenshot({ path: testInfo.outputPath("timer.png") });
 });
 
-test("a light, reduced-motion sidebar keeps keyboard controls accessible", async ({ page }) => {
+test("a light, reduced-motion sidebar keeps keyboard controls accessible", async ({
+  page,
+}, testInfo) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?view=timer");
   await page.addStyleTag({
@@ -90,7 +93,7 @@ test("a light, reduced-motion sidebar keeps keyboard controls accessible", async
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-  await page.screenshot({ path: "/tmp/opencode/solanum-timer-light.png" });
+  await page.screenshot({ path: testInfo.outputPath("timer-light.png") });
 });
 
 for (const season of ["winter", "spring", "summer", "autumn"] as const) {
@@ -99,7 +102,7 @@ for (const season of ["winter", "spring", "summer", "autumn"] as const) {
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`/?view=timer&season=${season}`);
     await expect(page.locator(`.solanum-scene.is-${season} canvas`)).toBeVisible();
-    await page.waitForTimeout(1200);
+    await settle(page);
     expect(errors).toEqual([]);
   });
 }
@@ -109,12 +112,12 @@ test("changing the crop animates inside the same canvas without errors", async (
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/?view=timer");
   const canvas = await page.locator(".solanum-scene canvas").elementHandle();
-  await page.waitForTimeout(1500);
+  await settle(page);
   for (const crop of ["Carrot", "Corn", "Pumpkin", "Tomato"]) {
     await page.getByRole("radio", { name: crop }).click();
-    await page.waitForTimeout(150);
+    await expect(page.getByRole("radio", { name: crop })).toHaveAttribute("aria-checked", "true");
   }
-  await page.waitForTimeout(1000);
+  await settle(page);
   expect(await canvas?.evaluate((element) => element.isConnected)).toBe(true);
   await expect(page.getByRole("radio", { name: "Tomato" })).toHaveAttribute("aria-checked", "true");
   expect(errors).toEqual([]);
@@ -139,6 +142,7 @@ test("loading a crop for the first time never flashes a placeholder icon", async
     const until = Date.now() + ms;
     while (Date.now() < until) {
       expect(await placeholderShown()).toBe(false);
+      // Sampling interval: the placeholder must never appear, which is only observable by looking repeatedly.
       await page.waitForTimeout(50);
     }
   };
@@ -169,12 +173,12 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
       ),
     ),
   ).toBe(false);
-  await page.waitForTimeout(1500);
+  await settle(page);
   const first = await scene.screenshot();
-  await page.waitForTimeout(900);
-  const second = await scene.screenshot();
-  // The steam climbs and the cat breathes, so the picture changes.
-  expect(await changedPixels(page, first, second, 12)).toBeGreaterThan(20);
+  // The steam climbs and the cat breathes, so the picture changes; poll until it has.
+  await expect
+    .poll(async () => changedPixels(page, first, await scene.screenshot(), 12), { timeout: 10_000 })
+    .toBeGreaterThan(20);
   // The break fills the view, like the focus; Escape brings back its controls: pause or skip.
   await expect(page.getByRole("button", { name: "Skip break" })).toHaveCount(0);
   await page.keyboard.press("Escape");
@@ -191,8 +195,9 @@ test("under reduced motion the break holds still", async ({ page }) => {
   });
   const scene = page.getByRole("img", { name: "A cat sleeping beside a cup of coffee" });
   await expect(scene).toBeVisible();
-  await page.waitForTimeout(1500);
+  await settle(page);
   const first = await scene.screenshot();
+  // Nothing animating is a claim about a stretch of time: this is the observation window.
   await page.waitForTimeout(1200);
   const second = await scene.screenshot();
   // Only the light dimming a hair as the break's sun moves: nothing animates.

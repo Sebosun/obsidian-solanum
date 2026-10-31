@@ -1,27 +1,22 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { HarvestYearScene } from "@/components/scenes/HarvestYearScene";
 import { AppStoreProvider } from "@/components/app/AppStoreProvider";
 import { getAppStore, releaseAppStore } from "@/state/appStore";
-import { TimerService } from "@/lib/timer/TimerService";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
 import { adjacentBed } from "@/lib/harvest/navigation";
 import { layoutYearStacks, summarizeYear } from "@/lib/harvest/year";
+import { emptyTimer } from "./helpers/timerEnvironment";
+import { canvasStub, resetCanvasStub } from "./helpers/fiberStub";
 import { focusSession } from "./helpers/sessions";
 import type { SolanumHost } from "@/types/host";
 
-const canvas = vi.hoisted(() => ({ mode: "ready" as "ready" | "failing" }));
-vi.mock("@react-three/fiber", () => ({
-  Canvas: () => {
-    if (canvas.mode === "failing") throw new Error("WebGL context unavailable");
-    return <div role="img" aria-label="Loaded crates" />;
-  },
-}));
+vi.mock("@react-three/fiber", async () => (await import("./helpers/fiberStub")).fiberStub());
 
+beforeEach(() => resetCanvasStub("ready", "Loaded crates"));
 afterEach(() => {
   cleanup();
-  canvas.mode = "ready";
 });
 
 const NOW = new Date(2027, 0, 1).getTime();
@@ -34,10 +29,7 @@ const months = summarizeYear(
 const layout = layoutYearStacks(months);
 
 function mount() {
-  const timer = new TimerService(
-    { readAll: async () => [], append: async () => {} },
-    { now: Date.now, id: () => "unused" },
-  );
+  const timer = emptyTimer();
   const host: SolanumHost = {
     timer,
     settings: DEFAULT_SETTINGS,
@@ -50,6 +42,7 @@ function mount() {
     openSettings: vi.fn(),
     navigate: vi.fn(),
     assetUrl: (name) => name,
+    readAsset: async () => new ArrayBuffer(0),
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
   };
@@ -64,7 +57,7 @@ function mount() {
 
 describe("year scene", () => {
   it("falls back to a readable month list that still opens a month", () => {
-    canvas.mode = "failing";
+    canvasStub.mode = "failing";
     vi.spyOn(console, "error").mockImplementation(() => {});
     const { onOpenMonth, release } = mount();
     expect(screen.getByText("Farm unavailable")).toBeTruthy();

@@ -1,4 +1,5 @@
 import { Setting } from "obsidian";
+import { MAX_DURATION_MINUTES, MIN_DURATION_MINUTES } from "@/lib/timer/limits";
 import { DEFAULT_PRESETS, effectiveDefaultMinutes, parsePresets } from "@/lib/timer/presets";
 import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsContext";
 
@@ -38,12 +39,13 @@ export function displayTimerSettings(context: SettingsContext): void {
 
   new Setting(containerEl)
     .setName("Break duration")
-    .setDesc("Minutes, from 1 to 1440.")
+    .setDesc(`Minutes, from ${MIN_DURATION_MINUTES} to ${MAX_DURATION_MINUTES}.`)
     .addText((control) => {
       control.setValue(String(host.settings.breakMinutes));
       control.onChange(async function changeBreak(value) {
         const minutes = Number(value);
-        if (!Number.isFinite(minutes) || minutes < 1 || minutes > 1440) return;
+        if (!Number.isFinite(minutes)) return;
+        if (minutes < MIN_DURATION_MINUTES || minutes > MAX_DURATION_MINUTES) return;
         await context.save({ breakMinutes: minutes });
       });
     });

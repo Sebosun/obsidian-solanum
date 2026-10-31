@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { settle } from "./helpers";
 
 async function expectBlocksLoaded(page: Page) {
   await expect(page.getByRole("status", { name: "Loading harvest" })).toBeHidden({
@@ -14,11 +15,13 @@ test("a populated month finishes loading real GLBs in the real renderer", async 
   await page.goto("/");
   await expectBlocksLoaded(page);
   await expect(page.getByRole("region", { name: "Month summary" })).toBeVisible();
-  await page.waitForTimeout(1500);
+  await settle(page);
   expect(errors).toEqual([]);
 });
 
-test("the month reuses one baked platform asset for the entire harvest grid", async ({ page }) => {
+test("the month reuses one baked platform asset for the entire harvest grid", async ({
+  page,
+}, testInfo) => {
   let platformReads = 0;
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
@@ -27,9 +30,9 @@ test("the month reuses one baked platform asset for the entire harvest grid", as
   });
   await page.goto("/");
   await expectBlocksLoaded(page);
-  await page.waitForTimeout(1500);
+  await settle(page);
   expect(platformReads).toBe(1);
-  await page.screenshot({ path: "/tmp/opencode/solanum-month-platforms.png" });
+  await page.screenshot({ path: testInfo.outputPath("month-platforms.png") });
   await page.getByRole("button", { name: "Year", exact: true }).click();
   await expectBlocksLoaded(page);
   await page.getByRole("button", { name: "Month", exact: true }).click();

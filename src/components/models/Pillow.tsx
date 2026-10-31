@@ -1,9 +1,9 @@
-import { useEffect, useMemo, type MutableRefObject, type ReactNode } from "react";
-import { useBakedDimming } from "@/hooks/useBakedDimming";
+import { useMemo, type MutableRefObject, type ReactNode } from "react";
 import { useModel } from "@/hooks/useModel";
 import { floorAtCentre, prepareBaked } from "@/lib/models/baked";
 import { BREAK_SCENE } from "@/lib/scene/constants";
 import type { SunState } from "@/lib/scene/sunClock";
+import { useBakedModel } from "@/components/models/useBakedModel";
 
 interface PillowProps {
   /** The sun as animated frame by frame; the baked pillow dims as the light fades. */
@@ -21,13 +21,7 @@ export function Pillow({ daylightRef, children }: PillowProps) {
     // Where the dish bottoms out, in the scene's units: the pillow stands on the ground at y=0.
     return { ...prepared, floor: floorAtCentre(prepared.object) * prepared.factor };
   }, [scene, width]);
-  useEffect(
-    () => () => {
-      pillow.materials.forEach((material) => material.dispose());
-    },
-    [pillow],
-  );
-  useBakedDimming(pillow.materials, daylightRef);
+  useBakedModel(pillow, daylightRef);
   return (
     <group
       name="pillow"

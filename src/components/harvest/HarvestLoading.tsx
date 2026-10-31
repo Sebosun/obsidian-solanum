@@ -8,13 +8,15 @@ interface HarvestLoadingProps {
 
 /** How long loading may take before a spinner is drawn at all. */
 const SPINNER_DELAY_MS = 700;
+/** How long a harvest may load before giving up and offering a retry. */
+const GIVE_UP_MS = 8000;
 
 export function HarvestLoading({ onRetry }: HarvestLoadingProps) {
   const labelId = useId();
   const [expired, setExpired] = useState(false);
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
-    const timeout = window.setTimeout(() => setExpired(true), 8000);
+    const timeout = window.setTimeout(() => setExpired(true), GIVE_UP_MS);
     // A load that is over in a blink should not flash a spinner.
     const delay = window.setTimeout(() => setDrawn(true), SPINNER_DELAY_MS);
     return () => {

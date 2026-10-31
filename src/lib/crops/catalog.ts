@@ -10,6 +10,9 @@ export const CROPS = {
 
 export type CropId = keyof typeof CROPS;
 
+/** Every crop, in catalog order. `Object.keys` loses the key type, so it is restored here once. */
+export const CROP_IDS = Object.keys(CROPS) as CropId[];
+
 /**
  * The picked fruit or vegetable, separate from the mature plant used by the timer.
  * Older crops without a dedicated produce asset still use their mature model.

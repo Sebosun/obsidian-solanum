@@ -25,10 +25,13 @@ export function AppContent({ screen, initialMonth }: AppContentProps) {
   let className =
     "solanum-app sol:mx-auto sol:max-w-[560px] sol:px-4 sol:pt-3 sol:pb-5 sol:text-(--text-normal)";
   if (focus.immersive) className = "solanum-app solanum-focus-mode";
+  // A phase that fills the view hides everything but the scene.
+  const chrome = !focus.immersive;
+  const debugEnabled = services.debug?.config.enabled;
 
   return (
     <main className={className}>
-      {!focus.immersive && (
+      {chrome && (
         <div className="solanum-toolbar">
           <ViewTabs screen={screen} onNavigate={services.navigate} />
           <div className="solanum-toolbar-actions">
@@ -58,11 +61,10 @@ export function AppContent({ screen, initialMonth }: AppContentProps) {
           </div>
         </div>
       )}
-      {!focus.immersive && error && <ErrorNotice message={error} onDismiss={clearError} />}
-      {!focus.immersive && <SyncConflicts />}
+      {chrome && error && <ErrorNotice message={error} onDismiss={clearError} />}
+      {chrome && <SyncConflicts />}
       {content}
-      {!focus.immersive && services.debug?.config.enabled && <DebugPanel />}
-      {focus.immersive && services.debug?.config.enabled && <DebugShortcut />}
+      {debugEnabled && (focus.immersive ? <DebugShortcut /> : <DebugPanel />)}
     </main>
   );
 }

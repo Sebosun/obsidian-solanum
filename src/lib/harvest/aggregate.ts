@@ -1,4 +1,10 @@
+import { intervalEnd } from "@/lib/timer/selectors";
+import { MS_PER_MINUTE, startOfDay, startOfNextDay } from "@/lib/time";
 import type { Revision } from "@/lib/timer/types";
+
+/** A day's crops grow by its focused time: one per this many minutes, up to the cap. */
+const MINUTES_PER_DAY_CROP = 25;
+const MAX_DAY_CROPS = 9;
 
 export interface HarvestFilter {
   tag?: string;
@@ -18,9 +24,8 @@ export function dailyHarvest(
   filter: HarvestFilter = {},
   now = Date.now(),
 ) {
-  const start = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
-  // Construct local midnight rather than adding 24 hours: DST days can be shorter or longer.
-  const end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
+  const start = startOfDay(day).getTime();
+  const end = startOfNextDay(day).getTime();
   const entries = sessions
     // A crop stopped before it finished never matured, so it earns nothing.
     .filter((s) => s.status !== "cancelled")
@@ -31,12 +36,16 @@ export function dailyHarvest(
     )
     .map((session) => {
       const ms = session.intervals.reduce((total, interval) => {
-        const until = interval.end ?? Math.min(now, session.deadline ?? now);
+        const until = intervalEnd(interval, session, now);
         return total + Math.max(0, Math.min(end, until) - Math.max(start, interval.start));
       }, 0);
-      return { session, minutes: ms / 60_000 };
+      return { session, minutes: ms / MS_PER_MINUTE };
     })
     .filter((entry) => entry.minutes > 0);
   const minutes = entries.reduce((total, entry) => total + entry.minutes, 0);
-  return { minutes, crops: minutes ? Math.min(9, Math.ceil(minutes / 25)) : 0, entries };
+  return {
+    minutes,
+    crops: minutes ? Math.min(MAX_DAY_CROPS, Math.ceil(minutes / MINUTES_PER_DAY_CROP)) : 0,
+    entries,
+  };
 }

@@ -5,20 +5,23 @@
   blender --background --python scripts/build-garden-crops.py -- apple
 
 Each family is built sequentially and saved before anything is connected to the app.
-Uses the same deterministic vertex-light baker and GLB encoder as the farm plot.
+Uses the same deterministic vertex-light baker and GLB encoder as the farm plot (blender_common.py).
 No Cycles rendering, texture baking, external art, or generated textures are needed.
 """
 
 import math
 import sys
 from pathlib import Path
-from types import ModuleType
 
 import bpy
 from mathutils import Vector
 
+sys.dont_write_bytecode = True  # keep scripts/ free of __pycache__
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import blender_common as common  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / 'assets/crops/garden'
+OUTPUT = common.output_path(ROOT / 'assets/crops/garden')
 PALETTE = {
     'stem': '559637', 'stem_light': '78b63f',
     'leaf': '4caa3f', 'leaf_light': '88c946', 'leaf_dark': '348439',
@@ -32,18 +35,16 @@ PALETTE = {
 }
 
 
-def load_baker():
-    path = ROOT / 'scripts/build-farm-platform.py'
-    module = ModuleType('solanum_garden_baker')
-    module.__file__ = str(path)
-    exec(compile(path.read_text(), str(path), 'exec'), module.__dict__)
-    module.PALETTE = PALETTE
-    return module
-
-
 class CropArt:
     def __init__(self):
-        self.baker = load_baker()
+        self.triangles = []
+        self.base_colours = []
+
+    def polygon(self, points, colour):
+        base = common.linear(PALETTE[colour])
+        for i in range(1, len(points) - 1):
+            self.triangles.append(tuple(Vector(p) for p in (points[0], points[i], points[i + 1])))
+            self.base_colours.append(base)
 
     def face(self, points, colour, transform=None, upward=False):
         points = [Vector(p) for p in points]
@@ -57,7 +58,7 @@ class CropArt:
         for i in range(1,len(points)-1):
             triangle=[points[0],points[i],points[i+1]]
             if (triangle[1]-triangle[0]).cross(triangle[2]-triangle[0]).length_squared>1e-12:
-                self.baker.polygon(triangle,colour)
+                self.polygon(triangle,colour)
 
     def tube(self, path, radii, colour='stem', sides=6, transform=None):
         path = [Vector(p) for p in path]
@@ -178,8 +179,8 @@ class CropArt:
         self.tube([(0,0,length*.91),(.015,0,length*1.06)],[radius*.10,radius*.025],'tassel',4,frame)
 
     def ground(self):
-        bottom=min(p.z for face in self.baker.TRIANGLES for p in face)
-        for face in self.baker.TRIANGLES:
+        bottom=min(p.z for face in self.triangles for p in face)
+        for face in self.triangles:
             for point in face:
                 point.z-=bottom
 
@@ -274,15 +275,15 @@ def model(family,stage):
     else:
         {'tomato':tomato_stage,'corn':corn_stage,'apple':apple_stage}[family](art,stage)
     art.ground()
-    colours=art.baker.bake()
+    colours=common.bake(art.triangles,art.base_colours)
     name=f'{family.title()}_{stage}'
-    encoded=art.baker.glb(colours,name=name,label=name,generator='Solanum Blender garden crops builder',material_name=f'{family.title()} • baked colour')
+    encoded=common.glb(art.triangles,colours,name=name,label=name,generator='Solanum Blender garden crops builder',material_name=f'{family.title()} • baked colour')
     return art,colours,encoded
 
 
 def review_model(scene,art,colours,name,offset):
     data=bpy.data.meshes.new(name)
-    data.from_pydata([tuple(p) for face in art.baker.TRIANGLES for p in face],[],[tuple(range(i,i+3)) for i in range(0,len(colours),3)])
+    data.from_pydata([tuple(p) for face in art.triangles for p in face],[],[tuple(range(i,i+3)) for i in range(0,len(colours),3)])
     attr=data.color_attributes.new(name='BakedLight',type=next(i.identifier for i in bpy.types.Attribute.bl_rna.properties['data_type'].enum_items if i.identifier=='FLOAT_COLOR'),domain=next(i.identifier for i in bpy.types.Attribute.bl_rna.properties['domain'].enum_items if i.identifier=='CORNER'))
     for entry,c in zip(attr.data,colours):entry.color=(*c,1)
     material=bpy.data.materials.new(f'{name} • baked');material.use_nodes=True
@@ -308,9 +309,9 @@ def build_family(family,review=True):
         name=f'{family.title()}_{stage}'
         path=OUTPUT/f'{name}.glb';path.write_bytes(encoded)
         if scene:review_model(scene,art,colours,name,(i-2)*1.55)
-        stats.append({'model':name,'triangles':len(art.baker.TRIANGLES),'bytes':len(encoded)})
+        stats.append({'model':name,'triangles':len(art.triangles),'bytes':len(encoded)})
     if scene:
-        art.baker.add_lights(scene)
+        common.add_lights(scene,(common.KEY_LIGHT,common.FILL_LIGHT))
         camera_data=bpy.data.cameras.new(f'{family.title()} lifecycle review')
         camera_data.type=next(i.identifier for i in camera_data.bl_rna.properties['type'].enum_items if i.identifier=='ORTHO')
         camera_data.ortho_scale=8.5

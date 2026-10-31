@@ -1,9 +1,9 @@
 import { ensureFolder } from "@/lib/storage/ensureFolder";
-import { EXPORT_FOLDER, buildExport, canonical, parseExport } from "@/lib/storage/exchange";
+import { EXPORT_FOLDER, buildExport, canonical, type ImportResult } from "@/lib/storage/exchange";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { TimerService } from "@/lib/timer/TimerService";
 import type { Revision, SessionStore } from "@/lib/timer/types";
-import type { DocumentWriteResult } from "@/lib/notes/DayNoteWriter";
+import { dayKey } from "@/lib/harvest/model";
 
 export interface ImportOptions {
   createDocuments?: boolean;
@@ -12,23 +12,11 @@ export interface ImportOptions {
 
 export interface ExportResult {
   path: string;
+  /** Revisions written; a session that was paused or resumed has several. */
   count: number;
+  /** Distinct sessions those revisions belong to. */
+  sessions: number;
 }
-
-export interface ImportResult {
-  documents?: DocumentWriteResult;
-  added: number;
-  /** Revisions the vault already held, byte-for-byte equal in content. */
-  duplicates: number;
-  /** Ids that exist locally with different content; the local copy was kept. */
-  conflicts: string[];
-  /** Entries that were not valid revisions. */
-  invalid: number;
-  /** Simulated or demo revisions, which never join real history. */
-  synthetic: number;
-}
-
-const pad = (value: number) => String(value).padStart(2, "0");
 
 /** Moves the full revision history in and out of a single portable JSON file. */
 export class SessionExchange {
@@ -44,16 +32,11 @@ export class SessionExchange {
     await ensureFolder(this.adapter, EXPORT_FOLDER);
     const path = await this.freePath();
     await this.adapter.write(path, JSON.stringify(bundle, null, 2));
-    return { path, count: bundle.sessions.length };
+    const sessions = new Set(bundle.sessions.map((revision) => revision.sessionId)).size;
+    return { path, count: bundle.sessions.length, sessions };
   }
 
-  /** Adds revisions we do not have. Divergent copies of one session stay as a sync conflict. */
-  async import(text: string): Promise<ImportResult> {
-    const parsed = parseExport(text);
-    return this.importRevisions(parsed.revisions, parsed.invalid);
-  }
-
-  /** The shared way revisions join the history, whatever file they came from. */
+  /** The shared way revisions join the history, whatever file they came from. Divergent copies of one session stay as a sync conflict. */
   importRevisions(
     revisions: Revision[],
     invalid = 0,
@@ -94,8 +77,7 @@ export class SessionExchange {
   }
 
   private async freePath(): Promise<string> {
-    const date = new Date(this.now());
-    const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const stamp = dayKey(new Date(this.now()));
     let path = `${EXPORT_FOLDER}/solanum-sessions-${stamp}.json`;
     for (let attempt = 2; await this.adapter.exists(path); attempt += 1)
       path = `${EXPORT_FOLDER}/solanum-sessions-${stamp}-${attempt}.json`;

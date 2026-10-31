@@ -4,6 +4,7 @@ import type { Group } from "three";
 import type { CropId } from "@/lib/crops/catalog";
 import { preparePlant } from "@/lib/crops/geometry";
 import { clonePlantMaterials } from "@/lib/crops/materials";
+import { GROWTH_MOTION } from "@/lib/scene/constants";
 import type { GrowthTransition } from "@/lib/scene/GrowthTransition";
 import { useCropModel } from "@/hooks/useCropModel";
 
@@ -28,7 +29,7 @@ export function GrowthLayer({ crop, stage, transition }: GrowthLayerProps) {
   useFrame(({ clock }) => {
     if (!group.current) return;
     const layer = transition.sample(clock.elapsedTime).find((item) => item.stage === stage);
-    group.current.visible = !!layer && layer.opacity > 0.001;
+    group.current.visible = !!layer && layer.opacity > GROWTH_MOTION.visibleOpacity;
     if (!layer) return;
     group.current.scale.setScalar(plant.factor * layer.scale);
     for (const material of plant.materials) {

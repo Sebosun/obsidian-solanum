@@ -83,4 +83,28 @@ describe("one calendar-document system for every caller", () => {
     expect([...disk.files.keys()]).toEqual(["Solanum/2026/10/2026-10-31.md"]);
     expect(location().dayNotesMigrationRoot).toBe(null);
   });
+
+  it("reports where the documents stand, so callers never read the layout themselves", async () => {
+    const { disk, service, location } = await fixture();
+    expect(service.migrationState()).toBe("legacy");
+    disk.failWrites.add("Solanum/2026/10/2026-10-31.md");
+    await service.writeDays([SESSION], [DAY], NOW);
+    expect(service.migrationState()).toBe("interrupted");
+    disk.failWrites.clear();
+    await service.write([SESSION], DAY, NOW);
+    expect(service.migrationState()).toBe("settled");
+    expect(location().dayNotesLayout).toBe("calendar");
+  });
+
+  it("refuses to move documents onto ones that already exist, naming them", async () => {
+    const { disk, service } = await fixture();
+    await disk.mkdir("Solanum/2026");
+    await disk.mkdir("Solanum/2026/10");
+    disk.files.set("Solanum/2026/10/2026-10-31.md", "someone else's");
+    const result = await service.writeDays([SESSION], [DAY], NOW);
+    expect(result.failures[0].reason).toBe(
+      "Documents already exist at Solanum/2026/10/2026-10-31.md. Nothing was moved.",
+    );
+    expect(disk.files.get("Solanum/days/2026-10-31.md")).toBe(ORIGINAL);
+  });
 });

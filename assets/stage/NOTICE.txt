@@ -4,7 +4,8 @@ Shared by the crop scene and monthly harvest, loaded through the vault binary ad
 
 Rebuild with Blender 5.2:
   blender --background --python scripts/build-farm-platform.py
-The script rebuilds the GLB byte for byte. It can also be run through Blender MCP
+The script rebuilds the GLB byte for byte (checked with Blender 5.2.2 by
+tests/blender-models.test.ts, which is skipped on a machine without Blender). It can also be run through Blender MCP
 to create a separate review scene without replacing the user's existing scenes.
 
 A chamfered rectangular farm plot: 132 triangles, one mesh, one unlit material.

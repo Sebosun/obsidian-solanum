@@ -1,22 +1,16 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Box3, Group, Mesh, MeshBasicMaterial, Vector3 } from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CROPS, isCropId, produceModel } from "@/lib/crops/catalog";
 import { CropAssets } from "@/lib/crops/CropAssets";
 import { preparePlant, prepareProduce } from "@/lib/crops/geometry";
 import { clonePlantMaterials } from "@/lib/crops/materials";
 import { VaultSessionStore } from "@/lib/storage/VaultSessionStore";
 import { TimerService } from "@/lib/timer/TimerService";
+import { assetReader, loadAsset } from "./helpers/glb";
 import { MemoryDisk } from "./helpers/memoryDisk";
 
 const families = ["tomato", "corn", "apple"] as const;
-const reader = async (filename: string) => {
-  const bytes = readFileSync(`assets/${filename}`);
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-};
-const load = (name: string) =>
-  reader(`crops/garden/${name}.glb`).then((bytes) => new GLTFLoader().parseAsync(bytes, ""));
+const load = (name: string) => loadAsset(`crops/garden/${name}.glb`);
 const size = (object: Group) => new Box3().setFromObject(object).getSize(new Vector3());
 
 describe("the Blender-grown crops and their picked produce", () => {
@@ -59,7 +53,7 @@ describe("the Blender-grown crops and their picked produce", () => {
   it.each(families)(
     "%s loads its picked produce through the same offline cache and sizes it independently",
     async (family) => {
-      const assets = new CropAssets(reader);
+      const assets = new CropAssets(assetReader);
       const first = assets.loadProduce(family);
       expect(assets.loadProduce(family)).toBe(first);
       const { scene } = await first;

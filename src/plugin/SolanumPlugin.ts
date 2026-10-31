@@ -2,36 +2,32 @@ import { Notice, Plugin, TFile, type App, type TAbstractFile } from "obsidian";
 import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "@/views/SolanumView";
 import { TimerService } from "@/lib/timer/TimerService";
 import { VaultSessionStore } from "@/lib/storage/VaultSessionStore";
-import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+import { parseSessionFolder } from "@/lib/storage/folder";
 import type { DayNoteMigrationPlan } from "@/lib/notes/migration";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
-import {
-  buildForestRevisions,
-  matchNote,
-  parseForestCsv,
-  type ForestImportResult,
-  type ForestMapping,
-} from "@/lib/import/forest";
-import { describeDocumentTotals, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
-import { DayNoteService } from "@/lib/notes/DayNoteService";
-import { parseExport } from "@/lib/storage/exchange";
-import type { ImportOptions } from "@/lib/storage/SessionExchange";
-import type { Revision } from "@/lib/timer/types";
-import { daysTouched } from "@/lib/notes/days";
-import { dayKey } from "@/lib/harvest/model";
-import type { CompletionPhase } from "@/types/host";
-import type { SettingsServices, SolanumHost } from "@/types/host";
+import type { ForestImportResult, ForestMapping } from "@/lib/import/forest";
+import { describeDocumentTotals, type DayNoteTotals } from "@/lib/notes/documentReport";
+import { DayNoteService, type DayNoteMigrationState } from "@/lib/notes/DayNoteService";
+import type { ImportResult } from "@/lib/storage/exchange";
 import {
   SessionExchange,
   type ExportResult,
-  type ImportResult,
+  type ImportOptions,
 } from "@/lib/storage/SessionExchange";
-import { CompletionAudio } from "@/lib/audio/CompletionAudio";
-import { SoundLibrary } from "@/lib/audio/SoundLibrary";
+import { dayKey } from "@/lib/harvest/model";
+import { errorMessage } from "@/lib/text";
+import { MS_PER_SECOND } from "@/lib/time";
+import type { CompletionPhase, Screen, SettingsServices, SolanumHost } from "@/types/host";
 import { DEBUG_CONFIG } from "@/lib/debug/config";
 import { DebugTools } from "@/lib/debug/DebugTools";
+import { CompletionSounds } from "@/plugin/CompletionSounds";
+import { ImportTracker } from "@/plugin/ImportTracker";
+import { LiveDayNotes } from "@/plugin/LiveDayNotes";
+import { openSidebar } from "@/plugin/openSidebar";
+import { SessionTransfer } from "@/plugin/SessionTransfer";
+import { SYNC_POLL_MS, VaultSync } from "@/plugin/VaultSync";
 import { VaultNoteIndex } from "@/plugin/VaultNoteIndex";
 import { SolanumSettingsTab } from "@/plugin/SolanumSettingsTab";
 import {
@@ -41,8 +37,12 @@ import {
   updateSeason,
 } from "@/state/appStore";
 
-const DAY_NOTE_DEBOUNCE_MS = 1_500;
-const AUTO_DAY_NOTE_MAX_DAYS = 14;
+/** The timer is checked this often for an expired phase. */
+const HEARTBEAT_MS = MS_PER_SECOND;
+/** How long a background failure stays on screen. */
+const ERROR_NOTICE_MS = 10_000;
+/** Gives the browser a moment to start audio after the gesture that unlocked it. */
+const SOUND_PREVIEW_DELAY_MS = 100;
 
 interface SettingsController {
   open(): void;
@@ -56,11 +56,11 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   timer!: TimerService;
   debug?: DebugTools;
   settings: Settings = { ...DEFAULT_SETTINGS };
-  private audio = new CompletionAudio();
-  private sounds!: SoundLibrary;
+  private sounds!: CompletionSounds;
   private heartbeat: number | null = null;
   private syncPoll: number | null = null;
-  private syncDebounce: number | null = null;
+  private sync: VaultSync | null = null;
+  private liveDayNotes: LiveDayNotes | null = null;
   private stopped = false;
   private lastError = "";
   private noteIndex!: VaultNoteIndex;
@@ -68,18 +68,14 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   private folders!: SessionFolderManager;
   private exchange!: SessionExchange;
   private dayNotes!: DayNoteService;
-  private seenRevisions = new Map<string, string>();
-  private pendingDays = new Map<string, Date>();
-  private dayNoteTimer: number | null = null;
-  private unsubscribeDayNotes: (() => void) | null = null;
-  private importingSessions = new Map<string, number>();
+  private imports = new ImportTracker();
+  private transfer!: SessionTransfer;
 
   async onload(): Promise<void> {
     this.stopped = false;
     this.noteIndex = new VaultNoteIndex(this.app.vault, this.app.metadataCache);
     this.settings = readSettings(await this.loadData());
-    this.sounds = new SoundLibrary(
-      this.audio,
+    this.sounds = new CompletionSounds(
       (path) => this.app.vault.adapter.readBinary(path),
       (path, reason) => new Notice(`Solanum: ${path}: ${reason} Using the built-in chime.`),
     );
@@ -99,7 +95,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
             ? "Solanum: your crop is ready! Time for a break."
             : "Solanum: break finished. Ready to plant again?",
         );
-        void this.playCompletion(phase);
+        void this.sounds.play(phase, this.settings);
       },
     });
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
@@ -116,18 +112,49 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
         await this.app.fileManager.renameFile(file, target);
       },
     });
+    this.transfer = new SessionTransfer({
+      exchange: this.exchange,
+      dayNotes: this.dayNotes,
+      imports: this.imports,
+      notes: () => this.noteIndex.notes(),
+      breakMinutes: () => this.settings.breakMinutes,
+      writableSessions: () => this.writableSessions(),
+      now: Date.now,
+    });
     await this.background(() => this.timer.refresh());
-    // Existing history is the baseline: notes follow changes, they are not backfilled at startup.
-    for (const session of this.timer.getState().sessions)
-      this.seenRevisions.set(session.sessionId, session.id);
-    this.unsubscribeDayNotes = this.timer.subscribe(this.onSessionsChanged);
+    this.liveDayNotes = new LiveDayNotes({
+      timer: this.timer,
+      enabled: () => this.settings.dayNotes && !this.stopped,
+      isImporting: (sessionId) => this.imports.isImporting(sessionId),
+      now: Date.now,
+      write: (days) => this.writeLiveDayNotes(days),
+    });
+    this.liveDayNotes.start();
     this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this, "timer"));
     this.registerView(VIEW_TYPE_HARVEST, (leaf) => new SolanumView(leaf, this, "harvest"));
+    this.registerCommands();
+    this.watchVault();
+    this.app.workspace.onLayoutReady(() => {
+      if (!this.stopped)
+        void this.background(() => openSidebar(this.app.workspace, "timer", false));
+    });
+  }
 
+  onunload(): void {
+    this.stopped = true;
+    if (this.heartbeat !== null) window.clearInterval(this.heartbeat);
+    if (this.syncPoll !== null) window.clearInterval(this.syncPoll);
+    this.sync?.dispose();
+    this.liveDayNotes?.dispose();
+    this.sounds.close();
+    releaseAppStore(this.timer);
+    // Never cancel or pause persisted crops when the plugin / Obsidian closes.
+  }
+
+  private registerCommands(): void {
     this.addRibbonIcon("timer", "Open Solanum", () => {
       this.navigate("timer");
     });
-
     this.addCommand({
       id: "open-sidebar",
       name: "Open timer sidebar",
@@ -135,7 +162,6 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
         this.navigate("timer");
       },
     });
-
     this.addCommand({
       id: "open-today-note",
       name: "Open today's document",
@@ -154,25 +180,22 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
       name: "Open harvest calendar",
       callback: () => this.navigate("harvest"),
     });
+  }
 
-    const onSync = (file: TAbstractFile) => {
+  /** Follows the vault and the clock: file events, renames, the timer's heartbeat, and sync polling. */
+  private watchVault(): void {
+    this.sync = new VaultSync({
+      folders: () => this.store.watchedFolders(),
+      refresh: () => void this.background(() => this.timer.refresh()),
+    });
+    const onFileChange = (file: TAbstractFile) => {
       this.noteIndex.invalidate();
       this.sounds.invalidate(file.path);
-      if (
-        ![this.store.folder, DEBUG_SESSION_FOLDER].some((folder) =>
-          file.path.startsWith(`${folder}/`),
-        ) ||
-        this.stopped
-      )
-        return;
-      if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
-      this.syncDebounce = window.setTimeout(() => {
-        void this.background(() => this.timer.refresh());
-      }, 500);
+      this.sync?.onVaultChange(file.path);
     };
-    this.registerEvent(this.app.vault.on("create", onSync));
-    this.registerEvent(this.app.vault.on("modify", onSync));
-    this.registerEvent(this.app.vault.on("delete", onSync));
+    this.registerEvent(this.app.vault.on("create", onFileChange));
+    this.registerEvent(this.app.vault.on("modify", onFileChange));
+    this.registerEvent(this.app.vault.on("delete", onFileChange));
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => {
         this.noteIndex.invalidate();
@@ -188,29 +211,12 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
         await this.timer.tick();
         await this.debug?.tick();
       });
-    }, 1000);
-    // Adapter writes / some sync providers do not immediately emit vault events.
+    }, HEARTBEAT_MS);
     this.syncPoll = window.setInterval(() => {
       void this.background(() => this.timer.refresh());
-    }, 15_000);
+    }, SYNC_POLL_MS);
     this.registerInterval(this.heartbeat);
     this.registerInterval(this.syncPoll);
-
-    this.app.workspace.onLayoutReady(() => {
-      if (!this.stopped) void this.background(() => this.openSidebar("timer", false));
-    });
-  }
-
-  onunload(): void {
-    this.stopped = true;
-    if (this.heartbeat !== null) window.clearInterval(this.heartbeat);
-    if (this.syncPoll !== null) window.clearInterval(this.syncPoll);
-    if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
-    if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
-    this.unsubscribeDayNotes?.();
-    this.audio.close();
-    releaseAppStore(this.timer);
-    // Never cancel or pause persisted crops when the plugin / Obsidian closes.
   }
 
   private async background(action: () => Promise<unknown>) {
@@ -219,9 +225,9 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
       await action();
       this.lastError = "";
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
+      const message = errorMessage(error);
       if (message !== this.lastError) {
-        new Notice(`Solanum: ${message}`, 10_000);
+        new Notice(`Solanum: ${message}`, ERROR_NOTICE_MS);
         this.lastError = message;
       }
       console.error("Solanum", error);
@@ -234,17 +240,16 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   }
 
   private async persist(next: Settings): Promise<void> {
-    const previousMinutes = this.settings.defaultMinutes;
-    const previous = this.settings;
     await this.saveData(next);
+    this.applySettings(next);
+  }
+
+  /** Makes `next` the live settings, wherever they came from, and tells whatever follows them. */
+  private applySettings(next: Settings): void {
+    const previous = this.settings;
     this.settings = next;
-    for (const key of ["focusSound", "breakSound"] as const) {
-      if (next[key] === previous[key]) continue;
-      if (previous[key]) this.sounds.invalidate(previous[key]);
-      // Decode now so a bad file is reported while the user is still in settings.
-      if (next[key]) void this.sounds.load(next[key]);
-    }
-    if (next.defaultMinutes !== previousMinutes)
+    this.sounds.settingsChanged(previous, next);
+    if (next.defaultMinutes !== previous.defaultMinutes)
       updateDefaultMinutes(this.timer, next.defaultMinutes);
     updateSeason(this.timer, next.season);
     updatePresets(this.timer, next.presets, next.defaultMinutes);
@@ -259,32 +264,11 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     return result;
   };
 
-  private onSessionsChanged = () => {
-    const { sessions } = this.timer.getState();
-    const changed = sessions.filter(
-      (session) =>
-        session.source === undefined &&
-        this.seenRevisions.get(session.sessionId) !== session.id &&
-        !this.importingSessions.has(session.sessionId),
-    );
-    for (const session of sessions) this.seenRevisions.set(session.sessionId, session.id);
-    if (!this.settings.dayNotes || this.stopped || changed.length === 0) return;
-    const touched = daysTouched(changed, Date.now());
-    // Bound unsolicited sync backfills. Explicit imports write all their dates separately.
-    if (touched.length > AUTO_DAY_NOTE_MAX_DAYS) return;
-    for (const day of touched) this.pendingDays.set(dayKey(day), day);
-    if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
-    this.dayNoteTimer = window.setTimeout(this.flushDayNotes, DAY_NOTE_DEBOUNCE_MS);
-  };
-
-  private flushDayNotes = () => {
-    const days = [...this.pendingDays.values()];
-    this.pendingDays.clear();
-    this.dayNoteTimer = null;
+  private writeLiveDayNotes(days: Date[]): void {
     void this.background(async () => {
       for (const day of days) await this.dayNotes.write(this.writableSessions(), day, Date.now());
     });
-  };
+  }
 
   /** Sessions with an unresolved sync conflict have no single truth to write down yet. */
   private writableSessions() {
@@ -308,71 +292,16 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     this.dayNotes.writeAll(this.writableSessions(), Date.now());
 
   planDayNoteMigration = (): Promise<DayNoteMigrationPlan> => this.dayNotes.planMigration();
+  dayNoteMigrationState = (): DayNoteMigrationState => this.dayNotes.migrationState();
 
   exportSessions = (): Promise<ExportResult> => this.exchange.export();
-  importSessions = async (text: string, options: ImportOptions = {}): Promise<ImportResult> => {
-    const parsed = parseExport(text);
-    return this.importWithDocuments(parsed.revisions, parsed.invalid, options);
-  };
-
-  private async importWithDocuments(
-    revisions: Revision[],
-    invalid: number,
-    options: ImportOptions,
-  ): Promise<ImportResult> {
-    const ids = new Set(
-      revisions
-        .filter((revision) => revision.source === undefined)
-        .map((revision) => revision.sessionId),
-    );
-    for (const id of ids) this.importingSessions.set(id, (this.importingSessions.get(id) ?? 0) + 1);
-    let result: ImportResult;
-    try {
-      result = await this.exchange.importRevisions(revisions, invalid);
-    } finally {
-      for (const id of ids) {
-        const remaining = (this.importingSessions.get(id) ?? 1) - 1;
-        if (remaining === 0) this.importingSessions.delete(id);
-        else this.importingSessions.set(id, remaining);
-      }
-    }
-    if (options.createDocuments === false || ids.size === 0) return result;
-    const sessions = this.writableSessions();
-    const now = Date.now();
-    result.documents = await this.dayNotes.writeDays(
-      sessions,
-      daysTouched(
-        sessions.filter((session) => ids.has(session.sessionId)),
-        now,
-      ),
-      now,
-      options.onDocumentProgress,
-    );
-    return result;
-  }
-
-  importForest = async (
+  importSessions = (text: string, options?: ImportOptions): Promise<ImportResult> =>
+    this.transfer.importSessions(text, options);
+  importForest = (
     csv: string,
     mapping: ForestMapping,
-    options: ImportOptions = {},
-  ): Promise<ForestImportResult> => {
-    const parse = parseForestCsv(csv);
-    const notes = this.noteIndex.notes();
-    const built = buildForestRevisions(parse.entries, mapping, {
-      breakMs: this.settings.breakMinutes * 60_000,
-      resolveNote: (text) => matchNote(text, notes),
-    });
-    const imported = await this.importWithDocuments(built.revisions, 0, {
-      ...options,
-      createDocuments: options.createDocuments ?? mapping.createDocuments,
-    });
-    return {
-      imported,
-      failed: built.failed,
-      invalidRows: parse.problems.length,
-      notesDropped: built.notesDropped,
-    };
-  };
+    options?: ImportOptions,
+  ): Promise<ForestImportResult> => this.transfer.importForest(csv, mapping, options);
 
   private valid(folder: string): string {
     const parsed = parseSessionFolder(folder);
@@ -383,12 +312,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   /** Another device changed our synced settings; follow its folder so every device agrees. */
   async onExternalSettingsChange(): Promise<void> {
     const next = readSettings(await this.loadData());
-    const previousMinutes = this.settings.defaultMinutes;
-    this.settings = next;
-    if (next.defaultMinutes !== previousMinutes)
-      updateDefaultMinutes(this.timer, next.defaultMinutes);
-    updateSeason(this.timer, next.season);
-    updatePresets(this.timer, next.presets, next.defaultMinutes);
+    this.applySettings(next);
     if (next.sessionFolder === this.folders.folder) return;
     await this.background(async () => {
       const result = await this.folders.relocate(next.sessionFolder);
@@ -417,35 +341,15 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     this.app.vault.adapter.getResourcePath(`${this.manifest.dir}/assets/${name}`);
   readAsset = (name: string): Promise<ArrayBuffer> =>
     this.app.vault.adapter.readBinary(`${this.manifest.dir}/assets/${name}`);
-  navigate = (screen: "timer" | "harvest") => {
-    void this.background(() => this.openSidebar(screen, true));
+  navigate = (screen: Screen) => {
+    void this.background(() => openSidebar(this.app.workspace, screen, true));
   };
-  unlockAudio = () => this.audio.unlock();
+  unlockAudio = () => this.sounds.unlock();
   previewSound = (phase: CompletionPhase = "focus") => {
-    this.audio.unlock();
-    window.setTimeout(() => void this.playCompletion(phase, true), 100);
+    this.sounds.unlock();
+    window.setTimeout(
+      () => void this.sounds.play(phase, this.settings, true),
+      SOUND_PREVIEW_DELAY_MS,
+    );
   };
-
-  private async playCompletion(phase: CompletionPhase, preview = false): Promise<void> {
-    if (!this.settings.sound && !preview) return;
-    const path = phase === "focus" ? this.settings.focusSound : this.settings.breakSound;
-    const clip = path ? await this.sounds.load(path) : null;
-    this.audio.play(this.settings.volume, clip);
-  }
-
-  private async openSidebar(screen: "timer" | "harvest", reveal: boolean): Promise<void> {
-    const { workspace } = this.app;
-    const type = screen === "timer" ? VIEW_TYPE_SOLANUM : VIEW_TYPE_HARVEST;
-    let leaf = workspace.getLeavesOfType(type)[0];
-
-    if (!leaf) {
-      const rightLeaf = workspace.getRightLeaf(true);
-      if (!rightLeaf) return;
-
-      await rightLeaf.setViewState({ type, active: true });
-      leaf = rightLeaf;
-    }
-
-    if (reveal) await workspace.revealLeaf(leaf);
-  }
 }

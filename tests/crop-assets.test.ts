@@ -1,13 +1,10 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import { CropAssets } from "@/lib/crops/CropAssets";
+import { assetReader } from "./helpers/glb";
 
 describe("vault binary crop loading", () => {
   it("shares one parse per model and retries failed vault reads", async () => {
-    const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/${filename}`);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    });
+    const read = vi.fn(assetReader);
     const repository = new CropAssets(read);
     const first = repository.load("corn", 4);
     expect(repository.load("corn", 4)).toBe(first);
@@ -21,10 +18,7 @@ describe("vault binary crop loading", () => {
   });
 
   it("has a crop ready only once every stage, and its produce, have loaded", async () => {
-    const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/${filename}`);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    });
+    const read = vi.fn(assetReader);
     const repository = new CropAssets(read);
     await repository.ready("coconut");
     expect(read.mock.calls.map(([name]) => name).sort()).toEqual([
@@ -43,10 +37,7 @@ describe("vault binary crop loading", () => {
   });
 
   it("loads any model by its path under the assets folder, shared like the crops", async () => {
-    const read = vi.fn(async (filename: string) => {
-      const bytes = readFileSync(`assets/${filename}`);
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    });
+    const read = vi.fn(assetReader);
     const repository = new CropAssets(read);
     const first = repository.loadModel("break/Cat_sleeping.glb");
     expect(repository.loadModel("break/Cat_sleeping.glb")).toBe(first);

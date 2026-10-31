@@ -2,10 +2,12 @@ import type { TimerService } from "@/lib/timer/TimerService";
 import type { DebugTools } from "@/lib/debug/DebugTools";
 import type { Settings } from "@/lib/settings";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
-import type { DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import type { DayNoteTotals } from "@/lib/notes/documentReport";
+import type { DayNoteMigrationState } from "@/lib/notes/DayNoteService";
 import type { DayNoteMigrationPlan } from "@/lib/notes/migration";
 import type { ForestImportResult, ForestMapping } from "@/lib/import/forest";
-import type { ExportResult, ImportOptions, ImportResult } from "@/lib/storage/SessionExchange";
+import type { ImportResult } from "@/lib/storage/exchange";
+import type { ExportResult, ImportOptions } from "@/lib/storage/SessionExchange";
 
 export type CompletionPhase = "focus" | "break";
 export type Screen = "timer" | "harvest";
@@ -24,7 +26,8 @@ export interface SolanumHost {
   openNote(path: string): void;
   /** A model by its path under the plugin's `assets` folder, such as `crops/Tomato_1.glb`. */
   assetUrl(name: string): string;
-  readAsset?(name: string): Promise<ArrayBuffer>;
+  /** Reads a bundled asset through the vault adapter, the portable way to load a model. */
+  readAsset(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;
   unlockAudio(): void;
   /** Plays the completion sound for a phase, as it would sound when that phase ends. */
@@ -56,6 +59,8 @@ export interface SessionExchangePort {
 export interface DayNotesPort {
   writeAllDayNotes(): Promise<DayNoteTotals>;
   planDayNoteMigration(): Promise<DayNoteMigrationPlan>;
+  /** Whether documents are in the calendar layout, still to be moved there, or mid-move. */
+  dayNoteMigrationState(): DayNoteMigrationState;
 }
 
 /** Everything the settings tab can ask the plugin to do beyond saving preferences. */

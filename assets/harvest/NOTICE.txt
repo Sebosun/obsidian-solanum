@@ -5,7 +5,8 @@ Used by the harvest/year overview. Crates are not crops or produce.
 Rebuild with Blender 5.2:
   blender --background --python scripts/build-harvest-crate.py
 This uses the deterministic vertex-light baker and GLB encoder in
-scripts/build-farm-platform.py. The script rebuilds the GLB byte for byte.
+scripts/blender_common.py. The script rebuilds the GLB byte for byte (checked with Blender
+5.2.2 by tests/blender-models.test.ts, which is skipped on a machine without Blender).
 
 An empty, open wooden produce crate: chunky slats and corner posts, simple handle
 cutouts, and one-segment bevels. No lid, fruit, nails, or fine grain detail.

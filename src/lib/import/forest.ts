@@ -1,8 +1,10 @@
-import { CROPS, type CropId } from "@/lib/crops/catalog";
-import type { ImportResult } from "@/lib/storage/SessionExchange";
+import { CROP_IDS, type CropId } from "@/lib/crops/catalog";
+import type { ImportResult } from "@/lib/storage/exchange";
 import { normalizeTags } from "@/lib/timer/selectors";
 import type { Revision } from "@/lib/timer/types";
-import { describeDocuments } from "@/lib/notes/DayNoteWriter";
+import { describeDocuments } from "@/lib/notes/documentReport";
+import { plural } from "@/lib/text";
+import { MS_PER_MINUTE } from "@/lib/time";
 
 export interface ForestEntry {
   start: number;
@@ -67,8 +69,6 @@ const FOREST_TIME =
   /^\w{3} (\w{3}) (\d{1,2}) (\d{2}):(\d{2}):(\d{2}) GMT([+-])(\d{2}):(\d{2}) (\d{4})$/;
 const NOT_FOREST =
   "This does not look like a Forest export (expected Start Time and End Time columns).";
-const CROP_IDS = Object.keys(CROPS) as CropId[];
-const MINUTE_MS = 60_000;
 
 /** "Wed Jul 28 12:53:32 GMT+02:00 2021" as a timestamp, honouring the offset in the text. */
 export function parseForestDate(text: string): number | null {
@@ -83,7 +83,7 @@ export function parseForestDate(text: string): number | null {
   const check = new Date(utc);
   if (check.getUTCMonth() !== month || check.getUTCDate() !== day) return null;
   const offset =
-    (Number(match[7]) * 60 + Number(match[8])) * MINUTE_MS * (match[6] === "-" ? -1 : 1);
+    (Number(match[7]) * 60 + Number(match[8])) * MS_PER_MINUTE * (match[6] === "-" ? -1 : 1);
   return utc - offset;
 }
 
@@ -267,8 +267,6 @@ export function buildForestRevisions(
   }
   return { revisions, failed, notesDropped };
 }
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
 
 export function summarizeForestImport(result: ForestImportResult): string {
   const { imported } = result;

@@ -2,21 +2,15 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cropStage } from "@/lib/crops/growth";
 import { CROPS } from "@/lib/crops/catalog";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Box3, Group, Vector3 } from "three";
 import { preparePlant } from "@/lib/crops/geometry";
+import { loadAsset } from "./helpers/glb";
 
 describe("offline crop assets", () => {
   it.each(Object.values(CROPS))(
     "loads and consistently grounds $name growth models with Three.js",
     async (crop) => {
-      const load = async (stage: number) => {
-        const buffer = readFileSync(`assets/crops/${crop.model}_${stage}.glb`);
-        return new GLTFLoader().parseAsync(
-          buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
-          "",
-        );
-      };
+      const load = (stage: number) => loadAsset(`crops/${crop.model}_${stage}.glb`);
       const [young, mature] = await Promise.all([load(1), load(4)]);
       const original = mature.scene.position.clone();
       const normalized = preparePlant(mature.scene, mature.scene);

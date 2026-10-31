@@ -17,7 +17,8 @@ Rebuild with Blender 5.2:
   blender --background --python scripts/build-garden-crops.py -- apple
 
 The authoring script uses the deterministic vertex-light baker and GLB encoder in
-scripts/build-farm-platform.py and rebuilds the files byte for byte. Interactive
+scripts/blender_common.py and rebuilds the files byte for byte (checked with Blender 5.2.2
+by tests/blender-models.test.ts, which is skipped on a machine without Blender). Interactive
 runs create separate Blender lifecycle review scenes without changing other scenes.
 Lighting, soft fill and contact shading are baked into vertex colours. Each GLB
 contains one mesh and one unlit material, with no cameras, lights, or textures.

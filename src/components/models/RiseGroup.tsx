@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
-import { plotEntrance } from "@/lib/scene/motion";
+import { MIN_SCALE, frameStep, plotEntrance } from "@/lib/scene/motion";
 
 interface RiseGroupProps {
   /** Position in the sequence; later groups start a beat after earlier ones. */
@@ -12,9 +12,6 @@ interface RiseGroupProps {
   children: ReactNode;
 }
 
-const MAX_STEP_SECONDS = 0.05;
-const MIN_SCALE = 0.0001;
-
 /** Eases its children into place when it first appears; skipped under reduced motion. */
 export function RiseGroup({ index, reduced, uniform = false, children }: RiseGroupProps) {
   const group = useRef<Group>(null);
@@ -23,7 +20,7 @@ export function RiseGroup({ index, reduced, uniform = false, children }: RiseGro
   const invalidate = useThree((state) => state.invalidate);
   useFrame((_state, delta) => {
     if (settled.current || !group.current) return;
-    age.current += Math.min(delta, MAX_STEP_SECONDS);
+    age.current += frameStep(delta);
     const frame = plotEntrance(age.current, index, reduced);
     const scale = Math.max(MIN_SCALE, frame.scale);
     if (uniform) group.current.scale.setScalar(scale);

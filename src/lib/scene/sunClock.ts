@@ -3,14 +3,7 @@ import { SUN_CLOCK } from "@/lib/scene/constants";
 export interface SunState {
   /** How far through the phase this state is, clamped to 0 to 1. */
   progress: number;
-  /** Position on the arc, in the clock's own plane. */
-  x: number;
-  y: number;
-  /** 1 at the start of the session, a faint ember at the end. */
-  brightness: number;
-  scale: number;
-  color: number;
-  /** The same colour as a CSS hex string. */
+  /** The sun's colour as a CSS hex string: pale gold at dawn, orange as it sets. */
   colorCss: string;
   /** Multipliers for the scene's sun and ambient light. */
   lightFactor: number;
@@ -22,7 +15,6 @@ export interface SunState {
 }
 
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
-const BRIGHTNESS_CURVE = 1.15;
 const LIGHT_CURVE = 1.1;
 const DUSK_CURVE = 1.2;
 const LIGHT_REACH = { x: 2.1, base: 3, height: 2.2, z: 2 };
@@ -50,11 +42,6 @@ export function sunState(progress: number): SunState {
   const color = sunColor(p);
   return {
     progress: p,
-    x,
-    y,
-    brightness: lerp(1, SUN_CLOCK.endBrightness, p ** BRIGHTNESS_CURVE),
-    scale: lerp(1, SUN_CLOCK.endScale, p),
-    color,
     colorCss: `#${color.toString(16).padStart(6, "0")}`,
     lightFactor: lerp(1, SUN_CLOCK.endLight, p ** LIGHT_CURVE),
     ambientFactor: lerp(1, SUN_CLOCK.endAmbient, p),

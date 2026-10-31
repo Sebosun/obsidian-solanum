@@ -3,6 +3,7 @@ import { VaultSessionStore, type FileAdapter } from "@/lib/storage/VaultSessionS
 import { monthDays, dailyHarvest } from "@/lib/harvest/aggregate";
 import { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
+import { wallClock } from "./helpers/timerEnvironment";
 
 class Disk implements FileAdapter {
   files = new Map<string, string>();
@@ -89,10 +90,10 @@ describe("vault-backed integration", () => {
   it("reopens the same files, renames linked notes and preserves immutable history", async () => {
     const f = await fixture();
     await f.service.renameNote("Old.md", "Projects/New.md");
-    const recovered = new TimerService(new VaultSessionStore(f.disk), {
-      now: Date.now,
-      id: () => "other",
-    });
+    const recovered = new TimerService(
+      new VaultSessionStore(f.disk),
+      wallClock(() => "other"),
+    );
     await recovered.refresh();
     expect(recovered.getState().sessions[0].notePath).toBe("Projects/New.md");
     expect(f.disk.files.size).toBeGreaterThan(1);

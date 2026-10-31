@@ -1,16 +1,15 @@
 import type { App } from "obsidian";
-import type { DayNoteMigrationPlan } from "@/lib/notes/migration";
+import { migrationConflictError, type DayNoteMigrationPlan } from "@/lib/notes/migration";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
 
 const MIGRATION_PREVIEW_MAX_PATHS = 10;
 
 /** Confirms physical document moves before an import, without exposing layout modes. */
-export function confirmDocumentOrganization(
+export async function confirmDocumentOrganization(
   app: App,
   plan: DayNoteMigrationPlan,
 ): Promise<boolean> {
-  if (plan.conflicts.length > 0)
-    throw new Error(`Documents already exist at ${plan.conflicts.join(", ")}. Nothing was moved.`);
+  if (plan.conflicts.length > 0) throw migrationConflictError(plan.conflicts);
   const paths = plan.moves
     .slice(0, MIGRATION_PREVIEW_MAX_PATHS)
     .map((move) => `${move.from} → ${move.to}`)

@@ -13,6 +13,8 @@ interface CrateMeshProps {
 }
 
 const CRATE_MODEL = "harvest/Crate.glb";
+/** The wood as baked, and lightened for the stack under the pointer. */
+const REST_BRIGHTNESS = 1;
 const HIGHLIGHT_BRIGHTNESS = 1.16;
 
 /** The Blender-authored open produce crate, shared geometry with instance-private baked wood. */
@@ -29,7 +31,7 @@ export function CrateMesh({ y, height = YEAR_STACKS.crateHeight, highlighted }: 
   useEffect(() => () => crate.materials.forEach((material) => material.dispose()), [crate]);
   useEffect(() => {
     for (const material of crate.materials)
-      material.color.setScalar(highlighted ? HIGHLIGHT_BRIGHTNESS : 1);
+      material.color.setScalar(highlighted ? HIGHLIGHT_BRIGHTNESS : REST_BRIGHTNESS);
   }, [crate, highlighted]);
   return (
     <group

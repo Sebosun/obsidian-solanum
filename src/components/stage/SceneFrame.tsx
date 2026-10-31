@@ -1,9 +1,10 @@
-import { Suspense, useId, useRef, type CSSProperties, type ReactNode } from "react";
+import { Suspense, useId, useRef, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import { SrLabel } from "@/components/app/SrLabel";
 import { ProgressBar } from "@/components/clock/ProgressBar";
 import { TimeHeader } from "@/components/clock/TimeHeader";
 import { SceneBoundary } from "@/components/stage/SceneBoundary";
+import { seasonStyle, type SeasonStyle } from "@/components/stage/seasonStyle";
 import { TimerCamera } from "@/components/stage/TimerCamera";
 import { useOnScreen } from "@/hooks/useOnScreen";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -26,20 +27,8 @@ export interface SceneFrameState {
   clock: SunClock;
 }
 
-interface SeasonStyle extends CSSProperties {
-  "--season-glow": string;
-  "--season-sun": string;
-  "--dusk": number;
-}
-
-interface SceneFrameProps {
-  remaining: number;
-  /** How far through the running phase the clock is, from 0 to 1. */
-  clockProgress: number;
-  /** How fast the clock advances, per second: 0 while paused or waiting. */
-  clockRate: number;
-  season: SeasonId;
-  immersive?: boolean;
+/** What makes a scene's frame its own: its words, its fallback and where its camera looks. */
+export interface SceneFrameLook {
   /** Further classes for the frame, such as `is-mature`. */
   classNames?: string[];
   /** A few words above the time, such as the name of the phase. */
@@ -54,6 +43,16 @@ interface SceneFrameProps {
   resetKey?: unknown;
   /** What the camera keeps in view, when the scene is not the crop's plot. */
   camera?: { bounds?: SceneBounds; center?: number };
+}
+
+interface SceneFrameProps extends SceneFrameLook {
+  remaining: number;
+  /** How far through the running phase the clock is, from 0 to 1. */
+  clockProgress: number;
+  /** How fast the clock advances, per second: 0 while paused or waiting. */
+  clockRate: number;
+  season: SeasonId;
+  immersive?: boolean;
   /** What to draw in the 3D view. */
   children(state: SceneFrameState): ReactNode;
 }
@@ -89,9 +88,8 @@ export function SceneFrame({
   const theme = SEASON_THEMES[season];
   const sun = sunState(clockProgress);
   const animate = visible && !reduced;
-  const style: SeasonStyle = {
-    "--season-glow": theme.css.glow,
-    "--season-sun": theme.css.sun,
+  const style: SeasonStyle & { "--dusk": number } = {
+    ...seasonStyle(theme),
     "--dusk": sun.dusk,
   };
   const classes = ["solanum-scene", `is-${season}`, ...classNames];

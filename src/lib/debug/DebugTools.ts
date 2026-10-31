@@ -2,6 +2,7 @@ import type { TimerService } from "@/lib/timer/TimerService";
 import type { SessionStore } from "@/lib/timer/types";
 import type { DebugConfig } from "@/lib/debug/config";
 import { seedMonth } from "@/lib/debug/seeder";
+import { MS_PER_SECOND } from "@/lib/time";
 
 export class DebugTools {
   constructor(
@@ -26,7 +27,7 @@ export class DebugTools {
       if (
         s.source === "debug" &&
         s.status === "running" &&
-        this.now() - s.updatedAt >= this.config.autoFinishSeconds * 1000 &&
+        this.now() - s.updatedAt >= this.config.autoFinishSeconds * MS_PER_SECOND &&
         !this.timer.getState().conflicts.some((c) => c.sessionId === s.sessionId)
       ) {
         await this.timer.debugFinish(s.sessionId);

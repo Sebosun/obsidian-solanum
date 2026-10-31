@@ -21,9 +21,7 @@ export const TIMER_SCENE = {
 export const SUN_CLOCK = {
   arcRadiusX: 3.8,
   arcRadiusY: 3.6,
-  /** What is left of the sun's strength as time runs out. */
-  endBrightness: 0.08,
-  endScale: 0.72,
+  /** What is left of the sun's light, and of the ambient light, as time runs out. */
   endLight: 0.12,
   endAmbient: 0.42,
   /** Colour of the sun at the start, halfway and at the end. */
@@ -79,15 +77,44 @@ export const GROWTH_MOTION = {
   outgoingScaleChange: 0.02,
   swayRadians: 0.025,
   swaySpeed: 1.3,
+  /** A layer fading below this opacity is hidden outright, not drawn invisibly. */
+  visibleOpacity: 0.001,
   basePosition: [0, -0.55, 0] as [number, number, number],
 } as const;
 
+/**
+ * The one-shot burst when a live crop finishes: the crop lifts and swells a little while a ring
+ * spreads out from its base and fades. Seconds, world units and fractions.
+ */
 export const HARVEST_FLOURISH = {
   durationSeconds: 1.2,
   lift: 0.06,
   scaleChange: 0.035,
   ringExpansion: 0.45,
   ringOpacity: 0.35,
+  /** The ring lies flat on the plot's surface: inner and outer radius, height and segment count. */
+  ring: {
+    innerRadius: 0.82,
+    outerRadius: 0.837,
+    y: -0.525,
+    segments: 48,
+    color: "#a1bb79",
+  },
+} as const;
+
+/** The twelve months of a year: the bed count of the year view and the step of its navigation. */
+export const MONTHS_PER_YEAR = 12;
+
+/** The seed a crop starts from, before the first sprout: a flat bean on the soil. World units. */
+export const GROWTH_SEED = {
+  color: "#e8bb77",
+  radius: 0.09,
+  /** Height of its centre above the soil. */
+  height: 0.07,
+  /** Squashes the sphere into a bean: x, y, z. */
+  squash: [1, 0.55, 0.7] as [number, number, number],
+  widthSegments: 12,
+  heightSegments: 8,
 } as const;
 
 /** Swapping the planted crop: the old one shrinks away, the new one pops in. Seconds and radians. */

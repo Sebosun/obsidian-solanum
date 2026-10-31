@@ -1,6 +1,8 @@
-import { CROPS } from "@/lib/crops/catalog";
+import { CROPS, type CropId } from "@/lib/crops/catalog";
 import { dayKey } from "@/lib/harvest/model";
 import { sessionStatus } from "@/lib/harvest/status";
+import { MS_PER_MINUTE, pad2, startOfDay } from "@/lib/time";
+import { plural } from "@/lib/text";
 import type { Revision } from "@/lib/timer/types";
 
 /** Earlier versions fenced their block with these comments, which Live Preview shows as text. */
@@ -41,17 +43,11 @@ const MONTHS = [
   "December",
 ];
 
-const pad = (value: number) => String(value).padStart(2, "0");
 const clock = (at: number) => {
   const date = new Date(at);
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 };
-const dayStart = (at: number) => {
-  const date = new Date(at);
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-};
-const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`;
+const dayStart = (at: number) => startOfDay(at).getTime();
 const minutesLabel = (minutes: number) => `${Math.round(minutes)} min`;
 const tagText = (tag: string) => `#${tag.replace(/\s+/g, "-")}`;
 const noteLink = (path: string) => `[[${path.replace(/\.md$/, "")}]]`;
@@ -61,11 +57,11 @@ function heading(day: Date): string {
 }
 
 function cropSummary(entries: DayNoteEntry[]): string {
-  const counts = new Map<string, number>();
+  const counts = new Map<CropId, number>();
   for (const { session } of entries) counts.set(session.crop, (counts.get(session.crop) ?? 0) + 1);
   return [...counts]
     .map(([crop, count]) => {
-      const emoji = CROPS[crop as keyof typeof CROPS].emoji;
+      const emoji = CROPS[crop].emoji;
       return count > 1 ? `${emoji} ×${count}` : emoji;
     })
     .join(" ");
@@ -79,7 +75,7 @@ function focusEnd(session: Revision): number | null {
 }
 
 function timeRange(session: Revision, day: Date): string {
-  const today = new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+  const today = dayStart(day.getTime());
   const startedEarlier = dayStart(session.startedAt) < today;
   let range = `${clock(session.startedAt)}${startedEarlier ? " (previous day)" : ""} – `;
   const end = focusEnd(session);
@@ -93,10 +89,10 @@ function sessionSection({ session, minutes }: DayNoteEntry, day: Date): string[]
   const crop = CROPS[session.crop];
   const lines = [
     `### ${clock(session.startedAt)} · ${crop.emoji} ${crop.name}`,
-    `- **Focus:** ${minutesLabel(minutes)} of ${Math.round(session.durationMs / 60_000)} planned`,
+    `- **Focus:** ${minutesLabel(minutes)} of ${Math.round(session.durationMs / MS_PER_MINUTE)} planned`,
     `- **Status:** ${sessionStatus(session)}`,
     `- **Time:** ${timeRange(session, day)}`,
-    `- **Break:** ${minutesLabel(session.breakMs / 60_000)}`,
+    `- **Break:** ${minutesLabel(session.breakMs / MS_PER_MINUTE)}`,
   ];
   const pauses = session.intervals.length - 1;
   if (pauses > 0) lines.push(`- **Pauses:** ${pauses}`);

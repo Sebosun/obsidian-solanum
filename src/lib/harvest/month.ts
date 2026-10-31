@@ -1,9 +1,8 @@
 import { dailyHarvest, monthDays, type HarvestFilter } from "@/lib/harvest/aggregate";
-import { CROPS, type CropId } from "@/lib/crops/catalog";
+import { CROP_IDS, type CropId } from "@/lib/crops/catalog";
 import { HARVEST_BLOCKS } from "@/lib/scene/constants";
+import { intervalEnd } from "@/lib/timer/selectors";
 import type { Revision } from "@/lib/timer/types";
-
-export { HARVEST_BLOCKS as BLOCKS };
 
 export interface HarvestBlock {
   key: string;
@@ -42,8 +41,6 @@ interface Credit {
   day: number;
 }
 
-const CROP_IDS = Object.keys(CROPS) as CropId[];
-
 function monthCredits(
   sessions: Revision[],
   month: Date,
@@ -58,14 +55,16 @@ function monthCredits(
   return credits;
 }
 
+/** A crop still growing never shows as fully grown. */
+const MAX_GROWING_PROGRESS = 0.99;
+
 function growthProgress(session: Revision, now: number): number {
   if (session.focusEndedAt !== null) return 1;
   const focused = session.intervals.reduce(
-    (sum, interval) =>
-      sum + Math.max(0, (interval.end ?? Math.min(now, session.deadline ?? now)) - interval.start),
+    (sum, interval) => sum + Math.max(0, intervalEnd(interval, session, now) - interval.start),
     0,
   );
-  return Math.min(0.99, focused / session.durationMs);
+  return Math.min(MAX_GROWING_PROGRESS, focused / session.durationMs);
 }
 
 /** Taller for longer sessions, up to ninety minutes. */

@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { BREAK_SCENE } from "@/lib/scene/constants";
+import { frameStep } from "@/lib/scene/motion";
 import { STILL_STEAM_SECONDS, createSteamMaterial, steamSeeds } from "@/lib/models/steam";
-
-/** Longest simulated step, so a stalled frame cannot skip through the rise. */
-const MAX_STEP_SECONDS = 0.1;
 
 interface SteamProps {
   /** Frozen mid-rise instead of moving. */
@@ -32,7 +30,7 @@ export function Steam({ reduced }: SteamProps) {
     material.uniforms.uPixelsPerUnit.value = camera.zoom * pixelRatio;
     if (reduced) return;
     // A stalled frame must not throw the plume forwards.
-    elapsed.current += Math.min(delta, MAX_STEP_SECONDS);
+    elapsed.current += frameStep(delta);
     material.uniforms.uTime.value = elapsed.current;
   });
   return (

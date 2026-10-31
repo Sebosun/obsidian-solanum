@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import type { CropId } from "@/lib/crops/catalog";
-import { getCropAssets } from "@/state/cropAssets";
-import { useServices } from "@/state/hooks";
+import { useCropAssets } from "@/hooks/useCropAssets";
 
 /**
  * The crop to show: the wanted one once all its models have loaded, and the previous one until
@@ -9,7 +8,7 @@ import { useServices } from "@/state/hooks";
  * fails it still switches, so the scene's own error handling can say so.
  */
 export function useReadyCrop(wanted: CropId): CropId {
-  const assets = getCropAssets(useServices());
+  const assets = useCropAssets();
   const [shown, setShown] = useState(wanted);
   useEffect(() => {
     let current = true;

@@ -3,7 +3,8 @@ import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder
 import type { MovePlan } from "@/lib/storage/migration";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
 import { FolderSuggest } from "@/plugin/FolderSuggest";
-import { addHeading, plural, type SettingsContext } from "@/plugin/settings/SettingsContext";
+import { plural } from "@/lib/text";
+import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsContext";
 
 const FOLDER_HELP = "Vault folder for session files. Changing it moves your existing sessions.";
 

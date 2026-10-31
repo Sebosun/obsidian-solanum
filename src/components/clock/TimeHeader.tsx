@@ -1,8 +1,8 @@
-import type { CSSProperties } from "react";
+import { useRef, type CSSProperties } from "react";
 import { ClockReadout } from "@/components/clock/ClockReadout";
+import { useClockFont } from "@/components/clock/useClockFont";
 import { CLOCK_DIGITS } from "@/lib/scene/constants";
 import { formatTime } from "@/lib/time";
-import fontUrl from "@assets/fonts/bricolage-grotesque-digits.woff2";
 
 interface TimeHeaderProps {
   remaining: number;
@@ -16,19 +16,20 @@ interface HeaderStyle extends CSSProperties {
   "--flip-seconds": string;
 }
 
+/** How solid the digits are: they sit behind the scene, so they stay a little faint. */
+const DIGIT_OPACITY = 0.62;
+
 const STYLE: HeaderStyle = {
-  "--digit-opacity": 0.62,
+  "--digit-opacity": DIGIT_OPACITY,
   "--flip-seconds": `${CLOCK_DIGITS.flip.seconds}s`,
 };
 
-/** The clock's own typeface, bundled into the plugin as a data URL: nothing is fetched. */
-const FONT_FACE = `@font-face{font-family:"Solanum Clock";font-weight:700;font-style:normal;font-display:block;src:url(${fontUrl}) format("woff2")}`;
-
 /** The time left, centred at the top of a view, in fixed-width digits that flip like a flip clock. */
 export function TimeHeader({ remaining, reduced, caption }: TimeHeaderProps) {
+  const header = useRef<HTMLDivElement>(null);
+  useClockFont(header);
   return (
-    <div className="solanum-time-header" aria-hidden="true">
-      <style>{FONT_FACE}</style>
+    <div ref={header} className="solanum-time-header" aria-hidden="true">
       {caption && <p className="solanum-time-caption">{caption}</p>}
       <ClockReadout text={formatTime(remaining)} reduced={reduced} style={STYLE} />
     </div>

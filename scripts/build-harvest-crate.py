@@ -2,34 +2,30 @@
 
   blender --background --python scripts/build-harvest-crate.py
 
-Uses the platform's deterministic vertex-light baker and GLB encoder. No Cycles
+Uses the deterministic vertex-light baker and GLB encoder in blender_common.py. No Cycles
 render, texture bake, external art, or changes to the application are needed.
 Each interactive run creates its own review scene and leaves existing scenes alone.
 """
 
+import sys
 from pathlib import Path
-from types import ModuleType
 
 import bpy
 import bmesh
 from mathutils import Vector
 
+sys.dont_write_bytecode = True  # keep scripts/ free of __pycache__
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import blender_common as common  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-OUTPUT = ROOT / "assets/harvest/Crate.glb"
+OUTPUT = common.output_path(ROOT / "assets/harvest/Crate.glb")
 
 
-def load_baker():
-    path = ROOT / "scripts/build-farm-platform.py"
-    baker = ModuleType("solanum_asset_baker")
-    baker.__file__ = str(path)
-    exec(compile(path.read_text(), str(path), 'exec'), baker.__dict__)
-    baker.KEY_LIGHT = {**baker.KEY_LIGHT, 'name': 'Crate • warm key'}
-    baker.FILL_LIGHT = {**baker.FILL_LIGHT, 'name': 'Crate • soft fill'}
-    return baker
-
-
-def enum(owner, property_name, value):
-    return next(i.identifier for i in owner.bl_rna.properties[property_name].enum_items if i.identifier == value)
+KEY_LIGHT = {**common.KEY_LIGHT, 'name': 'Crate • warm key'}
+FILL_LIGHT = {**common.FILL_LIGHT, 'name': 'Crate • soft fill'}
+TRIANGLES = []
+BASE_COLOURS = []
 
 
 def board(scene, name, centre, size, material, bevel=0):
@@ -54,12 +50,12 @@ def board(scene, name, centre, size, material, bevel=0):
     return obj
 
 
-def build(scene, baker):
+def build(scene):
     def wood(name, hex_colour):
         material = bpy.data.materials.new(name)
         material.use_nodes = True
         shader = next(n for n in material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
-        shader.inputs['Base Color'].default_value = (*baker.linear(hex_colour), 1)
+        shader.inputs['Base Color'].default_value = (*common.linear(hex_colour), 1)
         shader.inputs['Roughness'].default_value = 1
         return material
 
@@ -95,24 +91,24 @@ def build(scene, baker):
     return parts
 
 
-def bake_parts(parts, baker):
+def bake_parts(parts):
     for obj in parts:
         obj.data.calc_loop_triangles()
         shader = next(n for n in obj.data.materials[0].node_tree.nodes if n.type == 'BSDF_PRINCIPLED')
         base = tuple(shader.inputs['Base Color'].default_value[:3])
         for face in obj.data.loop_triangles:
-            baker.TRIANGLES.append(tuple(obj.matrix_world @ obj.data.vertices[i].co for i in face.vertices))
-            baker.BASE_COLOURS.append(base)
-    return baker.bake()
+            TRIANGLES.append(tuple(obj.matrix_world @ obj.data.vertices[i].co for i in face.vertices))
+            BASE_COLOURS.append(base)
+    return common.bake(TRIANGLES, BASE_COLOURS, KEY_LIGHT, FILL_LIGHT)
 
 
-def baked_mesh(scene, baker, colours):
+def baked_mesh(scene, colours):
     data = bpy.data.meshes.new('Harvest crate • low poly')
-    data.from_pydata([tuple(p) for face in baker.TRIANGLES for p in face], [], [tuple(range(i,i+3)) for i in range(0,len(colours),3)])
+    data.from_pydata([tuple(p) for face in TRIANGLES for p in face], [], [tuple(range(i,i+3)) for i in range(0,len(colours),3)])
     attribute = data.color_attributes.new(
         name='BakedLight',
-        type=enum(bpy.types.Attribute, 'data_type', 'FLOAT_COLOR'),
-        domain=enum(bpy.types.Attribute, 'domain', 'CORNER'),
+        type='FLOAT_COLOR',
+        domain='CORNER',
     )
     for entry, colour in zip(attribute.data, colours):
         entry.color = (*colour, 1)
@@ -132,12 +128,12 @@ def baked_mesh(scene, baker, colours):
     return obj
 
 
-def review(scene, obj, baker):
+def review(scene, obj):
     if bpy.context.window is None:
         return
-    baker.add_lights(scene)
+    common.add_lights(scene, (KEY_LIGHT, FILL_LIGHT))
     camera_data = bpy.data.cameras.new('Crate review')
-    camera_data.type = enum(camera_data, 'type', 'ORTHO')
+    camera_data.type = 'ORTHO'
     camera_data.ortho_scale = 2.65
     camera = bpy.data.objects.new('Crate review', camera_data)
     scene.collection.objects.link(camera)
@@ -156,28 +152,34 @@ def review(scene, obj, baker):
         for area in screen.areas:
             if area.type == 'VIEW_3D':
                 shading = area.spaces.active.shading
-                shading.type = enum(shading, 'type', 'SOLID')
-                shading.color_type = enum(shading, 'color_type', 'VERTEX')
+                shading.type = 'SOLID'
+                shading.color_type = 'VERTEX'
 
 
 def main():
-    baker = load_baker()
     scene = bpy.data.scenes.new('Solanum • Baked harvest crate')
     if bpy.context.window is not None:
         bpy.context.window.scene = scene
     # Use an override in headless Blender too; no existing scene is modified.
     with bpy.context.temp_override(scene=scene, view_layer=scene.view_layers[0]):
-        parts = build(scene, baker)
-        colours = bake_parts(parts, baker)
-        encoded = baker.glb(colours, name='Harvest_crate', label='Harvest crate', generator='Solanum Blender harvest crate builder', material_name='Baked crate wood')
+        parts = build(scene)
+        colours = bake_parts(parts)
+        encoded = common.glb(
+            TRIANGLES,
+            colours,
+            name='Harvest_crate',
+            label='Harvest crate',
+            generator='Solanum Blender harvest crate builder',
+            material_name='Baked crate wood',
+        )
         OUTPUT.parent.mkdir(parents=True, exist_ok=True)
         OUTPUT.write_bytes(encoded)
-        obj = baked_mesh(scene, baker, colours)
+        obj = baked_mesh(scene, colours)
         # Remove only the construction boards just created by this run.
         for part in parts:
             bpy.data.objects.remove(part, do_unlink=True)
-        review(scene, obj, baker)
-    print({'asset': str(OUTPUT), 'triangles': len(baker.TRIANGLES), 'bytes': len(encoded), 'floor_top': .08, 'dimensions': [1.9,1.5,.6], 'contents': 'empty', 'render_jobs_started': 0})
+        review(scene, obj)
+    print({'asset': str(OUTPUT), 'triangles': len(TRIANGLES), 'bytes': len(encoded), 'floor_top': .08, 'dimensions': [1.9,1.5,.6], 'contents': 'empty', 'render_jobs_started': 0})
 
 
 if __name__ == '__main__':

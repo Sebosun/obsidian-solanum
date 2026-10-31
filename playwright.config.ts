@@ -11,6 +11,6 @@ export default defineConfig({
   webServer: {
     command: "node tests/browser/server.mjs",
     url: "http://127.0.0.1:45173",
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
   },
 });

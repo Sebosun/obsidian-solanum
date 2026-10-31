@@ -10,10 +10,6 @@ for (const path of [".env", ...(!production ? [".env.development"] : []), ".env.
   if (existsSync(path)) Object.assign(env, parse(readFileSync(path)));
 }
 Object.assign(env, process.env);
-const debug = !production && env.SOLANUM_DEBUG === "true";
-const seconds = Number(env.SOLANUM_AUTO_FINISH_SECONDS ?? 0);
-const autoFinishSeconds =
-  debug && Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600 ? seconds : 0;
 
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
@@ -26,8 +22,10 @@ const context = await esbuild.context({
   sourcemap: production ? false : "inline",
   minify: production,
   define: {
-    __SOLANUM_DEBUG__: JSON.stringify(debug),
-    __SOLANUM_AUTO_FINISH_SECONDS__: JSON.stringify(autoFinishSeconds),
+    // Raw inputs only: src/lib/debug/config.ts decides, so the production gate is tested code.
+    __SOLANUM_DEBUG__: JSON.stringify(env.SOLANUM_DEBUG ?? ""),
+    __SOLANUM_AUTO_FINISH_SECONDS__: JSON.stringify(env.SOLANUM_AUTO_FINISH_SECONDS ?? ""),
+    __SOLANUM_PRODUCTION__: JSON.stringify(production),
     "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development"),
   },
   loader: { ".woff2": "dataurl" },

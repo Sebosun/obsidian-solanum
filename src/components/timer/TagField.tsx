@@ -1,27 +1,26 @@
-import { useId, useState, type ChangeEvent, type KeyboardEvent } from "react";
+import type { ChangeEvent, KeyboardEvent, MouseEvent } from "react";
 import { normalizeTags } from "@/lib/timer/selectors";
-import { cleanTag, nextIndex, tagSuggestions } from "@/lib/timer/suggestions";
+import { knownTags, tagsToAdd } from "@/lib/timer/knownTags";
+import { cleanTag, tagSuggestions } from "@/lib/timer/suggestions";
 import { useAppStore, useServices } from "@/state/hooks";
-import { SuggestionList, suggestionId } from "@/components/ui/SuggestionList";
+import { CloseIcon } from "@/components/ui/CloseIcon";
+import { SuggestionList } from "@/components/ui/SuggestionList";
+import { useCombobox } from "@/components/ui/useCombobox";
 
 export function TagField() {
   const host = useServices();
   const chosen = useAppStore((state) => state.draft.tags);
   const sessions = useAppStore((state) => state.sessions);
   const updateDraft = useAppStore((state) => state.updateDraft);
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(-1);
-  const listId = useId();
-  const inputId = useId();
-  const known = [...new Set([...host.tags(), ...sessions.flatMap((session) => session.tags)])];
+  const known = knownTags(host.tags(), sessions);
   const activeNote = host.activeNote();
   // Only what the note has that is not already chosen is worth offering.
-  const fromNote = activeNote
-    ? normalizeTags(host.noteTags(activeNote)).filter((tag) => !chosen.includes(tag))
-    : [];
-  const available = tagSuggestions(known, chosen, query);
-  const items = open ? available : [];
+  const fromNote = activeNote ? tagsToAdd(host.noteTags(activeNote), chosen) : [];
+
+  function suggest(query: string) {
+    return tagSuggestions(known, chosen, query);
+  }
+  const combo = useCombobox(suggest);
 
   function addTags(tags: string[]) {
     updateDraft({ tags: normalizeTags([...chosen, ...tags]) });
@@ -30,57 +29,46 @@ export function TagField() {
     addTags(fromNote);
   }
   function commitQuery() {
-    if (cleanTag(query)) addTags([query]);
-    setQuery("");
-    setActive(-1);
-    setOpen(false);
+    if (cleanTag(combo.query)) addTags([combo.query]);
+    combo.reset();
   }
   function changeQuery(event: ChangeEvent<HTMLInputElement>) {
     const parts = event.target.value.split(/[\s,]+/);
     const finished = parts.slice(0, -1).filter((part) => cleanTag(part));
     if (finished.length > 0) addTags(finished);
-    setQuery(parts[parts.length - 1]);
-    setActive(-1);
-    setOpen(true);
+    combo.type(parts[parts.length - 1]);
   }
   function pick(tag: string) {
     addTags([tag]);
-    setQuery("");
-    setActive(-1);
-    setOpen(false);
+    combo.reset();
   }
   function removeTag(tag: string) {
     updateDraft({ tags: chosen.filter((item) => item !== tag) });
   }
+  function removeClickedTag(event: MouseEvent<HTMLButtonElement>) {
+    const tag = event.currentTarget.dataset.tag;
+    if (tag !== undefined) removeTag(tag);
+  }
   function handleKey(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    if (combo.handleListKey(event)) return;
+    if (event.key === "Enter" || event.key === "Tab") {
+      if (event.key === "Tab" && !cleanTag(combo.query) && combo.active < 0) return;
       event.preventDefault();
-      setOpen(true);
-      setActive(nextIndex(active, event.key === "ArrowDown" ? 1 : -1, available.length));
-    } else if (event.key === "Enter" || event.key === "Tab") {
-      if (event.key === "Tab" && !cleanTag(query) && active < 0) return;
-      event.preventDefault();
-      if (open && active >= 0 && items[active]) pick(items[active].value);
+      const target = combo.items[combo.active];
+      if (combo.open && combo.active >= 0 && target) pick(target.value);
       else commitQuery();
-    } else if (event.key === "Backspace" && query === "" && chosen.length > 0) {
+    } else if (event.key === "Backspace" && combo.query === "" && chosen.length > 0) {
       removeTag(chosen[chosen.length - 1]);
-    } else if (event.key === "Escape" && open) {
-      event.stopPropagation();
-      setOpen(false);
     }
   }
   function handleBlur() {
     commitQuery();
-    setOpen(false);
-  }
-  function openList() {
-    setOpen(true);
   }
 
   return (
     <div className="solanum-field solanum-combo">
       <div className="solanum-field-header">
-        <label htmlFor={inputId}>Tags</label>
+        <label htmlFor={combo.inputId}>Tags</label>
         {fromNote.length > 0 && (
           <button type="button" className="solanum-subtle" onClick={addFromNote}>
             Add active note's tags
@@ -91,33 +79,31 @@ export function TagField() {
         {chosen.map((tag) => (
           <span className="solanum-chip" key={tag}>
             {tag}
-            <button type="button" aria-label={`Remove ${tag}`} onClick={() => removeTag(tag)}>
-              <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true">
-                <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
+            <button
+              type="button"
+              aria-label={`Remove ${tag}`}
+              data-tag={tag}
+              onClick={removeClickedTag}
+            >
+              <CloseIcon size={8} />
             </button>
           </span>
         ))}
         <input
-          id={inputId}
-          role="combobox"
-          aria-label="Tags"
-          aria-expanded={items.length > 0}
-          aria-controls={listId}
-          aria-activedescendant={suggestionId(listId, active)}
-          aria-autocomplete="list"
-          autoComplete="off"
-          value={query}
+          {...combo.inputProps}
           placeholder={chosen.length === 0 ? "Add tags" : ""}
           onChange={changeQuery}
           onKeyDown={handleKey}
-          onFocus={openList}
-          onClick={openList}
           onBlur={handleBlur}
         />
       </div>
-      {items.length > 0 && (
-        <SuggestionList id={listId} items={items} activeIndex={active} onPick={pick} />
+      {combo.items.length > 0 && (
+        <SuggestionList
+          id={combo.listId}
+          items={combo.items}
+          activeIndex={combo.active}
+          onPick={pick}
+        />
       )}
     </div>
   );

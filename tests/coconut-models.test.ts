@@ -4,16 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { Box3, Mesh, Vector3 } from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { CROPS } from "@/lib/crops/catalog";
+import { loadAsset } from "./helpers/glb";
 
-const load = async (stage: number | "produce") => {
-  const bytes = readFileSync(`assets/crops/Coconut_${stage}.glb`);
-  return new GLTFLoader().parseAsync(
-    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
-    "",
-  );
-};
+const load = (stage: number | "produce") => loadAsset(`crops/Coconut_${stage}.glb`);
 
 describe("the coconut", () => {
   it("is a crop with its own emoji, four growth models and a model of its produce", () => {
@@ -42,7 +36,8 @@ describe("the coconut", () => {
       scene.traverse((node) => node instanceof Mesh && meshes.push(node));
       expect(meshes).toHaveLength(1);
       const triangles = meshes[0].geometry.getAttribute("position").count / 3;
-      expect(triangles).toBeLessThan(2500);
+      // The tallest stage is 1046 triangles; a small margin keeps it low poly without being brittle.
+      expect(triangles).toBeLessThan(1100);
       expect(meshes[0].geometry.getAttribute("color")).toBeDefined();
     }
   });
@@ -57,8 +52,9 @@ describe("the coconut", () => {
     produce.scene.traverse((node) => {
       if (node instanceof Mesh) triangles += node.geometry.getAttribute("position").count / 3;
     });
-    expect(triangles).toBeGreaterThan(100);
-    expect(triangles).toBeLessThan(1500);
+    // The pile of nuts is 320 triangles.
+    expect(triangles).toBeGreaterThan(250);
+    expect(triangles).toBeLessThan(400);
   });
 
   it("is rebuilt identically by the script that made it, so the files are reproducible", () => {

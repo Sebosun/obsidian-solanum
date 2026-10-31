@@ -1,8 +1,9 @@
 import * as esbuild from "esbuild";
-import { cp, mkdir, copyFile } from "node:fs/promises";
+import { cp, copyFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-const directory = "/tmp/opencode/solanum-browser";
-await mkdir(directory, { recursive: true });
+const directory = await mkdtemp(join(tmpdir(), "solanum-browser-"));
 await cp("assets", `${directory}/assets`, { recursive: true });
 await cp("assets", `${directory}/native-assets`, { recursive: true });
 await copyFile("styles.css", `${directory}/styles.css`);
@@ -19,6 +20,7 @@ const context = await esbuild.context({
 await context.serve({ servedir: directory, host: "127.0.0.1", port: 45173 });
 async function stop() {
   await context.dispose();
+  await rm(directory, { recursive: true, force: true });
   process.exit(0);
 }
 process.on("SIGTERM", stop);

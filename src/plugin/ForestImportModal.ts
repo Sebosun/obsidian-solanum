@@ -1,9 +1,9 @@
 import { Modal, Setting, type App } from "obsidian";
 import { CROPS, isCropId } from "@/lib/crops/catalog";
 import type { ForestMapping, ForestPreview } from "@/lib/import/forest";
+import { plural } from "@/lib/text";
 import { TagSuggest } from "@/plugin/TagSuggest";
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
 const day = (time: number) =>
   new Date(time).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 

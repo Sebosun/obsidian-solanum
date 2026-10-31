@@ -22,14 +22,11 @@ describe("light that follows the sun", () => {
       color: { getHexString(): string };
     };
     const ambient = named(renderer, "season-ambient") as unknown as { intensity: number };
-    const hasGlow =
-      renderer.scene.findAll((node) => node.instance.name === "season-glow-light").length > 0;
     const result = {
       sun: sun.intensity,
       x: sun.position.x,
       ambient: ambient.intensity,
       colour: sun.color.getHexString(),
-      hasGlow,
     };
     await renderer.unmount();
     return result;
@@ -39,10 +36,9 @@ describe("light that follows the sun", () => {
     const plain = await lights();
     expect(plain.sun).toBe(SEASON_THEMES.summer.sun.intensity);
     expect(plain.ambient).toBe(SEASON_THEMES.summer.ambient.intensity);
-    expect(plain.hasGlow).toBe(true);
   });
 
-  it("dims and moves the light with the sun, and drops the fixed sun halo", async () => {
+  it("dims and moves the light with the sun", async () => {
     const dawn = await lights(sunState(0));
     const dusk = await lights(sunState(1));
     expect(dawn.sun).toBeCloseTo(SEASON_THEMES.summer.sun.intensity, 6);
@@ -50,6 +46,5 @@ describe("light that follows the sun", () => {
     expect(dusk.ambient).toBeLessThan(dawn.ambient * 0.5);
     expect(dawn.x).toBeLessThan(dusk.x);
     expect(dusk.colour).not.toBe(dawn.colour);
-    expect(dawn.hasGlow).toBe(false);
   });
 });
