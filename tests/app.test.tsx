@@ -69,6 +69,7 @@ function fixture(debug = false) {
     navigate: vi.fn(),
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
+    openSettings: vi.fn(),
   };
   if (debug)
     host.debug = new DebugTools(
@@ -157,18 +158,22 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
   });
 
-  it("persists break preferences and uses them in the next planted session", async () => {
+  it("opens native preferences from the icon menu without changing the active session", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
-    fireEvent.click(screen.getByText("Timer preferences"));
-    fireEvent.change(screen.getByLabelText("Break minutes"), { target: { value: "20" } });
-    fireEvent.click(screen.getByLabelText("Start breaks automatically"));
-    fireEvent.click(screen.getByRole("button", { name: "Save preferences" }));
-    await waitFor(() => expect(f.host.settings.autoBreak).toBe(true));
+    expect(screen.queryByRole("heading", { name: "Solanum" })).toBeNull();
+    expect(screen.queryByText("A LITTLE EVERY DAY")).toBeNull();
+    expect(screen.queryByText("Timer preferences")).toBeNull();
+    await f.host.saveSettings({ ...f.host.settings, breakMinutes: 20, autoBreak: true });
     fireEvent.click(screen.getByRole("button", { name: "5 min" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await revealControls();
     await screen.findByRole("button", { name: "Pause" });
+    const before = structuredClone(f.host.timer.getState().sessions[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Preferences" }));
+    expect(f.host.openSettings).toHaveBeenCalledOnce();
+    expect(f.host.timer.getState().sessions[0]).toEqual(before);
     f.advance(5 * 60_000);
     await act(() => f.host.timer.tick());
     expect(f.host.timer.getState().sessions[0]).toMatchObject({
@@ -183,6 +188,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const f = fixture();
     const first = render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "5 min" }));
+    fireEvent.click(screen.getByText("Details"));
     fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "#work/client" } });
     fireEvent.click(screen.getByRole("button", { name: "Use active note" }));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));

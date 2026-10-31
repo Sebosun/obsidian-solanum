@@ -6,7 +6,7 @@ import { DebugPanel } from "../debug/DebugPanel";
 import { FocusMode } from "../timer/FocusMode";
 import { TimerPanel } from "../timer/TimerPanel";
 import { HarvestPanel } from "../harvest/HarvestPanel";
-import { AppHeader } from "./AppHeader";
+import { SettingsMenu } from "./SettingsMenu";
 import { ViewTabs } from "./ViewTabs";
 import { ErrorNotice } from "./ErrorNotice";
 import { SyncConflicts } from "./SyncConflicts";
@@ -27,8 +27,13 @@ export function App({
     return <FocusMode session={focus.session} host={host} onReveal={focus.reveal} />;
   return (
     <main className="solanum-app sol:mx-auto sol:max-w-[560px] sol:px-4 sol:pt-5 sol:pb-7 sol:text-(--text-normal)">
-      <AppHeader onHide={focus.session ? focus.hide : undefined} />
-      <ViewTabs screen={screen} onNavigate={host.navigate} />
+      <div className="solanum-toolbar">
+        <ViewTabs screen={screen} onNavigate={host.navigate} />
+        <SettingsMenu
+          onPreferences={host.openSettings}
+          onHide={focus.session ? focus.hide : undefined}
+        />
+      </div>
       {error && <ErrorNotice message={error} onDismiss={clearError} />}
       <SyncConflicts conflicts={state.conflicts} host={host} act={act} busy={busy} />
       {screen === "timer" ? (

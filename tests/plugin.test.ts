@@ -2,6 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { App, PluginManifest } from "obsidian";
 
+const nativeSettings = vi.hoisted(() => {
+  return new Map<string, (value: string | boolean | number) => Promise<void>>();
+});
+
 vi.mock("obsidian", () => ({
   Plugin: class {
     app: unknown;
@@ -14,10 +18,55 @@ vi.mock("obsidian", () => ({
     addCommand = vi.fn();
     registerEvent = vi.fn();
     registerInterval = vi.fn();
+    addSettingTab = vi.fn();
     loadData = async () => null;
     saveData = vi.fn(async () => {});
   },
   Notice: vi.fn(),
+  PluginSettingTab: class {
+    containerEl = document.createElement("div");
+  },
+  Setting: class {
+    name = "";
+    setName(name: string) {
+      this.name = name;
+      return this;
+    }
+    setDesc() {
+      return this;
+    }
+    addDropdown(callback: (control: unknown) => void) {
+      return this.addControl(callback);
+    }
+    addText(callback: (control: unknown) => void) {
+      return this.addControl(callback);
+    }
+    addToggle(callback: (control: unknown) => void) {
+      return this.addControl(callback);
+    }
+    addSlider(callback: (control: unknown) => void) {
+      return this.addControl(callback);
+    }
+    addButton(callback: (control: unknown) => void) {
+      return this.addControl(callback);
+    }
+    addControl(callback: (control: unknown) => void) {
+      const control = {
+        addOptions: () => control,
+        setValue: () => control,
+        setLimits: () => control,
+        setDynamicTooltip: () => control,
+        setButtonText: () => control,
+        onClick: () => control,
+        onChange: (handler: (value: string | boolean | number) => Promise<void>) => {
+          nativeSettings.set(this.name, handler);
+          return control;
+        },
+      };
+      callback(control);
+      return this;
+    }
+  },
 }));
 vi.mock("../src/views/SolanumView", () => ({
   SolanumView: class {},
@@ -66,6 +115,7 @@ function vaultFixture() {
       getLeavesOfType: () => [],
       getRightLeaf: () => null,
     },
+    setting: { open: vi.fn(), openTabById: vi.fn() },
     metadataCache: {
       getFileCache: vi.fn(() => ({ tags: [{ tag: "#work" }] })),
       on: vi.fn(() => ({})),
@@ -75,6 +125,31 @@ function vaultFixture() {
 }
 
 describe("Obsidian lifecycle integration", () => {
+  it("registers native preferences and applies saved changes only to new sessions", async () => {
+    vi.useFakeTimers();
+    const { app } = vaultFixture();
+    const plugin = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+    await plugin.onload();
+    const tab = vi.mocked(plugin.addSettingTab).mock.calls[0][0];
+    tab.display();
+    await nativeSettings.get("Break duration")!("20");
+    await nativeSettings.get("Automatic breaks")!(true);
+    await plugin.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: plugin.settings.breakMinutes * 60_000,
+      autoBreak: plugin.settings.autoBreak,
+      tags: [],
+      notePath: null,
+    });
+    const active = structuredClone(plugin.timer.getState().sessions[0]);
+    await nativeSettings.get("Break duration")!("5");
+    expect(active.breakMs).toBe(20 * 60_000);
+    expect(active.autoBreak).toBe(true);
+    expect(plugin.timer.getState().sessions[0]).toEqual(active);
+    expect(plugin.settings.breakMinutes).toBe(5);
+    plugin.onunload();
+  });
+
   it("opens its own sidebar leaf without replacing a user's existing view", async () => {
     vi.useFakeTimers();
     const { app } = vaultFixture();

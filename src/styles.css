@@ -38,13 +38,13 @@
   @apply sol:text-[9px] sol:font-[650] sol:tracking-[2px] sol:text-(--text-muted);
 }
 .solanum-tabs {
-  @apply sol:flex sol:gap-1 sol:p-1 sol:bg-(--background-secondary) sol:rounded-[10px] sol:mb-[18px];
+  @apply sol:flex sol:gap-1;
 }
 .solanum-tabs button {
   @apply sol:flex-1 sol:border-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted) sol:p-[9px] sol:rounded-[7px];
 }
 .solanum-tabs button[aria-current="page"] {
-  @apply sol:bg-(--background-primary) sol:text-(--text-normal) sol:shadow-[0_1px_4px_#0001];
+  @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
 }
 .solanum-scene {
   @apply sol:relative sol:h-60 sol:rounded-[18px] sol:overflow-hidden;
@@ -80,6 +80,33 @@
 }
 .solanum-presets button {
   @apply sol:text-[11px] sol:py-1.5 sol:px-[9px] sol:h-auto sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:rounded-[7px] sol:bg-transparent sol:text-(--text-muted);
+}
+.solanum-toolbar {
+  @apply sol:flex sol:items-center sol:justify-between sol:mb-3;
+}
+.solanum-settings-menu {
+  @apply sol:relative;
+}
+.solanum-app .solanum-icon-button {
+  @apply sol:flex sol:items-center sol:justify-center sol:bg-transparent sol:shadow-none sol:p-2 sol:text-(--text-muted);
+}
+.solanum-menu-popover {
+  @apply sol:absolute sol:right-0 sol:top-full sol:z-20 sol:min-w-36 sol:p-1 sol:rounded-lg sol:bg-(--background-secondary) sol:border sol:border-solid sol:border-(--background-modifier-border) sol:shadow-lg;
+}
+.solanum-menu-popover button {
+  @apply sol:block sol:w-full sol:text-left sol:bg-transparent sol:shadow-none sol:text-xs;
+}
+.solanum-session-details {
+  @apply sol:text-xs sol:text-(--text-muted) sol:mt-3;
+}
+.solanum-session-details summary {
+  @apply sol:cursor-pointer sol:mb-3;
+}
+.solanum-presets {
+  @apply sol:flex sol:flex-wrap sol:justify-center sol:gap-1.5 sol:my-4;
+}
+.solanum-countdown {
+  @apply sol:text-center sol:text-4xl sol:tabular-nums sol:my-4;
 }
 .solanum-presets button[aria-pressed="true"] {
   @apply sol:bg-[#87a87920] sol:text-(--text-normal) sol:border-(--crop-green);

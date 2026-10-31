@@ -7,7 +7,6 @@ import { CropScene } from "../crops/CropScene";
 import { TimerClock } from "./TimerClock";
 import { TimerSetup } from "./TimerSetup";
 import { SessionControls } from "./SessionControls";
-import { Preferences } from "./Preferences";
 
 export function TimerPanel({
   host,
@@ -61,7 +60,7 @@ export function TimerPanel({
         running={session?.status === "running"}
         assetUrl={host.assetUrl}
       />
-      <TimerClock remaining={remaining} session={session} />
+      <TimerClock remaining={remaining} />
       {session ? (
         <SessionControls
           session={session}
@@ -79,10 +78,6 @@ export function TimerPanel({
           act={act}
         />
       )}
-      <details className="solanum-settings">
-        <summary>Timer preferences</summary>
-        <Preferences host={host} act={act} busy={busy} />
-      </details>
     </>
   );
 }

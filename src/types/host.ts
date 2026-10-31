@@ -18,4 +18,5 @@ export interface SolanumHost {
   navigate(screen: Screen): void;
   unlockAudio(): void;
   previewSound(): void;
+  openSettings(): void;
 }

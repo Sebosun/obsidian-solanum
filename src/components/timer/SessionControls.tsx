@@ -67,7 +67,6 @@ export function SessionControls({
           {session.phase === "break" ? "Skip break" : "End focus"}
         </button>
       </div>
-      <p className="solanum-hint">Saved in your vault. Closing Obsidian won’t stop this crop.</p>
     </>
   );
 }

@@ -12,6 +12,7 @@ import { CompletionAudio } from "../lib/audio/CompletionAudio";
 import { DEBUG_CONFIG } from "../lib/debug/config";
 import { DebugTools } from "../lib/debug/DebugTools";
 import { VaultNoteIndex } from "./VaultNoteIndex";
+import { SolanumSettingsTab } from "./SolanumSettingsTab";
 
 export default class SolanumPlugin extends Plugin implements SolanumHost {
   timer!: TimerService;
@@ -29,6 +30,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     this.stopped = false;
     this.noteIndex = new VaultNoteIndex(this.app.vault, this.app.metadataCache);
     this.settings = readSettings(await this.loadData());
+    this.addSettingTab(new SolanumSettingsTab(this.app, this, this));
     const store = new VaultSessionStore(this.app.vault.adapter, { debug: DEBUG_CONFIG.enabled });
     this.timer = new TimerService(store, {
       now: Date.now,
@@ -137,10 +139,17 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     const next = readSettings(settings);
     await this.saveData(next);
     this.settings = next;
-    new Notice("Solanum preferences saved. Applies to new sessions.");
   }
 
   tags = () => this.noteIndex.tags();
+  openSettings = () => {
+    // Obsidian exposes its settings controller at runtime, outside the public App types.
+    const app = this.app as unknown as {
+      setting: { open(): void; openTabById(id: string): void };
+    };
+    app.setting.open();
+    app.setting.openTabById(this.manifest.id);
+  };
   notes = () => this.noteIndex.notes();
   activeNote = () => this.app.workspace.getActiveFile()?.path ?? null;
   openNote = (path: string) => {
