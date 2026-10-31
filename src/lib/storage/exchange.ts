@@ -70,11 +70,12 @@ export function parseExport(text: string): ParsedExport {
   return { revisions, invalid: entries.length - revisions.length };
 }
 
-/** JSON with sorted keys, so equal revisions compare equal whatever their key order. */
+/** JSON with sorted keys, so equal revisions compare equal whatever their key order. Like JSON, it ignores undefined values. */
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (isRecord(value))
     return `{${Object.keys(value)
+      .filter((key) => value[key] !== undefined)
       .sort()
       .map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`)
       .join(",")}}`;

@@ -52,6 +52,11 @@ export interface Revision {
 export interface SessionStore {
   readAll(): Promise<Revision[]>;
   append(revision: Revision): Promise<void>;
+  /** Adds many revisions the caller knows are not stored yet; optional, for stores that can batch. */
+  appendNew?(
+    revisions: Revision[],
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<void>;
 }
 
 export interface StartOptions {

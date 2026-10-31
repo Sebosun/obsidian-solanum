@@ -49,8 +49,18 @@ vi.mock("@/plugin/ForestImportModal", () => ({
     return forestDialog.answer;
   },
 }));
-const picker = vi.hoisted(() => ({ text: null as string | null }));
-vi.mock("@/plugin/pickTextFile", () => ({ pickTextFile: async () => picker.text }));
+const picker = vi.hoisted(() => ({
+  text: null as string | null,
+  vault: null as { path: string; text: string } | null,
+  hints: 0,
+}));
+vi.mock("@/plugin/pickTextFile", () => ({
+  pickTextFile: async (options?: { onNoDialog?: () => void }) => {
+    if (picker.hints > 0) options?.onNoDialog?.();
+    return picker.text;
+  },
+}));
+vi.mock("@/plugin/pickVaultFile", () => ({ pickVaultFile: async () => picker.vault }));
 vi.mock("@/plugin/ConfirmMoveModal", () => ({
   confirmMove: async (_app: unknown, message: string) => {
     nativeUi.confirm.messages.push(message);
@@ -78,6 +88,7 @@ vi.mock("obsidian", () => ({
     constructor(message: string) {
       nativeUi.notices.push(message);
     }
+    hide() {}
   },
   AbstractInputSuggest: class {},
   Modal: class {},
@@ -174,6 +185,8 @@ afterEach(() => {
   nativeUi.headings.clear();
   nativeUi.notices.length = 0;
   picker.text = null;
+  picker.vault = null;
+  picker.hints = 0;
   forestDialog.answer = null;
   forestDialog.calls.length = 0;
   audioSpy.plays.length = 0;
@@ -572,6 +585,31 @@ describe("Obsidian lifecycle integration", () => {
       plugin.onunload();
     });
 
+    it("imports a session file chosen from the vault when the system dialog is unavailable", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.timer.start(session);
+      await nativeUi.buttons.get("Export")!();
+      const file = [...disk.files.keys()].find((path) => path.startsWith("Solanum/exports/"))!;
+      const { plugin: other } = await loaded();
+      picker.vault = { path: file, text: disk.files.get(file)! };
+      await nativeUi.buttons.get("From vault…")!();
+      expect(other.timer.getState().sessions).toHaveLength(1);
+      picker.vault = null;
+      nativeUi.notices.length = 0;
+      await nativeUi.buttons.get("From vault…")!();
+      expect(nativeUi.notices).toEqual([]);
+      other.onunload();
+      plugin.onunload();
+    });
+
+    it("points to the vault picker when the system dialog never opens", async () => {
+      const { plugin } = await loaded();
+      picker.hints = 1;
+      await nativeUi.buttons.get("Import…")!();
+      expect(nativeUi.notices.join(" ")).toMatch(/From vault/);
+      plugin.onunload();
+    });
+
     it("explains an unusable file and ignores a cancelled picker", async () => {
       const { plugin } = await loaded();
       picker.text = null;
@@ -853,6 +891,15 @@ describe("Obsidian lifecycle integration", () => {
     const choose = () => nativeUi.buttons.get("Choose CSV…")!();
     const notesIn = (disk: MemoryDisk) =>
       [...disk.files.keys()].filter((path) => path.startsWith("Solanum/days/"));
+
+    it("imports a Forest CSV chosen from the vault", async () => {
+      const { plugin } = await loaded();
+      picker.vault = { path: "forest.csv", text: sample };
+      forestDialog.answer = mapping;
+      await nativeUi.buttons.get("CSV from vault…")!();
+      expect(plugin.timer.getState().sessions).toHaveLength(17);
+      plugin.onunload();
+    });
 
     it("asks which tag and plant each Forest one becomes, with sensible suggestions", async () => {
       const { plugin } = await loaded();

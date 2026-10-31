@@ -47,7 +47,11 @@ export class SessionExchange {
   }
 
   /** The shared way revisions join the history, whatever file they came from. */
-  importRevisions(revisions: Revision[], invalid = 0): Promise<ImportResult> {
+  importRevisions(
+    revisions: Revision[],
+    invalid = 0,
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<ImportResult> {
     return this.timer.exclusive(async () => {
       const known = new Map(
         (await this.store.readAll()).map((revision) => [revision.id, revision]),
@@ -59,6 +63,7 @@ export class SessionExchange {
         invalid,
         synthetic: 0,
       };
+      const toAdd: Revision[] = [];
       for (const revision of revisions) {
         if (revision.source !== undefined) {
           result.synthetic += 1;
@@ -66,15 +71,17 @@ export class SessionExchange {
         }
         const existing = known.get(revision.id);
         if (existing === undefined) {
-          await this.store.append(revision);
+          toAdd.push(revision);
           known.set(revision.id, revision);
-          result.added += 1;
         } else if (canonical(existing) === canonical(revision)) {
           result.duplicates += 1;
         } else {
           result.conflicts.push(revision.id);
         }
       }
+      if (this.store.appendNew) await this.store.appendNew(toAdd, onProgress);
+      else for (const revision of toAdd) await this.store.append(revision);
+      result.added = toAdd.length;
       return result;
     });
   }
