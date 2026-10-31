@@ -1,58 +1,65 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import type { BufferAttribute, Points } from "three";
-import { createDotTexture } from "@/lib/scene/dotTexture";
-import { ParticleField, type ParticleBounds } from "@/lib/scene/particles";
+import type { BufferAttribute, BufferGeometry } from "three";
 import type { SeasonTheme } from "@/lib/scene/seasons";
+import { WeatherField, type WeatherBounds } from "@/lib/scene/weather";
+import { createWeatherMaterial } from "@/lib/scene/weatherShaders";
 
 interface SeasonParticlesProps {
   theme: SeasonTheme;
-  /** When false the particles are drawn once and stay still. */
+  /** When false the weather is drawn once and holds still. */
   animate: boolean;
 }
 
-/** World-space volume the particles live in, around the crop platform. */
-const PARTICLE_BOUNDS: ParticleBounds = { halfWidth: 1.5, halfDepth: 1, floor: -0.6, ceiling: 1.7 };
+/**
+ * World-space volume the weather fills, centred on the plot: the camera looks at height 0.25, so the
+ * floor and ceiling sit as far below it as above, and it reaches as far to one side as to the other.
+ */
+const WEATHER_BOUNDS: WeatherBounds = { halfWidth: 1.3, halfDepth: 1, floor: -0.85, ceiling: 1.35 };
 const FIELD_SEED = 20_261_031;
+/** Longest simulated step; a backgrounded tab must not throw the weather forward on return. */
+const MAX_STEP_SECONDS = 0.05;
+/** The attributes that change every frame. Colours and sizes are fixed. */
+const MOVING_ATTRIBUTES = ["position", "aAlpha", "aRotation"] as const;
 
+/** The season's weather: snow, petals, sunlit motes or leaves, each drawn by its own shader. */
 export function SeasonParticles({ theme, animate }: SeasonParticlesProps) {
   const { particles } = theme;
-  const field = useMemo(
-    () => new ParticleField(particles, PARTICLE_BOUNDS, FIELD_SEED),
-    [particles],
-  );
-  const points = useRef<Points>(null);
-  const sprite = useMemo(createDotTexture, []);
-  const devicePixelRatio = useThree((state) => state.viewport.dpr);
+  const field = useMemo(() => new WeatherField(particles, WEATHER_BOUNDS, FIELD_SEED), [particles]);
+  const material = useMemo(() => createWeatherMaterial(particles.kind), [particles.kind]);
+  const geometry = useRef<BufferGeometry>(null);
+  const elapsed = useRef(0);
+  const camera = useThree((state) => state.camera);
+  const pixelRatio = useThree((state) => state.gl.getPixelRatio());
   const invalidate = useThree((state) => state.invalidate);
 
+  useEffect(() => () => material.dispose(), [material]);
   useEffect(() => {
+    field.step(elapsed.current);
     invalidate();
   }, [field, invalidate]);
 
-  useFrame((state, delta) => {
-    if (!animate || !points.current) return;
-    field.step(delta, state.clock.elapsedTime);
-    const position = points.current.geometry.getAttribute("position") as BufferAttribute;
-    position.needsUpdate = true;
+  useFrame((_state, delta) => {
+    material.uniforms.uPixelsPerUnit.value = camera.zoom * pixelRatio;
+    if (!animate) return;
+    elapsed.current += Math.min(Math.max(delta, 0), MAX_STEP_SECONDS);
+    field.step(elapsed.current);
+    material.uniforms.uTime.value = elapsed.current;
+    for (const name of MOVING_ATTRIBUTES) {
+      const attribute = geometry.current?.getAttribute(name) as BufferAttribute | undefined;
+      if (attribute) attribute.needsUpdate = true;
+    }
   });
 
   return (
-    <points key={theme.id} ref={points} name="season-particles" renderOrder={-1}>
-      <bufferGeometry>
+    <points key={theme.id} name="season-particles" frustumCulled={false} material={material}>
+      <bufferGeometry ref={geometry}>
         <bufferAttribute attach="attributes-position" args={[field.positions, 3]} />
-        <bufferAttribute attach="attributes-color" args={[field.colors, 3]} />
+        <bufferAttribute attach="attributes-aColor" args={[field.colors, 3]} />
+        <bufferAttribute attach="attributes-aAlpha" args={[field.alphas, 1]} />
+        <bufferAttribute attach="attributes-aRotation" args={[field.rotations, 2]} />
+        <bufferAttribute attach="attributes-aSize" args={[field.sizes, 1]} />
       </bufferGeometry>
-      <pointsMaterial
-        map={sprite}
-        alphaTest={0.02}
-        size={particles.size * devicePixelRatio}
-        sizeAttenuation={false}
-        vertexColors
-        transparent
-        opacity={0.9}
-        depthWrite={false}
-      />
     </points>
   );
 }

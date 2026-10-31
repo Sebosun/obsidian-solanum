@@ -38,14 +38,20 @@ export interface ParticleTheme {
   kind: ParticleKind;
   count: number;
   colors: readonly string[];
-  /** Point diameter in CSS pixels. */
+  /** How big a particle is, across, in world units. */
   size: number;
   /** World units per second. Positive falls, negative rises. */
   fall: number;
-  /** Sideways wobble in world units per second. */
+  /** Sideways drift in world units. */
   sway: number;
-  /** Wobble cycles per second. */
+  /** Drift cycles per second. */
   swayHz: number;
+  /** How fast a particle turns in the picture's plane, in radians per second; 0 for none. */
+  spin: number;
+  /** How often a particle tumbles face-on and edge-on, per second; 0 for never. */
+  flutter: number;
+  /** How solid the strongest particle gets, 0 to 1. Weather is meant to be felt, not watched. */
+  opacity: number;
 }
 
 export interface LightTheme {
@@ -80,12 +86,15 @@ export const SEASON_THEMES: Record<SeasonId, SeasonTheme> = {
     groundTint: { color: "#eaf1fb", amount: 0.55 },
     particles: {
       kind: "snow",
-      count: 90,
-      colors: ["#ffffff", "#e6f0ff"],
-      size: 4,
-      fall: 0.32,
-      sway: 0.12,
-      swayHz: 0.35,
+      count: 70,
+      colors: ["#ffffff", "#e6f0ff", "#d2e4ff"],
+      size: 0.036,
+      fall: 0.3,
+      sway: 0.1,
+      swayHz: 0.3,
+      spin: 0,
+      flutter: 0,
+      opacity: 0.8,
     },
     css: { glow: "#9fc0e83a", sun: "transparent" },
   },
@@ -100,12 +109,15 @@ export const SEASON_THEMES: Record<SeasonId, SeasonTheme> = {
     groundTint: { color: "#7fb55f", amount: 0.12 },
     particles: {
       kind: "petals",
-      count: 45,
-      colors: ["#f8c8dc", "#ffe1ec", "#fff3f7"],
-      size: 5,
-      fall: 0.2,
-      sway: 0.2,
-      swayHz: 0.5,
+      count: 24,
+      colors: ["#f8c8dc", "#ffe1ec", "#fff3f7", "#f4b3cc"],
+      size: 0.085,
+      fall: 0.22,
+      sway: 0.28,
+      swayHz: 0.45,
+      spin: 0.9,
+      flutter: 0.55,
+      opacity: 0.75,
     },
     css: { glow: "#a7d98a30", sun: "transparent" },
   },
@@ -125,12 +137,15 @@ export const SEASON_THEMES: Record<SeasonId, SeasonTheme> = {
     groundTint: { color: "#d8b24a", amount: 0.07 },
     particles: {
       kind: "motes",
-      count: 36,
-      colors: ["#fff2b8", "#ffe28a"],
-      size: 5,
-      fall: -0.14,
-      sway: 0.1,
-      swayHz: 0.3,
+      count: 24,
+      colors: ["#fff2b8", "#ffe28a", "#ffd36a"],
+      size: 0.075,
+      fall: -0.12,
+      sway: 0.14,
+      swayHz: 0.25,
+      spin: 0,
+      flutter: 0,
+      opacity: 0.7,
     },
     css: { glow: "#f6d36a30", sun: "#ffe7922e" },
   },
@@ -145,12 +160,15 @@ export const SEASON_THEMES: Record<SeasonId, SeasonTheme> = {
     groundTint: { color: "#c9772e", amount: 0.1 },
     particles: {
       kind: "leaves",
-      count: 38,
+      count: 22,
       colors: ["#d9822b", "#b5451b", "#e8b13a", "#8f3a14"],
-      size: 6,
-      fall: 0.26,
-      sway: 0.25,
-      swayHz: 0.45,
+      size: 0.115,
+      fall: 0.27,
+      sway: 0.32,
+      swayHz: 0.4,
+      spin: 1.2,
+      flutter: 0.7,
+      opacity: 0.65,
     },
     css: { glow: "#e0954240", sun: "transparent" },
   },
