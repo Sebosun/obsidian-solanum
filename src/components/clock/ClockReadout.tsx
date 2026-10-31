@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { ClockDigit } from "@/components/clock/ClockDigit";
-import { clockCells } from "@/lib/scene/clockBoard";
+import { clockCells } from "@/lib/clock/cells";
 
 interface ClockReadoutProps {
   text: string;

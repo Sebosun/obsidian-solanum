@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { SUN_CLOCK } from "@/lib/scene/constants";
+import { CLOCK_DIGITS } from "@/lib/scene/constants";
 
 interface ClockDigitProps {
   char: string;
@@ -8,7 +8,7 @@ interface ClockDigitProps {
   reduced: boolean;
 }
 
-const ROLL_MS = SUN_CLOCK.digitRoll.seconds * 1000;
+const ROLL_MS = CLOCK_DIGITS.roll.seconds * 1000;
 
 /** One fixed-width character. When it changes, the old one rolls out and the new one drops in. */
 export function ClockDigit({ char, width, reduced }: ClockDigitProps) {

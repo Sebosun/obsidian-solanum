@@ -1,29 +1,15 @@
-import { Suspense, useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Suspense } from "react";
 import { cropStage } from "@/lib/crops/growth";
 import type { CropId } from "@/lib/crops/catalog";
-import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
-import { sunState } from "@/lib/scene/sunClock";
-import { CropSwap } from "@/components/stage/CropSwap";
+import type { SeasonId } from "@/lib/scene/seasons";
+import { CropFallback } from "@/components/scenes/CropFallback";
 import { CropPreview } from "@/components/models/CropPreview";
 import { GrowingCrop } from "@/components/models/GrowingCrop";
-import { SceneBoundary } from "@/components/stage/SceneBoundary";
-import { CropFallback } from "@/components/scenes/CropFallback";
-import { SeasonScenery } from "@/components/stage/SeasonScenery";
-import { SrLabel } from "@/components/app/SrLabel";
-import { SunClockFace } from "@/components/clock/SunClockFace";
-import { useReadyCrop } from "@/hooks/useReadyCrop";
-import { useSunClock } from "@/hooks/useSunClock";
-import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { formatTime } from "@/lib/time";
 import { CompletionFlourish } from "@/components/stage/CompletionFlourish";
-import { TimerCamera } from "@/components/stage/TimerCamera";
-
-interface SeasonStyle extends CSSProperties {
-  "--season-glow": string;
-  "--season-sun": string;
-  "--dusk": number;
-}
+import { CropSwap } from "@/components/stage/CropSwap";
+import { SceneFrame } from "@/components/stage/SceneFrame";
+import { SeasonScenery } from "@/components/stage/SeasonScenery";
+import { useReadyCrop } from "@/hooks/useReadyCrop";
 
 interface CropSceneProps {
   crop?: CropId;
@@ -31,7 +17,7 @@ interface CropSceneProps {
   running: boolean;
   immersive?: boolean;
   remaining: number;
-  /** How far through the running phase the clock is, from 0 to 1: where the sun sits. */
+  /** How far through the running phase the clock is, from 0 to 1. */
   clockProgress: number;
   /** How fast the clock advances, per second: 0 while paused or waiting. */
   clockRate: number;
@@ -40,6 +26,7 @@ interface CropSceneProps {
   preview?: boolean;
 }
 
+/** The focus: a crop growing on its plot, or, before a session, what it will become. */
 export function CropScene({
   crop = "tomato",
   progress,
@@ -51,80 +38,46 @@ export function CropScene({
   season,
   preview = false,
 }: CropSceneProps) {
-  const container = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(true);
-  const reduced = useReducedMotion();
-  useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
-    if (container.current) observer.observe(container.current);
-    return () => observer.disconnect();
-  }, []);
-  const labelId = useId();
-  const timerLabelId = useId();
   const shownCrop = useReadyCrop(crop);
-  const clock = useSunClock(clockProgress, clockRate, reduced, visible);
   const stage = cropStage(progress);
-  const moving = running && visible && !reduced;
-  // Weather keeps drifting while the scene is on screen, even before a crop is planted.
-  const animate = visible && !reduced;
-  const theme = SEASON_THEMES[season];
-  const sun = sunState(clockProgress);
-  const seasonStyle: SeasonStyle = {
-    "--season-glow": theme.css.glow,
-    "--season-sun": theme.css.sun,
-    "--dusk": sun.dusk,
-  };
-  const fallback = <CropFallback crop={crop} progress={progress} />;
-  const classes = ["solanum-scene", `is-${season}`];
-  if (progress >= 1) classes.push("is-mature");
-  if (immersive) classes.push("is-immersive");
   return (
-    <div ref={container} className={classes.join(" ")} style={seasonStyle}>
-      <SunClockFace
-        clock={clock}
-        progress={clockProgress}
-        remaining={remaining}
-        reduced={reduced}
-      />
-      <SceneBoundary resetKey={crop} fallback={fallback}>
-        {/* Nothing is drawn while models load: the placeholder is only for when WebGL fails. */}
-        <Suspense fallback={null}>
-          <Canvas
-            orthographic
-            dpr={[1, 1.5]}
-            frameloop={animate ? "always" : "demand"}
-            fallback={fallback}
-            role="img"
-            aria-labelledby={labelId}
-          >
-            <TimerCamera />
-            <SeasonScenery
-              season={season}
-              animate={animate}
-              daylight={sun}
-              daylightRef={clock.sun}
-            />
-            <CompletionFlourish reduced={reduced}>
-              <CropSwap crop={shownCrop} reduced={reduced}>
-                {(planted) => (
-                  <Suspense key={planted} fallback={null}>
-                    {preview ? (
-                      <CropPreview crop={planted} />
-                    ) : (
-                      <GrowingCrop crop={planted} stage={stage} moving={moving} reduced={reduced} />
-                    )}
-                  </Suspense>
-                )}
-              </CropSwap>
-            </CompletionFlourish>
-          </Canvas>
-        </Suspense>
-      </SceneBoundary>
-      <SrLabel id={labelId}>Growing crop</SrLabel>
-      <SrLabel id={timerLabelId}>Remaining time</SrLabel>
-      <span role="timer" aria-labelledby={timerLabelId} className="sol:sr-only">
-        {formatTime(remaining)}
-      </span>
-    </div>
+    <SceneFrame
+      remaining={remaining}
+      clockProgress={clockProgress}
+      clockRate={clockRate}
+      season={season}
+      immersive={immersive}
+      classNames={progress >= 1 ? ["is-mature"] : []}
+      label="Growing crop"
+      timerLabel="Remaining time"
+      progressLabel="Focus progress"
+      fallback={<CropFallback crop={crop} progress={progress} />}
+      resetKey={crop}
+    >
+      {({ reduced, visible, animate, sun, clock }) => (
+        <>
+          {/* Weather keeps drifting while the scene is on screen, even before a crop is planted. */}
+          <SeasonScenery season={season} animate={animate} daylight={sun} daylightRef={clock.sun} />
+          <CompletionFlourish reduced={reduced}>
+            <CropSwap crop={shownCrop} reduced={reduced}>
+              {(planted) => (
+                <Suspense key={planted} fallback={null}>
+                  {preview ? (
+                    <CropPreview crop={planted} />
+                  ) : (
+                    <GrowingCrop
+                      crop={planted}
+                      stage={stage}
+                      moving={running && visible && !reduced}
+                      reduced={reduced}
+                    />
+                  )}
+                </Suspense>
+              )}
+            </CropSwap>
+          </CompletionFlourish>
+        </>
+      )}
+    </SceneFrame>
   );
 }

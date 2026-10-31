@@ -44,6 +44,7 @@
   initial-value: 0;
 }
 .solanum-scene {
+  container-type: size;
   transition: --dusk 1.1s linear;
   @apply sol:relative sol:h-[300px] sol:rounded-xl sol:overflow-hidden;
   /* The sky darkens as the sun sets: --dusk runs from 0 at the start of a phase to 1 at its end. */
@@ -55,55 +56,19 @@
 .solanum-scene canvas {
   @apply sol:touch-pan-y;
 }
-/* The sky is drawn in the page, behind the transparent 3D scene, so nothing in the scene can cross it. */
-.solanum-sky {
-  @apply sol:absolute sol:inset-0 sol:overflow-hidden sol:pointer-events-none sol:text-(--text-normal);
-  container-type: size;
-}
-/* Wide enough for the arc to span the scene, but never so wide that it would reach the top; everything inside is relative to it. */
-.solanum-sky-board {
-  @apply sol:absolute sol:left-1/2;
-  container-type: inline-size;
-  width: min(calc(var(--board-width) * 100cqw), calc(var(--board-max) * 100cqh));
-  aspect-ratio: var(--board-aspect);
-  bottom: calc((1 - var(--baseline)) * 100cqh);
-  transform: translate(-50%, calc(var(--board-lift) * 100%));
-}
-.solanum-clock-arc {
-  @apply sol:absolute sol:inset-0 sol:w-full sol:h-full sol:overflow-visible;
-}
 .solanum-clock-readout {
-  @apply sol:absolute sol:left-1/2 sol:flex sol:justify-center sol:whitespace-nowrap sol:leading-none sol:tabular-nums;
-  top: calc(var(--digit-center) * 100%);
-  transform: translate(-50%, -50%);
+  @apply sol:flex sol:justify-center sol:whitespace-nowrap sol:leading-none sol:tabular-nums;
   font-family: "Solanum Clock", var(--font-interface, sans-serif);
   font-weight: 700;
-  font-size: calc(var(--digit-em) * 1cqw);
   opacity: var(--digit-opacity);
   transition: opacity 1.1s linear;
 }
-/* A few words above the digits, in the same units, so they scale with the ring. */
-.solanum-clock-caption {
-  @apply sol:absolute sol:left-1/2 sol:m-0 sol:whitespace-nowrap sol:uppercase sol:leading-none sol:text-(--text-muted);
-  top: calc(var(--digit-center) * 100% - var(--digit-em) * 0.78cqw);
-  transform: translate(-50%, -50%);
-  font-size: calc(var(--digit-em) * 0.25cqw);
-  letter-spacing: 0.32em;
-  /* The tracking adds space after the last letter, so shift back to stay centred. */
-  margin-left: 0.16em;
-  opacity: calc(var(--digit-opacity) * 1.9);
-}
-/* The break: the time centred at the top and a thin bar along the bottom, both sized from the view. */
-.solanum-scene.is-break {
-  container-type: size;
-}
+/* The time centred at the top and a thin bar along the bottom, both sized from the view. */
 .solanum-time-header {
   @apply sol:absolute sol:inset-x-0 sol:flex sol:flex-col sol:items-center sol:pointer-events-none sol:text-(--text-normal);
   top: 4cqh;
 }
 .solanum-time-header .solanum-clock-readout {
-  position: static;
-  transform: none;
   font-size: min(11cqw, 15cqh);
 }
 .solanum-time-caption {

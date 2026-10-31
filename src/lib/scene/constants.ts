@@ -5,52 +5,22 @@ export const TIMER_SCENE = {
   bounds: { min: [-1.05, -0.85, -1.05], max: [1.05, 1.35, 1.05] },
   padding: 1.08,
   /**
-   * Where the middle of the plot sits on screen, as a fraction of the scene's height from the top.
-   * The sky with the clock hangs above it, so the plot sits low and the sky gets the upper part.
+   * Where the middle of the plot sits on screen, as a fraction of the scene's height from the top:
+   * a touch below the middle, since the time sits above it.
    */
-  plotCenter: 0.6,
+  plotCenter: 0.55,
   cameraDistance: 10,
   near: 0.1,
   far: 100,
 } as const;
 
 /**
- * The clock drawn in the page behind the 3D scene: a sun crossing an arc, with the time as large
- * faint digits. Lengths are clock units, with y pointing up from the arc's base line; the board
- * is scaled to the scene's size, so it keeps its proportions at any resolution.
+ * The sun that counts a phase down. It is not drawn: it sets the light, the colour of the progress
+ * bar and how dark the sky grows. Lengths are the arc it would cross, which places the light.
  */
 export const SUN_CLOCK = {
   arcRadiusX: 3.8,
   arcRadiusY: 3.6,
-  arcDots: 40,
-  /** What the board shows: half its width, and the room above the arc and below the base line. */
-  board: { halfWidth: 4.8, headroom: 1.2, below: 1 },
-  /**
-   * How the ring fills the scene: the arc spans this fraction of the scene's width, and its height
-   * is stretched (a taller or flatter ellipse) to suit the scene's shape, within these limits.
-   */
-  ring: { fill: 0.94, minStretch: 0.5, maxStretch: 1.8 },
-  /** Where the arc's base line sits, as a fraction of the scene's height from the top. */
-  baselineFraction: 0.56,
-  /** Space kept free above the board, as a fraction of the scene's height. */
-  topMargin: 0.03,
-  /** Size of the digits (their em) and the height of their base line above the arc's. */
-  digitSize: 1.1,
-  digitY: 1.7,
-  /** Each character has a cell of fixed width, in ems, so changing digits never shift the row. */
-  digitCell: { digit: 0.66, colon: 0.3 },
-  /** Layers of the sun disc: radius and opacity at full brightness. */
-  sunLayers: [
-    { radius: 0.34, opacity: 0.95 },
-    { radius: 0.62, opacity: 0.22 },
-    { radius: 0.95, opacity: 0.09 },
-  ],
-  /** Arc dots: radius and opacity, for every tenth and for the rest. */
-  arcDot: {
-    major: { radius: 0.08, opacity: 0.4 },
-    minor: { radius: 0.04, opacity: 0.22 },
-    majorEvery: 10,
-  },
   /** What is left of the sun's strength as time runs out. */
   endBrightness: 0.08,
   endScale: 0.72,
@@ -58,11 +28,16 @@ export const SUN_CLOCK = {
   endAmbient: 0.42,
   /** Colour of the sun at the start, halfway and at the end. */
   colors: [0xffe9a8, 0xffb86b, 0xff8a3d],
-  digitOpacity: { start: 0.34, end: 0.22 },
-  /** How quickly the drawn sun catches up with where the clock says it should be, per second. */
+  /** How quickly the sun catches up with where the clock says it should be, per second. */
   smoothing: 6,
+} as const;
+
+/** The digits of the time: each character has a cell of fixed width, and a changed digit rolls. */
+export const CLOCK_DIGITS = {
+  /** Cell widths in ems, so changing digits never shift the row. */
+  cell: { digit: 0.66, colon: 0.3 },
   /** A digit that changes rolls out downwards and the new one drops in from above, in ems. */
-  digitRoll: { seconds: 0.45, travel: 0.55 },
+  roll: { seconds: 0.45, travel: 0.55 },
 } as const;
 
 export const HARVEST_SCENE = {

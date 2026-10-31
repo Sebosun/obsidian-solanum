@@ -43,4 +43,13 @@ describe("the time at the top of the view", () => {
     const header = view.container.querySelector<HTMLElement>(".solanum-time-header")!;
     expect(header.innerHTML).not.toMatch(/\bpx\b/);
   });
+
+  it("carries the clock's own typeface as a bundled file, with nothing fetched", () => {
+    const view = render(<TimeHeader remaining={60_000} reduced={false} />);
+    const css = view.container.querySelector("style")?.textContent ?? "";
+    expect(css).toContain("@font-face");
+    expect(css).toContain('"Solanum Clock"');
+    expect(css).toContain("bricolage-grotesque-digits.woff2");
+    expect(css).not.toMatch(/https?:/);
+  });
 });

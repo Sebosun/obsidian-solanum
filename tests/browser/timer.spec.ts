@@ -31,6 +31,19 @@ async function changedPixels(page: Page, a: Buffer, b: Buffer, tolerance: number
   );
 }
 
+/** Every timer scene has the same frame: time centred at the top, a bar along the bottom, no sun. */
+async function expectFrame(page: Page, progressName: string) {
+  await expect(page.locator(".solanum-clock-arc, .solanum-clock-sun, .solanum-sky")).toHaveCount(0);
+  const frame = await page.locator(".solanum-scene").boundingBox();
+  const header = await page.locator(".solanum-time-header").boundingBox();
+  const bar = await page.getByRole("progressbar", { name: progressName }).boundingBox();
+  expect(frame && header && bar).toBeTruthy();
+  expect(header!.y + header!.height).toBeLessThan(frame!.y + frame!.height * 0.3);
+  expect(Math.abs(header!.x + header!.width / 2 - (frame!.x + frame!.width / 2))).toBeLessThan(4);
+  expect(bar!.y).toBeGreaterThan(frame!.y + frame!.height * 0.88);
+  expect(bar!.width).toBeGreaterThan(frame!.width * 0.7);
+}
+
 test("the clock stays readable in a narrow immersive scene", async ({ page }) => {
   await page.setViewportSize({ width: 240, height: 800 });
   await page.goto("/?view=timer");
@@ -126,16 +139,7 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   await expect(scene).toBeVisible();
   await expect(page.getByRole("timer")).toHaveText(/0[34]:\d\d/);
   await expect(page.getByText("Break time", { exact: true })).toBeVisible();
-  // No sun and no ring: the time is centred at the top, progress is a bar along the bottom.
-  await expect(page.locator(".solanum-clock-arc")).toHaveCount(0);
-  const frame = await page.locator(".solanum-scene").boundingBox();
-  const header = await page.locator(".solanum-time-header").boundingBox();
-  const bar = await page.getByRole("progressbar", { name: "Break progress" }).boundingBox();
-  expect(frame && header && bar).toBeTruthy();
-  expect(header!.y + header!.height).toBeLessThan(frame!.y + frame!.height * 0.3);
-  expect(Math.abs(header!.x + header!.width / 2 - (frame!.x + frame!.width / 2))).toBeLessThan(4);
-  expect(bar!.y).toBeGreaterThan(frame!.y + frame!.height * 0.88);
-  expect(bar!.width).toBeGreaterThan(frame!.width * 0.7);
+  await expectFrame(page, "Break progress");
   // Nothing is shown in place of the scene while the cat's model loads.
   expect(
     await page.evaluate(() =>
@@ -172,4 +176,27 @@ test("under reduced motion the break holds still", async ({ page }) => {
   const second = await scene.screenshot();
   // Only the light dimming a hair as the break's sun moves: nothing animates.
   expect(await changedPixels(page, first, second, 12)).toBe(0);
+});
+
+test("the focus timer has the same frame as the break: the time at the top, a bar along the bottom", async ({
+  page,
+}) => {
+  await page.goto("/?view=timer&elapsed=5");
+  await expect(page.locator(".solanum-scene canvas")).toBeVisible();
+  await expect(page.getByRole("timer")).toHaveText(/\d\d:\d\d/);
+  await expectFrame(page, "Focus progress");
+  // Five of the twenty-five minutes have gone, so the bar is about a fifth full.
+  const fill = await page.locator(".solanum-progress-fill").evaluate((element) => {
+    const match = /scaleX\(([\d.e-]+)\)/.exec((element as HTMLElement).style.transform);
+    return Number(match?.[1]);
+  });
+  expect(fill).toBeGreaterThan(0.15);
+  expect(fill).toBeLessThan(0.3);
+});
+
+test("before a session starts the frame is the same, with the bar empty", async ({ page }) => {
+  await page.goto("/?view=timer");
+  await expect(page.locator(".solanum-scene canvas")).toBeVisible();
+  await expect(page.getByRole("timer")).toHaveText("25:00");
+  await expect(page.getByRole("progressbar", { name: "Focus progress" })).toBeVisible();
 });

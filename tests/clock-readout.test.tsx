@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { ClockReadout } from "@/components/clock/ClockReadout";
-import { SUN_CLOCK } from "@/lib/scene/constants";
+import { CLOCK_DIGITS } from "@/lib/scene/constants";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -15,7 +15,7 @@ afterEach(() => {
 const cells = (root: HTMLElement) => [...root.querySelectorAll<HTMLElement>(".solanum-clock-cell")];
 const incoming = (cell: HTMLElement) => cell.querySelector(".solanum-clock-glyph:not(.is-out)");
 const outgoing = (cell: HTMLElement) => cell.querySelector(".solanum-clock-glyph.is-out");
-const rollMs = SUN_CLOCK.digitRoll.seconds * 1000;
+const rollMs = CLOCK_DIGITS.roll.seconds * 1000;
 const text = (el: Element | null) => el?.textContent ?? null;
 
 describe("the countdown digits", () => {
