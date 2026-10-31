@@ -1,10 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { cropStage } from "../src/lib/crops/growth";
-import { CROPS } from "../src/lib/crops/catalog";
+import { cropStage } from "@/lib/crops/growth";
+import { CROPS } from "@/lib/crops/catalog";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { Box3, Group, Vector3 } from "three";
-import { preparePlant } from "../src/lib/crops/geometry";
+import { preparePlant } from "@/lib/crops/geometry";
 
 describe("offline crop assets", () => {
   it.each(Object.values(CROPS))(

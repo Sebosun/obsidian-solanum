@@ -1,5 +1,5 @@
 import type { MouseEvent } from "react";
-import { useAppStore, useServices } from "../../state/hooks";
+import { useAppStore, useServices } from "@/state/hooks";
 
 export function SyncConflicts() {
   const services = useServices();

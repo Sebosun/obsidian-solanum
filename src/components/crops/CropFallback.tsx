@@ -1,5 +1,5 @@
-import { CROPS, type CropId } from "../../lib/crops/catalog";
-import { formatTime } from "../../lib/time";
+import { CROPS, type CropId } from "@/lib/crops/catalog";
+import { formatTime } from "@/lib/time";
 
 interface CropFallbackProps {
   crop: CropId;

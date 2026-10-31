@@ -1,4 +1,4 @@
-import type { Revision } from "./types";
+import type { Revision } from "@/lib/timer/types";
 
 /** Apply the same phase transition for natural expiry and explicit debug completion. */
 export function completePhase(session: Revision, at: number): void {

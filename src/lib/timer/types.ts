@@ -1,4 +1,4 @@
-import type { CropId } from "../crops/catalog";
+import type { CropId } from "@/lib/crops/catalog";
 
 export type Phase = "focus" | "break" | "done";
 export type Status = "running" | "paused" | "waiting" | "completed" | "cancelled";

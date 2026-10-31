@@ -1,8 +1,8 @@
 import { createStore } from "zustand/vanilla";
-import type { TimerService } from "../lib/timer/TimerService";
-import { normalizeTags } from "../lib/timer/selectors";
-import type { SolanumHost } from "../types/host";
-import type { AppState, AppStore } from "./types";
+import type { TimerService } from "@/lib/timer/TimerService";
+import { normalizeTags } from "@/lib/timer/selectors";
+import type { SolanumHost } from "@/types/host";
+import type { AppState, AppStore } from "@/state/types";
 
 interface StoreEntry {
   store: AppStore;

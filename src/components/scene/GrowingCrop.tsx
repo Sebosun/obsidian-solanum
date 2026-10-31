@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
-import type { CropId } from "../../lib/crops/catalog";
-import { GrowthTransition } from "../../lib/scene/GrowthTransition";
-import { GrowthLayer } from "./GrowthLayer";
-import { GrowthSeed } from "./GrowthSeed";
-import { getCropAssets } from "../../state/cropAssets";
-import { useServices } from "../../state/hooks";
+import type { CropId } from "@/lib/crops/catalog";
+import { GrowthTransition } from "@/lib/scene/GrowthTransition";
+import { GrowthLayer } from "@/components/scene/GrowthLayer";
+import { GrowthSeed } from "@/components/scene/GrowthSeed";
+import { getCropAssets } from "@/state/cropAssets";
+import { useServices } from "@/state/hooks";
 
 interface GrowingCropProps {
   crop: CropId;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { Revision, SessionStore } from "../src/lib/timer/types";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { Revision, SessionStore } from "@/lib/timer/types";
 
 const MIN = 60_000;
 

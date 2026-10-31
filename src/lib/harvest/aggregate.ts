@@ -1,4 +1,4 @@
-import type { Revision } from "../timer/types";
+import type { Revision } from "@/lib/timer/types";
 
 export interface HarvestFilter {
   tag?: string;

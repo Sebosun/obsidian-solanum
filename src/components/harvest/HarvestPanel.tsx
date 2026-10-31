@@ -1,10 +1,10 @@
 import { useState, type ChangeEvent } from "react";
-import { useAppStore, useServices } from "../../state/hooks";
-import { buildHarvestMonth } from "../../lib/harvest/model";
-import { HarvestScene } from "./HarvestScene";
-import { HarvestDetails } from "./HarvestDetails";
-import { HarvestDayList } from "./HarvestDayList";
-import { HarvestEmpty } from "./HarvestEmpty";
+import { useAppStore, useServices } from "@/state/hooks";
+import { buildHarvestMonth } from "@/lib/harvest/model";
+import { HarvestScene } from "@/components/harvest/HarvestScene";
+import { HarvestDetails } from "@/components/harvest/HarvestDetails";
+import { HarvestDayList } from "@/components/harvest/HarvestDayList";
+import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
 
 interface HarvestPanelProps {
   initialMonth?: Date;

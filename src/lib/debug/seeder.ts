@@ -1,5 +1,5 @@
-import type { Revision } from "../timer/types";
-import { CROPS, type CropId } from "../crops/catalog";
+import type { Revision } from "@/lib/timer/types";
+import { CROPS, type CropId } from "@/lib/crops/catalog";
 
 /** Stable IDs make repeated seeding additive/idempotent, never destructive. */
 export function seedMonth(month: Date, now: number, notes: string[] = []): Revision[] {

@@ -1,6 +1,6 @@
 import { Notice, PluginSettingTab, Setting, type App, type Plugin } from "obsidian";
-import { PRESETS, type Settings } from "../lib/settings";
-import type { SolanumHost } from "../types/host";
+import { PRESETS, type Settings } from "@/lib/settings";
+import type { SolanumHost } from "@/types/host";
 
 export class SolanumSettingsTab extends PluginSettingTab {
   private pending: Promise<void> = Promise.resolve();

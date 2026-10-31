@@ -1,8 +1,8 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { SolanumHost, Action } from "../types/host";
-import type { TimerDraft } from "../types/timer-ui";
-import type { TimerState } from "../lib/timer/types";
-import type { CropId } from "../lib/crops/catalog";
+import type { SolanumHost, Action } from "@/types/host";
+import type { TimerDraft } from "@/types/timer-ui";
+import type { TimerState } from "@/lib/timer/types";
+import type { CropId } from "@/lib/crops/catalog";
 
 export interface HarvestCelebration {
   id: string;

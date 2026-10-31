@@ -1,7 +1,7 @@
-import type { Screen, SolanumHost } from "../../types/host";
-import { getAppStore } from "../../state/appStore";
-import { AppStoreProvider } from "./AppStoreProvider";
-import { AppContent } from "./AppContent";
+import type { Screen, SolanumHost } from "@/types/host";
+import { getAppStore } from "@/state/appStore";
+import { AppStoreProvider } from "@/components/app/AppStoreProvider";
+import { AppContent } from "@/components/app/AppContent";
 
 interface AppProps {
   host: SolanumHost;

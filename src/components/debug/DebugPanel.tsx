@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from "react";
-import { useAppStore, useServices } from "../../state/hooks";
+import { useAppStore, useServices } from "@/state/hooks";
 
 export function DebugPanel() {
   const host = useServices();

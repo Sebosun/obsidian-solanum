@@ -1,5 +1,5 @@
-import type { HarvestDay } from "../../lib/harvest/model";
-import { HarvestEntry } from "./HarvestEntry";
+import type { HarvestDay } from "@/lib/harvest/model";
+import { HarvestEntry } from "@/components/harvest/HarvestEntry";
 
 interface HarvestDetailsProps {
   day: HarvestDay;

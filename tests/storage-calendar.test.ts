@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { VaultSessionStore, type FileAdapter } from "../src/lib/storage/VaultSessionStore";
-import { monthDays, dailyHarvest } from "../src/lib/harvest/aggregate";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { Revision } from "../src/lib/timer/types";
+import { VaultSessionStore, type FileAdapter } from "@/lib/storage/VaultSessionStore";
+import { monthDays, dailyHarvest } from "@/lib/harvest/aggregate";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { Revision } from "@/lib/timer/types";
 
 class Disk implements FileAdapter {
   files = new Map<string, string>();

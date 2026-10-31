@@ -1,7 +1,7 @@
 import { ItemView, type WorkspaceLeaf } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
-import { App } from "../components/app/App";
-import type { SolanumHost } from "../types/host";
+import { App } from "@/components/app/App";
+import type { SolanumHost } from "@/types/host";
 
 export const VIEW_TYPE_SOLANUM = "solanum-timer";
 export const VIEW_TYPE_HARVEST = "solanum-harvest";

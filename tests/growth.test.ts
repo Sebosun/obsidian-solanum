@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BoxGeometry, Mesh, MeshStandardMaterial } from "three";
-import { GrowthTransition } from "../src/lib/scene/GrowthTransition";
-import { clonePlantMaterials } from "../src/lib/crops/materials";
+import { GrowthTransition } from "@/lib/scene/GrowthTransition";
+import { clonePlantMaterials } from "@/lib/crops/materials";
 
 describe("crop growth transitions", () => {
   it("crossfades grounded stages and settles to a single mature model", () => {

@@ -1,4 +1,4 @@
-import type { Revision, TimerState } from "./types";
+import type { Revision, TimerState } from "@/lib/timer/types";
 
 export const isActive = (s: Revision) => s.phase !== "done";
 export const normalizeTags = (tags: string[]) => [

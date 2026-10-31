@@ -1,5 +1,5 @@
-import { isActive } from "../lib/timer/selectors";
-import type { AppState } from "./types";
+import { isActive } from "@/lib/timer/selectors";
+import type { AppState } from "@/state/types";
 
 export function selectCurrentSession(state: AppState) {
   const active = state.sessions.filter(isActive);

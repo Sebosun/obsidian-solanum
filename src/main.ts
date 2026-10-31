@@ -1,1 +1,1 @@
-export { default } from "./plugin/SolanumPlugin";
+export { default } from "@/plugin/SolanumPlugin";

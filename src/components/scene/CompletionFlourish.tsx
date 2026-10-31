@@ -1,9 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
-import { celebrationFrame } from "../../lib/scene/celebration";
-import { useAppStore } from "../../state/hooks";
-import { selectCurrentSession } from "../../state/selectors";
+import { celebrationFrame } from "@/lib/scene/celebration";
+import { useAppStore } from "@/state/hooks";
+import { selectCurrentSession } from "@/state/selectors";
 
 interface CompletionFlourishProps {
   reduced: boolean;

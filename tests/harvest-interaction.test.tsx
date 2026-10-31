@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { buildHarvestMonth } from "../src/lib/harvest/model";
-import { HarvestDayPlot } from "../src/components/harvest/HarvestDayPlot";
+import { buildHarvestMonth } from "@/lib/harvest/model";
+import { HarvestDayPlot } from "@/components/harvest/HarvestDayPlot";
 
 vi.mock("@react-three/drei", () => ({ Html: () => null, useGLTF: vi.fn() }));
 

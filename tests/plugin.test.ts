@@ -68,13 +68,13 @@ vi.mock("obsidian", () => ({
     }
   },
 }));
-vi.mock("../src/views/SolanumView", () => ({
+vi.mock("@/views/SolanumView", () => ({
   SolanumView: class {},
   VIEW_TYPE_SOLANUM: "solanum-timer",
   VIEW_TYPE_HARVEST: "solanum-harvest",
 }));
-import SolanumPlugin from "../src/main";
-import { getAppStore } from "../src/state/appStore";
+import SolanumPlugin from "@/main";
+import { getAppStore } from "@/state/appStore";
 
 afterEach(() => {
   vi.clearAllTimers();

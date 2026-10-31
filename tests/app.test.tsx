@@ -1,22 +1,22 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, act, within } from "@testing-library/react";
-import { App } from "../src/components/app/App";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { Revision } from "../src/lib/timer/types";
-import { DEFAULT_SETTINGS } from "../src/lib/settings";
-import type { SolanumHost } from "../src/types/host";
-import { DebugTools } from "../src/lib/debug/DebugTools";
-import { formatTime } from "../src/lib/time";
+import { App } from "@/components/app/App";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { Revision } from "@/lib/timer/types";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
+import type { SolanumHost } from "@/types/host";
+import { DebugTools } from "@/lib/debug/DebugTools";
+import { formatTime } from "@/lib/time";
 
-vi.mock("../src/components/crops/CropScene", () => ({
+vi.mock("@/components/crops/CropScene", () => ({
   CropScene: ({ progress, remaining }: { progress: number; remaining: number }) => (
     <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`}>
       <span role="timer">{formatTime(remaining)}</span>
     </figure>
   ),
 }));
-vi.mock("../src/components/harvest/HarvestScene", () => ({
+vi.mock("@/components/harvest/HarvestScene", () => ({
   HarvestScene: ({
     days,
     onHover,

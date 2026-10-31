@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import { CropAssets } from "../src/lib/crops/CropAssets";
+import { CropAssets } from "@/lib/crops/CropAssets";
 
 describe("vault binary crop loading", () => {
   it("shares one parse per model and retries failed vault reads", async () => {

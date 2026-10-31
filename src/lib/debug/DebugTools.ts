@@ -1,7 +1,7 @@
-import type { TimerService } from "../timer/TimerService";
-import type { SessionStore } from "../timer/types";
-import type { DebugConfig } from "./config";
-import { seedMonth } from "./seeder";
+import type { TimerService } from "@/lib/timer/TimerService";
+import type { SessionStore } from "@/lib/timer/types";
+import type { DebugConfig } from "@/lib/debug/config";
+import { seedMonth } from "@/lib/debug/seeder";
 
 export class DebugTools {
   constructor(

@@ -1,14 +1,15 @@
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Canvas, type RootState } from "@react-three/fiber";
-import { cropStage } from "../../lib/crops/growth";
-import type { CropId } from "../../lib/crops/catalog";
-import { GrowingCrop } from "../scene/GrowingCrop";
-import { SceneBoundary } from "../scene/SceneBoundary";
-import { CropFallback } from "./CropFallback";
-import { SceneCountdown } from "../scene/SceneCountdown";
-import { useSceneColor } from "../../hooks/useSceneColor";
-import { formatTime } from "../../lib/time";
-import { CompletionFlourish } from "../scene/CompletionFlourish";
+import { Canvas } from "@react-three/fiber";
+import { cropStage } from "@/lib/crops/growth";
+import type { CropId } from "@/lib/crops/catalog";
+import { GrowingCrop } from "@/components/scene/GrowingCrop";
+import { SceneBoundary } from "@/components/scene/SceneBoundary";
+import { CropFallback } from "@/components/crops/CropFallback";
+import { SceneCountdown } from "@/components/scene/SceneCountdown";
+import { useSceneColor } from "@/hooks/useSceneColor";
+import { formatTime } from "@/lib/time";
+import { CompletionFlourish } from "@/components/scene/CompletionFlourish";
+import { TimerCamera } from "@/components/scene/TimerCamera";
 
 interface CropSceneProps {
   crop?: CropId;
@@ -47,21 +48,18 @@ export function CropScene({
   const classes = ["solanum-scene"];
   if (progress >= 1) classes.push("is-mature");
   if (immersive) classes.push("is-immersive");
-  function aimCamera({ camera }: RootState) {
-    camera.lookAt(0, -0.05, 0);
-  }
   return (
     <div ref={container} className={classes.join(" ")}>
       <SceneBoundary key={crop} fallback={fallback}>
         <Suspense fallback={fallback}>
           <Canvas
-            camera={{ position: [3.2, 2.3, 3.6], fov: 36 }}
+            orthographic
             dpr={[1, 1.5]}
             frameloop={moving ? "always" : "demand"}
             fallback={fallback}
-            onCreated={aimCamera}
             aria-label="Growing crop"
           >
+            <TimerCamera />
             <ambientLight intensity={1.8} />
             <directionalLight position={[3, 5, 2]} intensity={3} color="#fff0ce" />
             <SceneCountdown remaining={remaining} color={color} />

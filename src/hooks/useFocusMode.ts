@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import { isActive } from "../lib/timer/selectors";
-import type { Screen } from "../types/host";
-import { useAppStore } from "../state/hooks";
+import { isActive } from "@/lib/timer/selectors";
+import type { Screen } from "@/types/host";
+import { useAppStore } from "@/state/hooks";
 
 export function useFocusMode(screen: Screen) {
   const sessions = useAppStore((state) => state.sessions);

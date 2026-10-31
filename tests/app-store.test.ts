@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAppStore, releaseAppStore } from "../src/state/appStore";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { Revision } from "../src/lib/timer/types";
-import type { SolanumHost } from "../src/types/host";
-import { DEFAULT_SETTINGS } from "../src/lib/settings";
+import { getAppStore, releaseAppStore } from "@/state/appStore";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { Revision } from "@/lib/timer/types";
+import type { SolanumHost } from "@/types/host";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
 
 function fixture() {
   const files = new Map<string, Revision>();

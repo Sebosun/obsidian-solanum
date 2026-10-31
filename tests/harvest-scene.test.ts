@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildHarvestMonth } from "../src/lib/harvest/model";
-import { seedMonth } from "../src/lib/debug/seeder";
+import { buildHarvestMonth } from "@/lib/harvest/model";
+import { seedMonth } from "@/lib/debug/seeder";
 
 describe("3D harvest scene from persisted history", () => {
   const now = new Date(2026, 10, 1).getTime();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HarvestUnavailable } from "./HarvestUnavailable";
+import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 
 interface HarvestLoadingProps {
   onRetry(): void;

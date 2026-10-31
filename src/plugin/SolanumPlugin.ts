@@ -1,19 +1,19 @@
 import { Notice, Plugin, type App, type TAbstractFile } from "obsidian";
-import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "../views/SolanumView";
-import { TimerService } from "../lib/timer/TimerService";
+import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "@/views/SolanumView";
+import { TimerService } from "@/lib/timer/TimerService";
 import {
   DEBUG_SESSION_FOLDER,
   SESSION_FOLDER,
   VaultSessionStore,
-} from "../lib/storage/VaultSessionStore";
-import { DEFAULT_SETTINGS, readSettings, type Settings } from "../lib/settings";
-import type { SolanumHost } from "../types/host";
-import { CompletionAudio } from "../lib/audio/CompletionAudio";
-import { DEBUG_CONFIG } from "../lib/debug/config";
-import { DebugTools } from "../lib/debug/DebugTools";
-import { VaultNoteIndex } from "./VaultNoteIndex";
-import { SolanumSettingsTab } from "./SolanumSettingsTab";
-import { releaseAppStore, updateDefaultMinutes } from "../state/appStore";
+} from "@/lib/storage/VaultSessionStore";
+import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
+import type { SolanumHost } from "@/types/host";
+import { CompletionAudio } from "@/lib/audio/CompletionAudio";
+import { DEBUG_CONFIG } from "@/lib/debug/config";
+import { DebugTools } from "@/lib/debug/DebugTools";
+import { VaultNoteIndex } from "@/plugin/VaultNoteIndex";
+import { SolanumSettingsTab } from "@/plugin/SolanumSettingsTab";
+import { releaseAppStore, updateDefaultMinutes } from "@/state/appStore";
 
 interface SettingsController {
   open(): void;

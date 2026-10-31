@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { CompletionEvent, Revision } from "../src/lib/timer/types";
-import { celebrationFrame } from "../src/lib/scene/celebration";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { CompletionEvent, Revision } from "@/lib/timer/types";
+import { celebrationFrame } from "@/lib/scene/celebration";
 
 describe("one-shot completion effects", () => {
   it("emits only a new live completion, never cancellation or recovered history", async () => {

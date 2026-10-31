@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { readDebugConfig } from "../src/lib/debug/config";
-import { seedMonth } from "../src/lib/debug/seeder";
-import { DebugTools } from "../src/lib/debug/DebugTools";
-import { TimerService } from "../src/lib/timer/TimerService";
-import type { Revision } from "../src/lib/timer/types";
-import { VaultSessionStore, type FileAdapter } from "../src/lib/storage/VaultSessionStore";
-import { isRevision } from "../src/lib/storage/validation";
+import { readDebugConfig } from "@/lib/debug/config";
+import { seedMonth } from "@/lib/debug/seeder";
+import { DebugTools } from "@/lib/debug/DebugTools";
+import { TimerService } from "@/lib/timer/TimerService";
+import type { Revision } from "@/lib/timer/types";
+import { VaultSessionStore, type FileAdapter } from "@/lib/storage/VaultSessionStore";
+import { isRevision } from "@/lib/storage/validation";
 
 function fixture(debug = true) {
   const files = new Map<string, Revision>();

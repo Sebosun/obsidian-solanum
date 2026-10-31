@@ -1,5 +1,5 @@
-import type { Revision } from "../timer/types";
-import { isCropId } from "../crops/catalog";
+import type { Revision } from "@/lib/timer/types";
+import { isCropId } from "@/lib/crops/catalog";
 
 const finite = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const safeId = (v: unknown): v is string =>

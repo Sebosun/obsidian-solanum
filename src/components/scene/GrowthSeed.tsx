@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Mesh, MeshStandardMaterial } from "three";
-import type { GrowthTransition } from "../../lib/scene/GrowthTransition";
+import type { GrowthTransition } from "@/lib/scene/GrowthTransition";
 
 interface GrowthSeedProps {
   transition: GrowthTransition;

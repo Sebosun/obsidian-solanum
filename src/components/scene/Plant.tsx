@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import type { CropId } from "../../lib/crops/catalog";
-import { preparePlant } from "../../lib/crops/geometry";
-import { useCropModel } from "../../hooks/useCropModel";
+import type { CropId } from "@/lib/crops/catalog";
+import { preparePlant } from "@/lib/crops/geometry";
+import { useCropModel } from "@/hooks/useCropModel";
 
 interface PlantProps {
   crop: CropId;

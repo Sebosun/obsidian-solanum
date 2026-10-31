@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { HarvestScene } from "../src/components/harvest/HarvestScene";
-import { AppStoreProvider } from "../src/components/app/AppStoreProvider";
-import { getAppStore, releaseAppStore } from "../src/state/appStore";
-import { TimerService } from "../src/lib/timer/TimerService";
-import { DEFAULT_SETTINGS } from "../src/lib/settings";
-import { buildHarvestMonth } from "../src/lib/harvest/model";
-import type { SolanumHost } from "../src/types/host";
+import { HarvestScene } from "@/components/harvest/HarvestScene";
+import { AppStoreProvider } from "@/components/app/AppStoreProvider";
+import { getAppStore, releaseAppStore } from "@/state/appStore";
+import { TimerService } from "@/lib/timer/TimerService";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
+import { buildHarvestMonth } from "@/lib/harvest/model";
+import type { SolanumHost } from "@/types/host";
 
 const renderer = vi.hoisted(() => ({ loading: true, pending: new Promise(() => {}) }));
 vi.mock("@react-three/fiber", () => ({

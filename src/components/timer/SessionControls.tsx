@@ -1,5 +1,5 @@
-import { useAppStore, useServices } from "../../state/hooks";
-import { selectCurrentSession } from "../../state/selectors";
+import { useAppStore, useServices } from "@/state/hooks";
+import { selectCurrentSession } from "@/state/selectors";
 
 export function SessionControls() {
   const services = useServices();

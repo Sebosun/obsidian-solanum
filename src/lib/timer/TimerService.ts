@@ -1,5 +1,5 @@
-import { isCropId } from "../crops/catalog";
-import { isActive, normalizeTags, selectState } from "./selectors";
+import { isCropId } from "@/lib/crops/catalog";
+import { isActive, normalizeTags, selectState } from "@/lib/timer/selectors";
 import type {
   CompletionEvent,
   Revision,
@@ -7,8 +7,8 @@ import type {
   StartOptions,
   TimerState,
   TimerEnvironment,
-} from "./types";
-import { completePhase } from "./transitions";
+} from "@/lib/timer/types";
+import { completePhase } from "@/lib/timer/transitions";
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
 export class TimerService {

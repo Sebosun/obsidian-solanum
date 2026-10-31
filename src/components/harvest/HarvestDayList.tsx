@@ -1,4 +1,4 @@
-import type { HarvestDay } from "../../lib/harvest/model";
+import type { HarvestDay } from "@/lib/harvest/model";
 import type { MouseEvent } from "react";
 
 interface HarvestDayListProps {

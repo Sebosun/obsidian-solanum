@@ -1,5 +1,5 @@
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
-import { CROPS, type CropId } from "./catalog";
+import { CROPS, type CropId } from "@/lib/crops/catalog";
 
 export type AssetReader = (filename: string) => Promise<ArrayBuffer>;
 

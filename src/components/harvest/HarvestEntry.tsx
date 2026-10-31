@@ -1,6 +1,6 @@
-import { CROPS } from "../../lib/crops/catalog";
-import type { Revision } from "../../lib/timer/types";
-import { useServices } from "../../state/hooks";
+import { CROPS } from "@/lib/crops/catalog";
+import type { Revision } from "@/lib/timer/types";
+import { useServices } from "@/state/hooks";
 
 interface HarvestEntryProps {
   session: Revision;

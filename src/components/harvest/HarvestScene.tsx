@@ -1,13 +1,13 @@
 import { Suspense, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Bounds } from "@react-three/drei";
-import type { HarvestDay } from "../../lib/harvest/model";
-import { useServices } from "../../state/hooks";
-import { SceneBoundary } from "../scene/SceneBoundary";
-import { HarvestDayPlot } from "./HarvestDayPlot";
-import { HarvestLoading } from "./HarvestLoading";
-import { HarvestUnavailable } from "./HarvestUnavailable";
-import { getCropAssets } from "../../state/cropAssets";
+import type { HarvestDay } from "@/lib/harvest/model";
+import { useServices } from "@/state/hooks";
+import { SceneBoundary } from "@/components/scene/SceneBoundary";
+import { HarvestDayPlot } from "@/components/harvest/HarvestDayPlot";
+import { HarvestLoading } from "@/components/harvest/HarvestLoading";
+import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
+import { getCropAssets } from "@/state/cropAssets";
 
 interface HarvestSceneProps {
   days: HarvestDay[];

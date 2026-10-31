@@ -1,4 +1,4 @@
-import { CROPS, isCropId, type CropId } from "../../lib/crops/catalog";
+import { CROPS, isCropId, type CropId } from "@/lib/crops/catalog";
 import type { ChangeEvent } from "react";
 
 interface CropPickerProps {

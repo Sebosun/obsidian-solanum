@@ -1,4 +1,4 @@
-import type { CropId } from "../lib/crops/catalog";
+import type { CropId } from "@/lib/crops/catalog";
 
 export interface TimerDraft {
   minutes: number;

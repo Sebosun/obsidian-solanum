@@ -1,5 +1,5 @@
-import { CropAssets, type AssetReader } from "../lib/crops/CropAssets";
-import type { SolanumHost } from "../types/host";
+import { CropAssets, type AssetReader } from "@/lib/crops/CropAssets";
+import type { SolanumHost } from "@/types/host";
 
 const repositories = new WeakMap<SolanumHost, CropAssets>();
 

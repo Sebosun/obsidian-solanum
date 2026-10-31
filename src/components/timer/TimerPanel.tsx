@@ -1,10 +1,10 @@
 import type { ChangeEvent } from "react";
-import { isActive } from "../../lib/timer/selectors";
-import { useAppStore, useServices } from "../../state/hooks";
-import { selectCurrentSession } from "../../state/selectors";
-import { CropScene } from "../crops/CropScene";
-import { TimerSetup } from "./TimerSetup";
-import { SessionControls } from "./SessionControls";
+import { isActive } from "@/lib/timer/selectors";
+import { useAppStore, useServices } from "@/state/hooks";
+import { selectCurrentSession } from "@/state/selectors";
+import { CropScene } from "@/components/crops/CropScene";
+import { TimerSetup } from "@/components/timer/TimerSetup";
+import { SessionControls } from "@/components/timer/SessionControls";
 
 interface TimerPanelProps {
   immersive: boolean;

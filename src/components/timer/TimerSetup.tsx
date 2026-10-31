@@ -1,9 +1,9 @@
 import type { MouseEvent } from "react";
-import { PRESETS } from "../../lib/settings";
-import type { CropId } from "../../lib/crops/catalog";
-import { useAppStore } from "../../state/hooks";
-import { CropPicker } from "../crops/CropPicker";
-import { SessionDetailsForm } from "./SessionDetailsForm";
+import { PRESETS } from "@/lib/settings";
+import type { CropId } from "@/lib/crops/catalog";
+import { useAppStore } from "@/state/hooks";
+import { CropPicker } from "@/components/crops/CropPicker";
+import { SessionDetailsForm } from "@/components/timer/SessionDetailsForm";
 
 export function TimerSetup() {
   const draft = useAppStore((state) => state.draft);

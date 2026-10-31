@@ -1,13 +1,13 @@
-import type { Screen } from "../../types/host";
-import { useFocusMode } from "../../hooks/useFocusMode";
-import { useAppStore, useServices } from "../../state/hooks";
-import { DebugPanel } from "../debug/DebugPanel";
-import { TimerPanel } from "../timer/TimerPanel";
-import { HarvestPanel } from "../harvest/HarvestPanel";
-import { SettingsMenu } from "./SettingsMenu";
-import { ViewTabs } from "./ViewTabs";
-import { ErrorNotice } from "./ErrorNotice";
-import { SyncConflicts } from "./SyncConflicts";
+import type { Screen } from "@/types/host";
+import { useFocusMode } from "@/hooks/useFocusMode";
+import { useAppStore, useServices } from "@/state/hooks";
+import { DebugPanel } from "@/components/debug/DebugPanel";
+import { TimerPanel } from "@/components/timer/TimerPanel";
+import { HarvestPanel } from "@/components/harvest/HarvestPanel";
+import { SettingsMenu } from "@/components/app/SettingsMenu";
+import { ViewTabs } from "@/components/app/ViewTabs";
+import { ErrorNotice } from "@/components/app/ErrorNotice";
+import { SyncConflicts } from "@/components/app/SyncConflicts";
 
 interface AppContentProps {
   screen: Screen;

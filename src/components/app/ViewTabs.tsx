@@ -1,4 +1,4 @@
-import type { Screen } from "../../types/host";
+import type { Screen } from "@/types/host";
 
 interface ViewTabsProps {
   screen: Screen;

@@ -1,9 +1,9 @@
 import { createRoot } from "react-dom/client";
-import { App } from "../../src/components/app/App";
-import { TimerService } from "../../src/lib/timer/TimerService";
-import { seedMonth } from "../../src/lib/debug/seeder";
-import { DEFAULT_SETTINGS } from "../../src/lib/settings";
-import type { SolanumHost, Screen } from "../../src/types/host";
+import { App } from "@/components/app/App";
+import { TimerService } from "@/lib/timer/TimerService";
+import { seedMonth } from "@/lib/debug/seeder";
+import { DEFAULT_SETTINGS } from "@/lib/settings";
+import type { SolanumHost, Screen } from "@/types/host";
 
 const month = new Date(2026, 9, 1);
 const history = seedMonth(month, new Date(2026, 9, 31, 18).getTime());

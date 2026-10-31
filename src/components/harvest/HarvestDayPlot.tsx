@@ -1,7 +1,7 @@
 import { Html } from "@react-three/drei";
-import type { HarvestDay } from "../../lib/harvest/model";
-import { cropStage } from "../../lib/crops/growth";
-import { Plant } from "../scene/Plant";
+import type { HarvestDay } from "@/lib/harvest/model";
+import { cropStage } from "@/lib/crops/growth";
+import { Plant } from "@/components/scene/Plant";
 import type { ThreeEvent } from "@react-three/fiber";
 
 interface HarvestDayPlotProps {

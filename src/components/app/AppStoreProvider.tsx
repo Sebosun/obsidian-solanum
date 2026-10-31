@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
-import { AppStoreContext } from "../../state/context";
-import type { AppStore } from "../../state/types";
+import { AppStoreContext } from "@/state/context";
+import type { AppStore } from "@/state/types";
 
 interface AppStoreProviderProps {
   store: AppStore;

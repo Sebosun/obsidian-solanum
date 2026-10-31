@@ -1,0 +1,7 @@
+Inter Regular digits, subset for the Solanum scene countdown.
+Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter).
+SIL Open Font License 1.1; see OFL.txt.
+Source: https://github.com/google/fonts/tree/main/ofl/inter
+Source font version: 4.001;git-66647c0bb.
+Generated with scripts/prepare-clock-font.mjs from Inter[opsz,wght].ttf.
+The outline subset is bundled locally; no font service or runtime network is used.

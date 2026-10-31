@@ -1,5 +1,5 @@
-import type { Revision, SessionStore } from "../timer/types";
-import { isRevision } from "./validation";
+import type { Revision, SessionStore } from "@/lib/timer/types";
+import { isRevision } from "@/lib/storage/validation";
 
 export const SESSION_FOLDER = "Solanum/sessions";
 export const DEBUG_SESSION_FOLDER = "Solanum/debug-sessions";
