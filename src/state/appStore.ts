@@ -3,6 +3,7 @@ import type { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
 import type { SeasonChoice } from "@/lib/scene/seasons";
 import { normalizeTags } from "@/lib/timer/selectors";
+import { effectiveDefaultMinutes } from "@/lib/timer/presets";
 import type { SolanumHost } from "@/types/host";
 import type { AppState, AppStore } from "@/state/types";
 
@@ -28,7 +29,7 @@ export function getAppStore(services: SolanumHost): AppStore {
     ...services.timer.getState(),
     services,
     draft: {
-      minutes: services.settings.defaultMinutes,
+      minutes: effectiveDefaultMinutes(services.settings.presets, services.settings.defaultMinutes),
       crop: "tomato",
       tags: rememberedTags(services.timer.getState().sessions),
       note: "",
@@ -39,6 +40,7 @@ export function getAppStore(services: SolanumHost): AppStore {
     error: "",
     celebration: null,
     season: services.settings.season,
+    presets: services.settings.presets,
     activeViews: 0,
     registerView() {
       set({ activeViews: get().activeViews + 1 });
@@ -60,6 +62,14 @@ export function getAppStore(services: SolanumHost): AppStore {
     },
     setSeason(season) {
       set({ season });
+    },
+    setPresets(presets, defaultMinutes) {
+      set({ presets });
+      // A removed preset cannot stay selected; fall back to the default, or the nearest offered.
+      if (!presets.includes(get().draft.minutes))
+        set({
+          draft: { ...get().draft, minutes: effectiveDefaultMinutes(presets, defaultMinutes) },
+        });
     },
     selectSession(id) {
       set({ selectedSessionId: id });
@@ -133,6 +143,10 @@ export function getAppStore(services: SolanumHost): AppStore {
 export function releaseAppStore(timer: TimerService): void {
   stores.get(timer)?.unsubscribe();
   stores.delete(timer);
+}
+
+export function updatePresets(timer: TimerService, presets: number[], defaultMinutes: number) {
+  stores.get(timer)?.store.getState().setPresets(presets, defaultMinutes);
 }
 
 export function updateSeason(timer: TimerService, season: SeasonChoice): void {

@@ -9,6 +9,9 @@ const nativeUi = vi.hoisted(() => ({
   buttons: new Map<string, () => unknown>(),
   disabled: new Map<string, boolean>(),
   descriptions: new Map<string, string>(),
+  inputs: new Map<string, HTMLInputElement>(),
+  order: [] as string[],
+  headings: new Set<string>(),
   notices: [] as string[],
   confirm: { answer: true, messages: [] as string[] },
 }));
@@ -75,6 +78,11 @@ vi.mock("obsidian", () => ({
     name = "";
     setName(name: string) {
       this.name = name;
+      nativeUi.order.push(name);
+      return this;
+    }
+    setHeading() {
+      nativeUi.headings.add(this.name);
       return this;
     }
     setDesc(description: string) {
@@ -98,8 +106,10 @@ vi.mock("obsidian", () => ({
     }
     addControl(callback: (control: unknown) => void) {
       const name = this.name;
+      const inputEl = document.createElement("input");
+      nativeUi.inputs.set(name, inputEl);
       const control = {
-        inputEl: document.createElement("input"),
+        inputEl,
         text: "",
         addOptions: () => control,
         setValue: () => control,
@@ -143,6 +153,9 @@ afterEach(() => {
   nativeUi.buttons.clear();
   nativeUi.disabled.clear();
   nativeUi.descriptions.clear();
+  nativeUi.inputs.clear();
+  nativeUi.order.length = 0;
+  nativeUi.headings.clear();
   nativeUi.notices.length = 0;
   picker.text = null;
   audioSpy.plays.length = 0;
@@ -230,6 +243,76 @@ describe("Obsidian lifecycle integration", () => {
     expect(plugin.settings.season).toBe("winter");
     expect(getAppStore(plugin).getState().season).toBe("winter");
     plugin.onunload();
+  });
+
+  it("groups preferences under headings by what they change", async () => {
+    vi.useFakeTimers();
+    const { app } = vaultFixture();
+    const plugin = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+    await plugin.onload();
+    nativeUi.order.length = 0;
+    nativeUi.headings.clear();
+    vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+    const sections: Record<string, string[]> = {};
+    let current = "";
+    for (const name of nativeUi.order) {
+      if (nativeUi.headings.has(name) && !(name in sections)) {
+        current = name;
+        sections[current] = [];
+      } else sections[current].push(name);
+    }
+    expect(sections).toEqual({
+      Timer: ["Focus presets", "Focus duration", "Break duration", "Automatic breaks"],
+      Appearance: ["Season theme"],
+      Sound: [
+        "Completion sound",
+        "Volume",
+        "Focus completion sound",
+        "Break completion sound",
+        "Preview",
+      ],
+      Sessions: ["Session folder"],
+      "Day notes": ["Keep day notes up to date", "Day notes folder", "Write notes for all history"],
+      Backup: ["Export sessions", "Import sessions"],
+    });
+    plugin.onunload();
+  });
+
+  describe("focus presets", () => {
+    async function loaded() {
+      vi.useFakeTimers();
+      const { app } = vaultFixture();
+      const plugin = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+      await plugin.onload();
+      vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+      return plugin;
+    }
+    const finishEditing = (value: string) => {
+      const input = nativeUi.inputs.get("Focus presets")!;
+      input.value = value;
+      input.dispatchEvent(new Event("change"));
+    };
+
+    it("saves an edited list when editing finishes and updates the timer at once", async () => {
+      const plugin = await loaded();
+      finishEditing("90, 15 ,40");
+      await vi.advanceTimersByTimeAsync(0);
+      expect(plugin.settings.presets).toEqual([15, 40, 90]);
+      expect(getAppStore(plugin).getState().presets).toEqual([15, 40, 90]);
+      plugin.onunload();
+    });
+
+    it("explains a bad list while typing and never saves it", async () => {
+      const plugin = await loaded();
+      await nativeSettings.get("Focus presets")!("5, banana");
+      expect(nativeUi.descriptions.get("Focus presets")).toMatch(/whole numbers/i);
+      finishEditing("5, banana");
+      await vi.advanceTimersByTimeAsync(0);
+      expect(plugin.settings.presets).toEqual([5, 10, 25, 50, 60, 90, 120]);
+      await nativeSettings.get("Focus presets")!("5, 25");
+      expect(nativeUi.descriptions.get("Focus presets")).toMatch(/separated by commas/i);
+      plugin.onunload();
+    });
   });
 
   it("opens its own sidebar leaf without replacing a user's existing view", async () => {
@@ -723,7 +806,7 @@ describe("Obsidian lifecycle integration", () => {
 
     it("saves the day notes settings, rejecting folders that cannot work", async () => {
       const { plugin } = await loaded();
-      await nativeSettings.get("Day notes")!(false);
+      await nativeSettings.get("Keep day notes up to date")!(false);
       expect(plugin.settings.dayNotes).toBe(false);
       await nativeSettings.get("Day notes folder")!(".hidden/days");
       expect(nativeUi.descriptions.get("Day notes folder")).toMatch(/hidden/i);

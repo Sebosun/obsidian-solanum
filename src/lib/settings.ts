@@ -1,3 +1,4 @@
+import { DEFAULT_PRESETS, readPresets } from "@/lib/timer/presets";
 import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
 import {
@@ -9,6 +10,8 @@ import {
 
 export interface Settings {
   defaultMinutes: number;
+  /** Focus durations offered as quick choices, in minutes. */
+  presets: number[];
   breakMinutes: number;
   autoBreak: boolean;
   sound: boolean;
@@ -27,9 +30,9 @@ export interface Settings {
   season: SeasonChoice;
 }
 
-export const PRESETS = [5, 10, 25, 50, 60, 90, 120];
 export const DEFAULT_SETTINGS: Settings = {
   defaultMinutes: 25,
+  presets: [...DEFAULT_PRESETS],
   breakMinutes: 5,
   autoBreak: false,
   sound: true,
@@ -45,7 +48,11 @@ export const DEFAULT_SETTINGS: Settings = {
 export function readSettings(value: unknown): Settings {
   const s = (value && typeof value === "object" ? value : {}) as Partial<Settings>;
   return {
-    defaultMinutes: PRESETS.includes(s.defaultMinutes!) ? s.defaultMinutes! : 25,
+    defaultMinutes:
+      Number.isInteger(s.defaultMinutes) && s.defaultMinutes! >= 1 && s.defaultMinutes! <= 1440
+        ? s.defaultMinutes!
+        : 25,
+    presets: readPresets(s.presets),
     breakMinutes:
       Number.isFinite(s.breakMinutes) && s.breakMinutes! >= 1 && s.breakMinutes! <= 1440
         ? s.breakMinutes!

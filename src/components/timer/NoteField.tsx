@@ -59,14 +59,16 @@ export function NoteField() {
     return (
       <div className="solanum-field">
         <span>Linked note</span>
-        <div className="solanum-note-chip">
-          <span className="solanum-note-chip-name">{noteName(note)}</span>
-          {folder && <small>{folder}</small>}
-          <button type="button" aria-label="Clear linked note" onClick={clear}>
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-              <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.5" />
-            </svg>
-          </button>
+        <div className="solanum-chip-input">
+          <span className="solanum-chip solanum-note-chip">
+            <span className="solanum-note-chip-name">{noteName(note)}</span>
+            {folder && <small>{folder}</small>}
+            <button type="button" aria-label="Clear linked note" onClick={clear}>
+              <svg width="8" height="8" viewBox="0 0 10 10" aria-hidden="true">
+                <path d="M2 2l6 6M8 2 2 8" stroke="currentColor" strokeWidth="1.5" />
+              </svg>
+            </button>
+          </span>
         </div>
       </div>
     );
@@ -81,23 +83,25 @@ export function NoteField() {
           </button>
         )}
       </div>
-      <input
-        id={inputId}
-        role="combobox"
-        aria-label="Linked note"
-        aria-expanded={items.length > 0}
-        aria-controls={listId}
-        aria-activedescendant={suggestionId(listId, active)}
-        aria-autocomplete="list"
-        autoComplete="off"
-        value={query}
-        placeholder="Search notes"
-        onChange={changeQuery}
-        onKeyDown={handleKey}
-        onFocus={openList}
-        onClick={openList}
-        onBlur={closeList}
-      />
+      <div className="solanum-chip-input">
+        <input
+          id={inputId}
+          role="combobox"
+          aria-label="Linked note"
+          aria-expanded={items.length > 0}
+          aria-controls={listId}
+          aria-activedescendant={suggestionId(listId, active)}
+          aria-autocomplete="list"
+          autoComplete="off"
+          value={query}
+          placeholder="Search notes"
+          onChange={changeQuery}
+          onKeyDown={handleKey}
+          onFocus={openList}
+          onClick={openList}
+          onBlur={closeList}
+        />
+      </div>
       {items.length > 0 && (
         <SuggestionList id={listId} items={items} activeIndex={active} onPick={choose} />
       )}

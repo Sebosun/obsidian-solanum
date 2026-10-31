@@ -126,17 +126,11 @@
 .solanum-app .solanum-chip button:hover {
   @apply sol:bg-(--background-modifier-hover) sol:text-(--text-normal);
 }
-.solanum-note-chip {
-  @apply sol:flex sol:items-center sol:gap-2 sol:py-1.5 sol:pl-2.5 sol:pr-1.5 sol:rounded-[7px] sol:border sol:border-solid sol:border-(--background-modifier-border) sol:text-xs sol:text-(--text-normal);
-}
 .solanum-note-chip small {
-  @apply sol:flex-1 sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
+  @apply sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
 }
 .solanum-note-chip-name {
-  @apply sol:font-medium sol:wrap-anywhere;
-}
-.solanum-app .solanum-note-chip button {
-  @apply sol:ml-auto sol:flex sol:items-center sol:justify-center sol:w-5 sol:h-5 sol:p-0 sol:rounded-full sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted);
+  @apply sol:font-medium;
 }
 .solanum-suggest {
   @apply sol:absolute sol:left-0 sol:right-0 sol:top-full sol:z-30 sol:m-0 sol:mt-1 sol:p-1 sol:list-none sol:max-h-56 sol:overflow-y-auto sol:rounded-lg sol:bg-(--background-primary) sol:border sol:border-solid sol:border-(--background-modifier-border) sol:shadow-lg;
@@ -155,10 +149,20 @@
   @apply sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
 }
 .solanum-app .solanum-subtle {
-  @apply sol:bg-transparent sol:shadow-none sol:border-0 sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent);
+  @apply sol:bg-transparent sol:shadow-none sol:border-0 sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent) sol:underline-offset-2 sol:hover:underline;
 }
+.solanum-start-row {
+  @apply sol:flex sol:justify-center sol:mt-3;
+}
+/* Same family as the pause and stop controls, but filled: the one primary action. */
 .solanum-app .solanum-start {
-  @apply sol:w-full sol:mt-5 sol:p-[13px] sol:h-auto sol:rounded-[9px] sol:bg-[#69885c] sol:text-white sol:shadow-none;
+  @apply sol:flex sol:items-center sol:justify-center sol:w-12 sol:h-12 sol:p-0 sol:rounded-full sol:border-0 sol:bg-[#69885c] sol:text-white sol:shadow-md sol:transition-transform;
+}
+.solanum-app .solanum-start:hover:not(:disabled) {
+  @apply sol:scale-105 sol:bg-[#76976a];
+}
+.solanum-app .solanum-start svg {
+  @apply sol:fill-current;
 }
 .solanum-actions {
   @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-3 sol:my-3;

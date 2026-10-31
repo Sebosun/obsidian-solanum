@@ -22,7 +22,12 @@ import { DEBUG_CONFIG } from "@/lib/debug/config";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { VaultNoteIndex } from "@/plugin/VaultNoteIndex";
 import { SolanumSettingsTab } from "@/plugin/SolanumSettingsTab";
-import { releaseAppStore, updateDefaultMinutes, updateSeason } from "@/state/appStore";
+import {
+  releaseAppStore,
+  updateDefaultMinutes,
+  updatePresets,
+  updateSeason,
+} from "@/state/appStore";
 
 const DAY_NOTE_DEBOUNCE_MS = 1_500;
 
@@ -222,6 +227,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     if (next.defaultMinutes !== previousMinutes)
       updateDefaultMinutes(this.timer, next.defaultMinutes);
     updateSeason(this.timer, next.season);
+    updatePresets(this.timer, next.presets, next.defaultMinutes);
   }
 
   planSessionFolder = (folder: string): Promise<MovePlan> => this.folders.plan(this.valid(folder));
@@ -293,6 +299,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     if (next.defaultMinutes !== previousMinutes)
       updateDefaultMinutes(this.timer, next.defaultMinutes);
     updateSeason(this.timer, next.season);
+    updatePresets(this.timer, next.presets, next.defaultMinutes);
     if (next.sessionFolder === this.folders.folder) return;
     await this.background(async () => {
       const result = await this.folders.relocate(next.sessionFolder);

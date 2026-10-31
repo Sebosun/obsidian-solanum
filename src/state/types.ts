@@ -21,6 +21,7 @@ export interface AppState extends TimerState {
   error: string;
   celebration: HarvestCelebration | null;
   season: SeasonChoice;
+  presets: number[];
   activeViews: number;
   registerView(): () => void;
   claimCelebration(id: string): boolean;
@@ -28,6 +29,7 @@ export interface AppState extends TimerState {
   startFocus(): Promise<void>;
   updateDraft(patch: Partial<TimerDraft>): void;
   setSeason(season: SeasonChoice): void;
+  setPresets(presets: number[], defaultMinutes: number): void;
   selectSession(id: string): void;
   revealControls(id: string): void;
   hideControls(): void;

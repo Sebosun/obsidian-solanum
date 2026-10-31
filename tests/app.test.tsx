@@ -9,7 +9,7 @@ import type { SolanumHost } from "@/types/host";
 import { DebugTools } from "@/lib/debug/DebugTools";
 import { formatTime } from "@/lib/time";
 import { seasonOf } from "@/lib/scene/seasons";
-import { updateSeason } from "@/state/appStore";
+import { updatePresets, updateSeason } from "@/state/appStore";
 
 vi.mock("@/components/crops/CropScene", () => ({
   CropScene: ({
@@ -207,6 +207,48 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("figure").getAttribute("data-season")).toBe("winter");
     act(() => updateSeason(f.host.timer, "auto"));
     expect(screen.getByRole("figure").getAttribute("data-season")).toBe(seasonOf(new Date()));
+  });
+
+  it("offers the saved presets live and puts Start focus right under the scene", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const labels = () =>
+      within(screen.getByLabelText("Focus duration"))
+        .getAllByRole("button")
+        .map((button) => button.textContent);
+    expect(labels()).toEqual([
+      "5 min",
+      "10 min",
+      "25 min",
+      "50 min",
+      "60 min",
+      "90 min",
+      "120 min",
+    ]);
+    act(() => updatePresets(f.host.timer, [15, 40], 25));
+    expect(labels()).toEqual(["15 min", "40 min"]);
+    expect(screen.getByRole("button", { name: "40 min" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    expect(screen.getByRole("button", { name: "15 min" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "40 min" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await waitFor(() => expect(f.host.timer.getState().sessions[0].durationMs).toBe(40 * 60_000));
+  });
+
+  it("shows Start focus as a round icon button before the form, not as a bar below it", () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    const start = screen.getByRole("button", { name: "Start focus" });
+    expect(start.textContent).toBe("");
+    expect(start.querySelector("svg")).not.toBeNull();
+    expect(start.getAttribute("title")).toBe("Start focus");
+    const presets = screen.getByLabelText("Focus duration");
+    const tags = screen.getByRole("combobox", { name: "Tags" });
+    expect(start.compareDocumentPosition(presets) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(start.compareDocumentPosition(tags) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("returns to the immersive view from the revealed controls, by button or Escape", async () => {

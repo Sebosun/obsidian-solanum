@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAppStore, releaseAppStore } from "@/state/appStore";
+import { getAppStore, releaseAppStore, updatePresets } from "@/state/appStore";
 import { TimerService } from "@/lib/timer/TimerService";
 import type { Revision } from "@/lib/timer/types";
 import type { SolanumHost } from "@/types/host";
@@ -156,6 +156,29 @@ describe("shared application store", () => {
       const store = getAppStore(host);
       await store.getState().startFocus();
       expect(store.getState().sessions[0].tags).toEqual(["study"]);
+      releaseAppStore(host.timer);
+    });
+  });
+
+  describe("focus presets", () => {
+    it("starts on the saved default, or the nearest preset if it is no longer offered", () => {
+      const { host } = fixture();
+      host.settings = { ...host.settings, presets: [15, 30, 45], defaultMinutes: 25 };
+      const store = getAppStore(host);
+      expect(store.getState().presets).toEqual([15, 30, 45]);
+      expect(store.getState().draft.minutes).toBe(30);
+      releaseAppStore(host.timer);
+    });
+
+    it("keeps a still-offered choice when the list changes, and replaces a removed one", () => {
+      const { host } = fixture();
+      const store = getAppStore(host);
+      store.getState().updateDraft({ minutes: 50 });
+      updatePresets(host.timer, [10, 25, 50], 25);
+      expect(store.getState().presets).toEqual([10, 25, 50]);
+      expect(store.getState().draft.minutes).toBe(50);
+      updatePresets(host.timer, [10, 20], 25);
+      expect(store.getState().draft.minutes).toBe(20);
       releaseAppStore(host.timer);
     });
   });
