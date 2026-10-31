@@ -53,6 +53,27 @@ vi.mock("@/components/harvest/HarvestMonthScene", () => ({
     />
   ),
 }));
+vi.mock("@/components/harvest/HarvestYearScene", () => ({
+  HarvestYearScene: ({
+    year,
+    months,
+    onOpenMonth,
+  }: {
+    year: number;
+    months: { index: number; minutes: number; date: Date }[];
+    onOpenMonth: (index: number) => void;
+  }) => (
+    <div>
+      {months.map((month) => (
+        <button
+          key={month.index}
+          aria-label={`${month.date.toLocaleDateString(undefined, { month: "long" })} ${year}, ${Math.round(month.minutes)} focused minutes`}
+          onClick={() => onOpenMonth(month.index)}
+        />
+      ))}
+    </div>
+  ),
+}));
 afterEach(cleanup);
 
 async function revealControls() {
@@ -568,7 +589,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const monthButtons = () =>
       screen.getAllByRole("button", { name: /^[A-Z][a-z]+ \d{4}, \d+ focused minutes$/ });
 
-    it("previews every month of the year as a grid with focused minutes", async () => {
+    it("shows every month of the year with its focused minutes, and says what a crate means", async () => {
       const f = await plantedFixture();
       render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
       fireEvent.click(screen.getByRole("button", { name: "Year" }));
@@ -577,9 +598,8 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByText("5 min this year")).toBeTruthy();
       expect(screen.getByRole("button", { name: "October 2026, 5 focused minutes" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "March 2026, 0 focused minutes" })).toBeTruthy();
-      const october = screen.getByRole("button", { name: "October 2026, 5 focused minutes" });
-      const busy = october.querySelector('[title^="2026-10-31"]');
-      expect(busy?.className).toMatch(/level-1/);
+      expect(screen.getByText(/Each crate stands for 2 h of focus/)).toBeTruthy();
+      expect(screen.getByText(/Busiest: October, 5 min/)).toBeTruthy();
     });
 
     it("opens a month from the year grid and returns with the Year button", async () => {

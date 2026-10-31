@@ -217,53 +217,6 @@
 .solanum-app .solanum-view-toggle button[aria-pressed="true"] {
   @apply sol:bg-(--background-primary) sol:text-(--text-normal) sol:shadow-sm;
 }
-.solanum-year-grid {
-  @apply sol:grid sol:grid-cols-2 sol:gap-2;
-}
-@container (min-width: 440px) {
-  .solanum-year-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-.solanum-app .solanum-year-month {
-  @apply sol:flex sol:flex-col sol:gap-1.5 sol:h-auto sol:p-2.5 sol:text-left sol:rounded-xl sol:bg-(--background-secondary) sol:shadow-none sol:border sol:border-solid sol:border-transparent sol:text-(--text-normal) sol:transition-colors;
-}
-.solanum-app .solanum-year-month:hover {
-  @apply sol:border-(--background-modifier-border-hover);
-}
-.solanum-year-month-head {
-  @apply sol:flex sol:items-baseline sol:justify-between sol:text-xs sol:font-medium;
-}
-.solanum-year-month-head small {
-  @apply sol:text-[10px] sol:font-normal sol:text-(--text-muted) sol:tabular-nums;
-}
-.solanum-year-days {
-  @apply sol:grid sol:grid-cols-7 sol:gap-0.5;
-}
-.solanum-year-day {
-  @apply sol:block sol:aspect-square sol:rounded-[2px] sol:bg-(--background-modifier-border);
-}
-.solanum-year-day.level-0 {
-  @apply sol:opacity-50;
-}
-.solanum-year-day.level-1 {
-  background: #87a87940;
-}
-.solanum-year-day.level-2 {
-  background: #87a87980;
-}
-.solanum-year-day.level-3 {
-  background: #87a879c0;
-}
-.solanum-year-day.level-4 {
-  background: #a1bb79;
-}
-.solanum-year-legend {
-  @apply sol:flex sol:items-center sol:justify-end sol:gap-1 sol:mt-3 sol:text-[10px] sol:text-(--text-faint);
-}
-.solanum-year-legend .solanum-year-day {
-  @apply sol:w-2.5 sol:h-2.5;
-}
 .solanum-month-nav {
   @apply sol:mb-1;
 }
@@ -303,10 +256,6 @@
 .solanum-suggest,
 .solanum-month-summary {
   animation: solanum-rise 0.2s ease-out;
-}
-.solanum-year-month {
-  animation: solanum-rise 0.3s ease-out both;
-  animation-delay: calc(var(--index, 0) * 28ms);
 }
 .solanum-chip,
 .solanum-app .solanum-crops button[aria-checked="true"] .solanum-crop-emoji {
@@ -376,6 +325,47 @@
 }
 .solanum-summary-tags li {
   @apply sol:m-0;
+}
+.solanum-year-scene canvas {
+  @apply sol:cursor-pointer;
+}
+.solanum-year-scene:focus-visible {
+  @apply sol:shadow-[inset_0_0_0_2px_var(--crop-green)];
+}
+.solanum-stack-label {
+  text-shadow: 0 0 4px var(--background-secondary);
+  @apply sol:flex sol:items-baseline sol:gap-1 sol:text-[10px] sol:font-medium sol:leading-none sol:text-(--text-muted) sol:whitespace-nowrap sol:select-none sol:tabular-nums;
+}
+.solanum-stack-label small {
+  @apply sol:text-[9px] sol:font-normal sol:text-(--text-faint);
+}
+.solanum-stack-label.is-active {
+  @apply sol:text-(--text-normal);
+}
+.solanum-stack-label.is-busiest,
+.solanum-stack-label.is-busiest small {
+  @apply sol:text-[#d9b24a];
+}
+.solanum-scene-caption {
+  @apply sol:text-center sol:mt-2 sol:mb-0;
+}
+.solanum-year-list {
+  @apply sol:list-none sol:p-0 sol:m-0 sol:flex sol:flex-col sol:gap-1;
+}
+.solanum-app .solanum-year-list button {
+  @apply sol:grid sol:grid-cols-[2.5rem_1fr_4.5rem] sol:items-center sol:gap-2 sol:w-full sol:h-auto sol:py-1.5 sol:px-2 sol:text-xs sol:text-left sol:rounded-lg sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-normal);
+}
+.solanum-app .solanum-year-list button:hover {
+  @apply sol:bg-(--background-secondary);
+}
+.solanum-year-list-track {
+  @apply sol:block sol:h-2 sol:rounded-sm sol:bg-(--background-modifier-border);
+}
+.solanum-year-list-track span {
+  @apply sol:block sol:h-full sol:rounded-sm sol:bg-(--crop-green);
+}
+.solanum-year-list-value {
+  @apply sol:text-right sol:tabular-nums sol:text-(--text-muted);
 }
 .solanum-month-summary .solanum-hint {
   @apply sol:m-0 sol:mt-1;

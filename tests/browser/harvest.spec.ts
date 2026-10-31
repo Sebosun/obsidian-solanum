@@ -34,12 +34,22 @@ test("the month is blocks and numbers, with no calendar days to pick", async ({ 
   await expect(page.getByText(/One block per harvest/)).toBeVisible();
 });
 
-test("the year overview opens a month back into the blocks", async ({ page }) => {
+test("the year is a stack of crates per month, and a stack opens its month", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expectBlocksLoaded(page);
   await page.getByRole("button", { name: "Year" }).click();
-  await expect(page.locator(".solanum-year-month")).toHaveCount(12);
-  await page.getByRole("button", { name: /^October 2026, \d+ focused minutes$/ }).click();
-  await expect(page.getByRole("heading", { name: "October 2026" })).toBeVisible();
   await expectBlocksLoaded(page);
+  await expect(page.locator(".solanum-stack-label")).toHaveCount(12);
+  await expect(page.locator(".solanum-stack-label.is-busiest")).toHaveCount(1);
+  await expect(page.getByText(/Each crate stands for/)).toBeVisible();
+  // Keyboard: January, then across to October (nine presses right and down) and open it.
+  await page.getByRole("group", { name: "Harvest by month" }).focus();
+  for (const key of ["ArrowRight", "ArrowDown", "ArrowDown", "ArrowRight"])
+    await page.keyboard.press(key);
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("heading", { name: /^\w+ 2026$/ })).toBeVisible();
+  await expectBlocksLoaded(page);
+  expect(errors).toEqual([]);
 });

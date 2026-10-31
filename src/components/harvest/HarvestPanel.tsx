@@ -2,15 +2,16 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/state/hooks";
 import { harvestFilterOptions } from "@/lib/harvest/filters";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
-import { buildHarvestYear } from "@/lib/harvest/year";
+import { layoutYearStacks, summarizeYear } from "@/lib/harvest/year";
 import { resolveSeason } from "@/lib/scene/seasons";
+import { formatFocus } from "@/lib/time";
 import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
 import { HarvestFilters } from "@/components/harvest/HarvestFilters";
 import { HarvestMonthScene } from "@/components/harvest/HarvestMonthScene";
 import { HarvestMonthSummary } from "@/components/harvest/HarvestMonthSummary";
 import { HarvestPeriodNav } from "@/components/harvest/HarvestPeriodNav";
 import { HarvestViewToggle, type HarvestView } from "@/components/harvest/HarvestViewToggle";
-import { HarvestYear } from "@/components/harvest/HarvestYear";
+import { HarvestYearScene } from "@/components/harvest/HarvestYearScene";
 
 interface HarvestPanelProps {
   initialMonth?: Date;
@@ -42,9 +43,10 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   );
   const summary = useMemo(() => summarizeMonth(sessions, month, filter), [sessions, month, filter]);
   const yearMonths = useMemo(
-    () => (view === "year" ? buildHarvestYear(sessions, year, filter) : []),
+    () => (view === "year" ? summarizeYear(sessions, year, filter) : []),
     [view, sessions, year, filter],
   );
+  const yearLayout = useMemo(() => layoutYearStacks(yearMonths), [yearMonths]);
   const yearTotal = yearMonths.reduce((sum, item) => sum + item.minutes, 0);
   const total = view === "year" ? yearTotal : summary.minutes;
   const { tags, notes } = useMemo(() => harvestFilterOptions(sessions), [sessions]);
@@ -70,7 +72,22 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
 
   let content = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
   if (total > 0 && view === "year") {
-    content = <HarvestYear months={yearMonths} onOpenMonth={openMonth} />;
+    const busiest = yearLayout.stacks.find((stack) => stack.busiest);
+    content = (
+      <>
+        <HarvestYearScene
+          year={year}
+          months={yearMonths}
+          layout={yearLayout}
+          onOpenMonth={openMonth}
+        />
+        <p className="solanum-hint solanum-scene-caption">
+          Each crate stands for {formatFocus(yearLayout.crateMinutes)} of focus.
+          {busiest &&
+            ` Busiest: ${yearMonths[busiest.index].date.toLocaleDateString(undefined, { month: "long" })}, ${formatFocus(busiest.minutes)}.`}
+        </p>
+      </>
+    );
   } else if (total > 0 && layout) {
     content = (
       <>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dailyHarvest } from "@/lib/harvest/aggregate";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
-import { buildHarvestYear } from "@/lib/harvest/year";
+import { summarizeYear } from "@/lib/harvest/year";
 import { buildDayNote } from "@/lib/notes/dayNote";
 import { focusSession } from "./helpers/sessions";
 import type { Revision } from "@/lib/timer/types";
@@ -44,9 +44,9 @@ describe("a crop stopped before it finished earns nothing", () => {
   });
 
   it("does not count towards the year overview", () => {
-    const months = buildHarvestYear([stopped("a", 20), harvested], 2026, {}, NOW);
+    const months = summarizeYear([stopped("a", 20), harvested], 2026, {}, NOW);
     expect(months[9].minutes).toBe(25);
-    expect(buildHarvestYear([stopped("a", 20)], 2026, {}, NOW)[9].minutes).toBe(0);
+    expect(summarizeYear([stopped("a", 20)], 2026, {}, NOW)[9].minutes).toBe(0);
   });
 
   it("produces no day note", () => {

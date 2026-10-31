@@ -7,7 +7,11 @@ import type { SolanumHost, Screen } from "@/types/host";
 
 const parameters = new URLSearchParams(window.location.search);
 const month = new Date(2026, 9, 1);
-const history = seedMonth(month, new Date(2026, 9, 31, 18).getTime());
+const seededUntil = new Date(2026, 9, 31, 18).getTime();
+// January to October, so the year overview has something in most months.
+const history = Array.from({ length: 10 }, (_, index) =>
+  seedMonth(new Date(2026, index, 1), seededUntil),
+).flat();
 const files = new Map(history.map((session) => [session.id, session]));
 // ?elapsed=<minutes> opens the timer already that far into a 25 minute focus.
 const elapsedMinutes = Number(parameters.get("elapsed"));

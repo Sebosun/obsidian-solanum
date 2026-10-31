@@ -111,3 +111,28 @@ export const PLOT_ENTRANCE = {
   staggerSeconds: 0.014,
   overshoot: 1.3,
 } as const;
+
+/** The year as twelve stacks of crates, four across. A taller stack is a busier month. World units. */
+export const YEAR_STACKS = {
+  columns: 4,
+  crateWidth: 1.9,
+  crateDepth: 1.5,
+  crateHeight: 0.6,
+  /** Height gained per crate; a little more than the crate so stacks show their joins. */
+  crateStep: 0.62,
+  pitchX: 2.5,
+  pitchZ: 3.1,
+  /** The busiest month gets this many crates, and every other month is scaled against it. */
+  maxCrates: 6,
+  /** Fewest minutes a crate may stand for, so a light year does not look like a tall one. */
+  minCrateMinutes: 120,
+  crateRoundingMinutes: 30,
+  /** Plants in a full top crate, in a grid of `plantColumns` across. */
+  topPlants: 15,
+  plantColumns: 5,
+  minTopPlants: 3,
+  /** Height of the single bare crate that marks a month with nothing finished. */
+  emptyCrateHeight: 0.3,
+  /** Width ÷ height of the scene box; stacks are tall, so it is a little narrower than the month. */
+  sceneAspect: 0.95,
+} as const;

@@ -1,57 +1,107 @@
-import { dailyHarvest, monthDays, type HarvestFilter } from "@/lib/harvest/aggregate";
-import { dayKey } from "@/lib/harvest/model";
+import type { HarvestFilter } from "@/lib/harvest/aggregate";
+import { summarizeMonth, type MonthSummary } from "@/lib/harvest/month";
+import { CROPS, type CropId } from "@/lib/crops/catalog";
+import { YEAR_STACKS } from "@/lib/scene/constants";
 import type { Revision } from "@/lib/timer/types";
 
-export type IntensityLevel = 0 | 1 | 2 | 3 | 4;
-
-/** Focused minutes per day at which a day reaches heat levels 1 to 4. */
-const LEVEL_THRESHOLD_MINUTES = [1, 30, 60, 120] as const;
-
-export function intensityLevel(minutes: number): IntensityLevel {
-  let level: IntensityLevel = 0;
-  LEVEL_THRESHOLD_MINUTES.forEach((threshold, index) => {
-    if (minutes >= threshold) level = (index + 1) as IntensityLevel;
-  });
-  return level;
-}
-
-export interface YearDay {
-  key: string;
-  date: Date;
-  minutes: number;
-  level: IntensityLevel;
-}
-
-export interface YearMonth {
+export interface YearMonth extends MonthSummary {
   /** Zero-based month number. */
   index: number;
   date: Date;
-  /** Weekday column (Sunday = 0) of the first day. */
-  offset: number;
-  days: YearDay[];
+}
+
+export interface YearStack {
+  index: number;
   minutes: number;
+  /** Crates in the stack; 0 for a month with nothing finished, which gets one bare low crate. */
+  crates: number;
+  empty: boolean;
+  /** True for the month with the most focused time. */
+  busiest: boolean;
+  /** The crops growing in the top crate, mixed. */
+  plants: CropId[];
+}
+
+export interface YearStacks {
+  /** Focused minutes one crate stands for, the same in every stack. */
+  crateMinutes: number;
+  stacks: YearStack[];
 }
 
 const MONTHS_PER_YEAR = 12;
+const CROP_IDS = Object.keys(CROPS) as CropId[];
 
-export function buildHarvestYear(
+export function summarizeYear(
   sessions: Revision[],
   year: number,
   filter: HarvestFilter = {},
   now = Date.now(),
 ): YearMonth[] {
   return Array.from({ length: MONTHS_PER_YEAR }, (_, index) => {
-    const dates = monthDays(year, index);
-    const days = dates.map((date) => {
-      const { minutes } = dailyHarvest(sessions, date, filter, now);
-      return { key: dayKey(date), date, minutes, level: intensityLevel(minutes) };
-    });
+    const date = new Date(year, index, 1);
+    return { index, date, ...summarizeMonth(sessions, date, filter, now) };
+  });
+}
+
+/** Splits `count` plants across crop types by their share, giving leftovers to the biggest remainders. */
+function shareOut(count: number, crops: Record<CropId, number>): Record<CropId, number> {
+  const total = CROP_IDS.reduce((sum, id) => sum + crops[id], 0);
+  const shares = Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
+  if (total === 0) return shares;
+  const exact = CROP_IDS.map((id) => ({ id, value: (crops[id] / total) * count }));
+  for (const { id, value } of exact) shares[id] = Math.floor(value);
+  let left = count - CROP_IDS.reduce((sum, id) => sum + shares[id], 0);
+  for (const { id } of [...exact].sort((a, b) => (b.value % 1) - (a.value % 1))) {
+    if (left <= 0) break;
+    shares[id] += 1;
+    left -= 1;
+  }
+  return shares;
+}
+
+/** Hands plants out one crop type at a time, so the crate is mixed rather than in blocks. */
+function mixedPlants(count: number, crops: Record<CropId, number>): CropId[] {
+  const remaining = shareOut(count, crops);
+  const order: CropId[] = [];
+  while (order.length < count) {
+    for (const id of CROP_IDS) {
+      if (remaining[id] > 0 && order.length < count) {
+        order.push(id);
+        remaining[id] -= 1;
+      }
+    }
+  }
+  return order;
+}
+
+/**
+ * One stack of crates per month. A crate stands for the same amount of time everywhere, chosen so
+ * the busiest month fills the tallest stack; the top crate fills by how much of a crate is left over.
+ */
+export function layoutYearStacks(months: YearMonth[]): YearStacks {
+  const busiestMinutes = Math.max(0, ...months.map((month) => month.minutes));
+  const rounding = YEAR_STACKS.crateRoundingMinutes;
+  const fitted = Math.ceil(busiestMinutes / YEAR_STACKS.maxCrates / rounding) * rounding;
+  const crateMinutes = Math.max(YEAR_STACKS.minCrateMinutes, fitted);
+  const busiestIndex =
+    busiestMinutes > 0 ? months.findIndex((month) => month.minutes === busiestMinutes) : -1;
+  const stacks = months.map((month): YearStack => {
+    if (month.minutes <= 0)
+      return { index: month.index, minutes: 0, crates: 0, empty: true, busiest: false, plants: [] };
+    const crates = Math.ceil(month.minutes / crateMinutes);
+    const topShare = (month.minutes - (crates - 1) * crateMinutes) / crateMinutes;
+    const count = Math.min(
+      YEAR_STACKS.topPlants,
+      Math.max(YEAR_STACKS.minTopPlants, Math.round(topShare * YEAR_STACKS.topPlants)),
+    );
     return {
-      index,
-      date: dates[0],
-      offset: dates[0].getDay(),
-      days,
-      minutes: days.reduce((sum, day) => sum + day.minutes, 0),
+      index: month.index,
+      minutes: month.minutes,
+      crates,
+      empty: false,
+      busiest: month.index === busiestIndex,
+      plants: mixedPlants(count, month.crops),
     };
   });
+  return { crateMinutes, stacks };
 }
