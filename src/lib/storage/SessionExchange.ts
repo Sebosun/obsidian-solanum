@@ -2,7 +2,7 @@ import { ensureFolder } from "@/lib/storage/ensureFolder";
 import { EXPORT_FOLDER, buildExport, canonical, parseExport } from "@/lib/storage/exchange";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { TimerService } from "@/lib/timer/TimerService";
-import type { SessionStore } from "@/lib/timer/types";
+import type { Revision, SessionStore } from "@/lib/timer/types";
 
 export interface ExportResult {
   path: string;
@@ -43,6 +43,11 @@ export class SessionExchange {
   /** Adds revisions we do not have. Divergent copies of one session stay as a sync conflict. */
   async import(text: string): Promise<ImportResult> {
     const parsed = parseExport(text);
+    return this.importRevisions(parsed.revisions, parsed.invalid);
+  }
+
+  /** The shared way revisions join the history, whatever file they came from. */
+  importRevisions(revisions: Revision[], invalid = 0): Promise<ImportResult> {
     return this.timer.exclusive(async () => {
       const known = new Map(
         (await this.store.readAll()).map((revision) => [revision.id, revision]),
@@ -51,10 +56,10 @@ export class SessionExchange {
         added: 0,
         duplicates: 0,
         conflicts: [],
-        invalid: parsed.invalid,
+        invalid,
         synthetic: 0,
       };
-      for (const revision of parsed.revisions) {
+      for (const revision of revisions) {
         if (revision.source !== undefined) {
           result.synthetic += 1;
           continue;

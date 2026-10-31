@@ -34,6 +34,21 @@ vi.mock("@/lib/audio/CompletionAudio", () => ({
     }
   },
 }));
+const forestDialog = vi.hoisted(() => ({
+  answer: null as unknown,
+  calls: [] as { preview: unknown; suggested: unknown; knownTags: string[] }[],
+}));
+vi.mock("@/plugin/ForestImportModal", () => ({
+  askForestMapping: async (
+    _app: unknown,
+    preview: unknown,
+    suggested: unknown,
+    knownTags: string[],
+  ) => {
+    forestDialog.calls.push({ preview, suggested, knownTags });
+    return forestDialog.answer;
+  },
+}));
 const picker = vi.hoisted(() => ({ text: null as string | null }));
 vi.mock("@/plugin/pickTextFile", () => ({ pickTextFile: async () => picker.text }));
 vi.mock("@/plugin/ConfirmMoveModal", () => ({
@@ -148,6 +163,7 @@ vi.mock("@/views/SolanumView", () => ({
 import SolanumPlugin from "@/main";
 import { getAppStore } from "@/state/appStore";
 import { MemoryDisk } from "./helpers/memoryDisk";
+import { readFileSync } from "node:fs";
 
 afterEach(() => {
   nativeUi.buttons.clear();
@@ -158,6 +174,8 @@ afterEach(() => {
   nativeUi.headings.clear();
   nativeUi.notices.length = 0;
   picker.text = null;
+  forestDialog.answer = null;
+  forestDialog.calls.length = 0;
   audioSpy.plays.length = 0;
   audioSpy.decodes = 0;
   audioSpy.undecodable = false;
@@ -273,7 +291,7 @@ describe("Obsidian lifecycle integration", () => {
       ],
       Sessions: ["Session folder"],
       "Day notes": ["Keep day notes up to date", "Day notes folder", "Write notes for all history"],
-      Backup: ["Export sessions", "Import sessions"],
+      Backup: ["Export sessions", "Import sessions", "Import from Forest"],
     });
     plugin.onunload();
   });
@@ -813,6 +831,149 @@ describe("Obsidian lifecycle integration", () => {
       expect(plugin.settings.dayNotesFolder).toBe("Solanum/days");
       await nativeSettings.get("Day notes folder")!("Journal/Focus");
       expect(plugin.settings.dayNotesFolder).toBe("Journal/Focus");
+      plugin.onunload();
+    });
+  });
+
+  describe("Forest import", () => {
+    const sample = readFileSync("tests/fixtures/forest-sample.csv", "utf8");
+    const mapping = {
+      tags: { Study: "university", Latin: "" },
+      trees: { Bush: "carrot", Cedar: "pumpkin", "Statue of Tada": "tomato" },
+    };
+    async function loaded() {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 9, 31, 12));
+      const fixture = vaultFixture();
+      const plugin = new SolanumPlugin(fixture.app, { id: "solanum" } as PluginManifest);
+      await plugin.onload();
+      vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+      return { ...fixture, plugin };
+    }
+    const choose = () => nativeUi.buttons.get("Choose CSV…")!();
+    const notesIn = (disk: MemoryDisk) =>
+      [...disk.files.keys()].filter((path) => path.startsWith("Solanum/days/"));
+
+    it("asks which tag and plant each Forest one becomes, with sensible suggestions", async () => {
+      const { plugin } = await loaded();
+      picker.text = sample;
+      forestDialog.answer = mapping;
+      await choose();
+      expect(forestDialog.calls).toHaveLength(1);
+      const [call] = forestDialog.calls;
+      expect(call.preview).toMatchObject({
+        successful: 17,
+        failed: 1,
+        tags: [
+          { name: "Study", count: 16 },
+          { name: "Latin", count: 1 },
+        ],
+      });
+      expect(call.suggested).toEqual({
+        tags: { Study: "Study", Latin: "Latin" },
+        trees: { Bush: "tomato", Cedar: "carrot", "Statue of Tada": "corn" },
+      });
+      plugin.onunload();
+    });
+
+    it("imports the finished trees with the chosen tags and plants, and says what it did", async () => {
+      const { plugin } = await loaded();
+      picker.text = sample;
+      forestDialog.answer = mapping;
+      await choose();
+      const sessions = plugin.timer.getState().sessions;
+      expect(sessions).toHaveLength(17);
+      const first = sessions[sessions.length - 1]; // newest first, so the oldest is last
+      expect(first.startedAt).toBe(Date.UTC(2021, 6, 28, 10, 53, 32));
+      expect(first).toMatchObject({ crop: "carrot", tags: ["university"], status: "completed" });
+      expect(sessions[0].tags).toEqual([]); // Latin was mapped to no tag
+      expect(sessions.filter((session) => session.crop === "pumpkin")).toHaveLength(6);
+      expect(nativeUi.notices.join(" ")).toContain(
+        "Imported 17 sessions from Forest. 1 stopped session was skipped.",
+      );
+      plugin.onunload();
+    });
+
+    it("importing the same file again adds nothing", async () => {
+      const { plugin } = await loaded();
+      picker.text = sample;
+      forestDialog.answer = mapping;
+      await choose();
+      nativeUi.notices.length = 0;
+      await choose();
+      expect(plugin.timer.getState().sessions).toHaveLength(17);
+      expect(nativeUi.notices.join(" ")).toContain(
+        "Nothing new to import. 17 sessions were already here.",
+      );
+      plugin.onunload();
+    });
+
+    it("changes nothing if the dialog is cancelled or no file is chosen", async () => {
+      const { plugin } = await loaded();
+      picker.text = null;
+      await choose();
+      picker.text = sample;
+      forestDialog.answer = null;
+      await choose();
+      expect(plugin.timer.getState().sessions).toEqual([]);
+      expect(nativeUi.notices).toEqual([]);
+      plugin.onunload();
+    });
+
+    it("explains a file that is not a Forest export, or has nothing finished, without asking anything", async () => {
+      const { plugin } = await loaded();
+      picker.text = "name,value\nfoo,1\n";
+      await choose();
+      expect(nativeUi.notices.join(" ")).toMatch(/does not look like a Forest export/i);
+      picker.text =
+        '"Start Time","End Time","Tag","Note","Tree Type","Is Success"\n"Mon Sep 06 18:31:17 GMT+02:00 2021","Mon Sep 06 18:31:49 GMT+02:00 2021","Study","","Cedar","False"\n';
+      await choose();
+      expect(nativeUi.notices.join(" ")).toMatch(/no finished sessions/i);
+      expect(forestDialog.calls).toEqual([]);
+      expect(plugin.timer.getState().sessions).toEqual([]);
+      plugin.onunload();
+    });
+
+    it("links a Forest note only when it names a note in the vault", async () => {
+      const { plugin, app } = await loaded();
+      (
+        app.vault.getMarkdownFiles as unknown as { mockReturnValue(files: unknown): void }
+      ).mockReturnValue([{ path: "Projects/Alpha.md" }]);
+      plugin.onunload();
+      const again = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
+      await again.onload();
+      vi.mocked(again.addSettingTab).mock.calls[0][0].display();
+      picker.text =
+        '"Start Time","End Time","Tag","Note","Tree Type","Is Success"\n' +
+        '"Wed Jul 28 12:00:00 GMT+02:00 2021","Wed Jul 28 12:25:00 GMT+02:00 2021","","Alpha","Bush","True"\n' +
+        '"Wed Jul 28 13:00:00 GMT+02:00 2021","Wed Jul 28 13:25:00 GMT+02:00 2021","","just a thought","Bush","True"\n';
+      forestDialog.answer = { tags: {}, trees: { Bush: "tomato" } };
+      await choose();
+      const paths = again.timer.getState().sessions.map((session) => session.notePath);
+      expect(paths.sort()).toEqual(["Projects/Alpha.md", null]);
+      expect(nativeUi.notices.join(" ")).toMatch(
+        /1 note did not match a note in your vault and was left out/,
+      );
+      again.onunload();
+    });
+
+    it("does not write a day note for every imported day, but still can on request", async () => {
+      const { plugin, disk } = await loaded();
+      const rows = Array.from({ length: 20 }, (_, i) => {
+        const day = String(i + 1).padStart(2, "0");
+        return `"Mon Mar ${i + 1} 12:00:00 GMT+00:00 2021","Mon Mar ${i + 1} 12:25:00 GMT+00:00 2021","","","Bush","True"`.replace(
+          "Mar " + (i + 1),
+          "Mar " + day,
+        );
+      }).join("\n");
+      picker.text = `"Start Time","End Time","Tag","Note","Tree Type","Is Success"\n${rows}\n`;
+      forestDialog.answer = { tags: {}, trees: { Bush: "tomato" } };
+      await choose();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(plugin.timer.getState().sessions).toHaveLength(20);
+      expect(notesIn(disk)).toEqual([]);
+      await nativeUi.buttons.get("Write notes for all history")!();
+      expect(notesIn(disk)).toHaveLength(20);
       plugin.onunload();
     });
   });

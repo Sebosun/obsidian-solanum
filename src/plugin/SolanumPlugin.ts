@@ -6,6 +6,13 @@ import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
+import {
+  buildForestRevisions,
+  matchNote,
+  parseForestCsv,
+  type ForestImportResult,
+  type ForestMapping,
+} from "@/lib/import/forest";
 import { DayNoteWriter, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
 import { daysTouched } from "@/lib/notes/days";
 import { dayKey } from "@/lib/harvest/model";
@@ -30,6 +37,7 @@ import {
 } from "@/state/appStore";
 
 const DAY_NOTE_DEBOUNCE_MS = 1_500;
+const AUTO_DAY_NOTE_MAX_DAYS = 14;
 
 function describeDayNotes(totals: DayNoteTotals): string {
   return `Day notes: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`;
@@ -247,7 +255,10 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     );
     for (const session of sessions) this.seenRevisions.set(session.sessionId, session.id);
     if (!this.settings.dayNotes || this.stopped || changed.length === 0) return;
-    for (const day of daysTouched(changed, Date.now())) this.pendingDays.set(dayKey(day), day);
+    const touched = daysTouched(changed, Date.now());
+    // A bulk import spans far more days than live work does; leave those to "Write notes for all history".
+    if (touched.length > AUTO_DAY_NOTE_MAX_DAYS) return;
+    for (const day of touched) this.pendingDays.set(dayKey(day), day);
     if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
     this.dayNoteTimer = window.setTimeout(this.flushDayNotes, DAY_NOTE_DEBOUNCE_MS);
   };
@@ -284,6 +295,22 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
 
   exportSessions = (): Promise<ExportResult> => this.exchange.export();
   importSessions = (text: string): Promise<ImportResult> => this.exchange.import(text);
+
+  importForest = async (csv: string, mapping: ForestMapping): Promise<ForestImportResult> => {
+    const parse = parseForestCsv(csv);
+    const notes = this.noteIndex.notes();
+    const built = buildForestRevisions(parse.entries, mapping, {
+      breakMs: this.settings.breakMinutes * 60_000,
+      resolveNote: (text) => matchNote(text, notes),
+    });
+    const imported = await this.exchange.importRevisions(built.revisions);
+    return {
+      imported,
+      failed: built.failed,
+      invalidRows: parse.problems.length,
+      notesDropped: built.notesDropped,
+    };
+  };
 
   private valid(folder: string): string {
     const parsed = parseSessionFolder(folder);
