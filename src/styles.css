@@ -129,6 +129,10 @@
   transform-origin: left center;
   border-radius: inherit;
 }
+/* Debug builds only: a way to force-finish a phase that fills the whole view. */
+.solanum-debug-shortcut {
+  @apply sol:fixed sol:bottom-2 sol:left-2 sol:z-10 sol:px-2 sol:py-1 sol:text-[11px] sol:opacity-60 sol:hover:opacity-100;
+}
 .solanum-clock-cell {
   @apply sol:relative sol:inline-block sol:h-[1em] sol:text-center;
 }

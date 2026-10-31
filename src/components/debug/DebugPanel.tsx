@@ -1,19 +1,17 @@
 import { useState, type ChangeEvent } from "react";
+import { useDebugFinish } from "@/hooks/useDebugFinish";
 import { useAppStore, useServices } from "@/state/hooks";
 
 export function DebugPanel() {
   const host = useServices();
   const act = useAppStore((state) => state.run);
   const busy = useAppStore((state) => state.busy);
-  const sessions = useAppStore((state) => state.sessions);
+  const { current, finish } = useDebugFinish();
   const now = new Date();
   const [month, setMonth] = useState(
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
   );
   if (!host.debug?.config.enabled) return null;
-  const current = sessions.find(
-    (session) => session.source === "debug" && session.phase !== "done",
-  );
   function changeMonth(event: ChangeEvent<HTMLInputElement>) {
     setMonth(event.target.value);
   }
@@ -23,12 +21,6 @@ export function DebugPanel() {
   }
   function handleSeed() {
     void act(seedMonth);
-  }
-  async function finishPhase() {
-    if (current) await host.timer.debugFinish(current.sessionId);
-  }
-  function handleFinish() {
-    void act(finishPhase);
   }
   return (
     <details className="solanum-warning">
@@ -52,7 +44,7 @@ export function DebugPanel() {
         Seed demo harvests
       </button>
       {current && (
-        <button disabled={busy} onClick={handleFinish}>
+        <button disabled={busy} onClick={finish}>
           Finish {current.phase} now
         </button>
       )}

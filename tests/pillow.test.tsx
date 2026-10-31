@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { Box3, Mesh, MeshBasicMaterial, Vector3, type Object3D } from "three";
+import { Box3, Mesh, MeshBasicMaterial, OrthographicCamera, Vector3, type Object3D } from "three";
 import { Pillow } from "@/components/models/Pillow";
-import { BREAK_SCENE } from "@/lib/scene/constants";
+import { BREAK_SCENE, TIMER_SCENE } from "@/lib/scene/constants";
+import { fitTimerCamera } from "@/lib/scene/framing";
 import { sunState } from "@/lib/scene/sunClock";
 import { loadPillow } from "./helpers/catModel";
 
@@ -84,13 +85,48 @@ describe("where the break's parts stand on the screen", () => {
     ).toBeGreaterThan(BREAK_SCENE.pillow.width / 2);
   });
 
-  it("keeps all of it inside what the camera frames", () => {
-    const { min, max } = BREAK_SCENE.bounds;
-    for (const [x, z] of [BREAK_SCENE.pillow.position, BREAK_SCENE.mug.position]) {
-      expect(x).toBeGreaterThan(min[0]);
-      expect(x).toBeLessThan(max[0]);
-      expect(z).toBeGreaterThan(min[2]);
-      expect(z).toBeLessThan(max[2]);
-    }
+  it("turns the cat's face towards the camera, so he can be seen", () => {
+    // The cat faces +X in its own space; turned about the vertical, that is (cos, 0, -sin).
+    const heading = BREAK_SCENE.pillow.turn + BREAK_SCENE.cat.turn;
+    const face = new Vector3(Math.cos(heading), 0, -Math.sin(heading));
+    const towardCamera = new Vector3(
+      TIMER_SCENE.direction[0],
+      0,
+      TIMER_SCENE.direction[2],
+    ).normalize();
+    // Close enough to look at us, not so square-on that he loses his shape.
+    expect(face.angleTo(towardCamera)).toBeLessThan(0.45);
+  });
+
+  it.each([
+    [520, 760],
+    [420, 300],
+    [900, 900],
+  ])("keeps the pillow, the cat and the mug on screen at %ix%i", (width, height) => {
+    const camera = new OrthographicCamera();
+    fitTimerCamera(camera, { width, height }, BREAK_SCENE.bounds, BREAK_SCENE.center);
+    const { pillow, mug, groundY } = BREAK_SCENE;
+    const inView = (x: number, y: number, z: number) => {
+      const point = new Vector3(x, y, z).project(camera);
+      expect(Math.abs(point.x)).toBeLessThan(0.96);
+      expect(Math.abs(point.y)).toBeLessThan(0.96);
+    };
+    // The bed's four corners, the cat above it, and the mug with its steam above that.
+    for (const dx of [-1, 1])
+      for (const dz of [-1, 1]) {
+        const half = pillow.width / 2;
+        inView(
+          pillow.position[0] +
+            dx * half * Math.cos(pillow.turn) +
+            dz * half * 0.7 * Math.sin(pillow.turn),
+          groundY,
+          pillow.position[1] -
+            dx * half * Math.sin(pillow.turn) +
+            dz * half * 0.7 * Math.cos(pillow.turn),
+        );
+      }
+    inView(pillow.position[0], groundY + 0.6, pillow.position[1]);
+    inView(mug.position[0], groundY + mug.hover, mug.position[1]);
+    inView(mug.position[0], groundY + mug.hover + mug.height + 0.5, mug.position[1]);
   });
 });

@@ -2,6 +2,7 @@ import type { Screen } from "@/types/host";
 import { useFocusMode } from "@/hooks/useFocusMode";
 import { useAppStore, useServices } from "@/state/hooks";
 import { DebugPanel } from "@/components/debug/DebugPanel";
+import { DebugShortcut } from "@/components/debug/DebugShortcut";
 import { TimerPanel } from "@/components/timer/TimerPanel";
 import { HarvestPanel } from "@/components/harvest/HarvestPanel";
 import { SettingsMenu } from "@/components/app/SettingsMenu";
@@ -61,6 +62,7 @@ export function AppContent({ screen, initialMonth }: AppContentProps) {
       {!focus.immersive && <SyncConflicts />}
       {content}
       {!focus.immersive && services.debug?.config.enabled && <DebugPanel />}
+      {focus.immersive && services.debug?.config.enabled && <DebugShortcut />}
     </main>
   );
 }

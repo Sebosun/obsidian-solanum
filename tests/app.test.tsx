@@ -181,6 +181,34 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe("break");
   });
 
+  it("keeps the debug shortcut within reach while a phase fills the view, so a simulated break can be finished", async () => {
+    const f = fixture(true);
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    // The focus fills the view, yet force-finishing it needs no digging for the controls.
+    expect(screen.queryByText("Debug tools · simulated data")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
+    await screen.findByRole("button", { name: "Start break" });
+    fireEvent.click(screen.getByRole("button", { name: "Start break" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull(); // the break fills the view
+    fireEvent.click(screen.getByRole("button", { name: "Finish break now" }));
+    await waitFor(() =>
+      expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe(
+        "done",
+      ),
+    );
+  });
+
+  it("does not offer the debug shortcut when debugging is off", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await screen.findByRole("button", { name: "Show timer controls" });
+    expect(screen.queryByRole("button", { name: /Finish focus now/ })).toBeNull();
+  });
+
   it("does not hide reconciliation controls when independent offline crops are active", async () => {
     const f = fixture();
     await f.host.timer.start({
