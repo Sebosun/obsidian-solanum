@@ -104,7 +104,7 @@ describe("persistent focus workflows", () => {
     expect(a.signals).toEqual(["break"]);
   });
 
-  it("preserves cancelled partial work and refuses overlapping local starts", async () => {
+  it("keeps the record of a stopped crop and refuses overlapping local starts", async () => {
     const a = setup();
     const id = await a.service.start(options);
     await expect(a.service.start(options)).rejects.toThrow(/active/i);

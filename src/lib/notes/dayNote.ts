@@ -3,8 +3,12 @@ import { dayKey } from "@/lib/harvest/model";
 import { sessionStatus } from "@/lib/harvest/status";
 import type { Revision } from "@/lib/timer/types";
 
-export const DAY_NOTE_START = "<!-- solanum:start -->";
-export const DAY_NOTE_END = "<!-- solanum:end -->";
+/** Earlier versions fenced their block with these comments, which Live Preview shows as text. */
+const LEGACY_START = "<!-- solanum:start -->";
+const LEGACY_END = "<!-- solanum:end -->";
+/** Sessions shorter than this are accidental starts and stay out of the note. */
+const MIN_LISTED_MINUTES = 0.5;
+const NOTES_HEADING = "## Notes";
 
 export interface DayNoteEntry {
   session: Revision;
@@ -17,7 +21,7 @@ export type FrontmatterValue = string | number;
 export interface DayNote {
   /** Keys the plugin owns in the note's frontmatter. */
   frontmatter: Record<string, FrontmatterValue>;
-  /** The managed block, markers included. */
+  /** The generated section, from the dated heading to the last session. */
   block: string;
 }
 
@@ -101,39 +105,55 @@ function sessionSection({ session, minutes }: DayNoteEntry, day: Date): string[]
   return lines;
 }
 
-function tableRow({ session, minutes }: DayNoteEntry): string {
+interface Columns {
+  tags: boolean;
+  note: boolean;
+}
+
+function tableHeader({ tags, note }: Columns): string[] {
+  const header = ["Time", "Crop", "Focus", "Status"];
+  if (tags) header.push("Tags");
+  if (note) header.push("Note");
+  return [`| ${header.join(" | ")} |`, `| ${header.map(() => "---").join(" | ")} |`];
+}
+
+function tableRow({ session, minutes }: DayNoteEntry, { tags, note }: Columns): string {
   const crop = CROPS[session.crop];
   const cells = [
     clock(session.startedAt),
     `${crop.emoji} ${crop.name}`,
     minutesLabel(minutes),
     sessionStatus(session),
-    session.tags.map(tagText).join(" "),
-    session.notePath ? noteLink(session.notePath) : "",
   ];
+  if (tags) cells.push(session.tags.map(tagText).join(" "));
+  if (note) cells.push(session.notePath ? noteLink(session.notePath) : "");
   return `| ${cells.join(" | ")} |`;
 }
 
-/** What the plugin writes for one day; null when nothing was focused that day. */
+/** What the plugin writes for one day; null when nothing worth noting was focused that day. */
 export function buildDayNote(day: Date, entries: DayNoteEntry[]): DayNote | null {
-  if (entries.length === 0) return null;
-  const sorted = [...entries].sort(
-    (a, b) => a.session.startedAt - b.session.startedAt || a.session.id.localeCompare(b.session.id),
-  );
+  const sorted = entries
+    .filter((entry) => entry.minutes >= MIN_LISTED_MINUTES)
+    .sort(
+      (a, b) =>
+        a.session.startedAt - b.session.startedAt || a.session.id.localeCompare(b.session.id),
+    );
+  if (sorted.length === 0) return null;
   const total = sorted.reduce((sum, entry) => sum + entry.minutes, 0);
+  const columns: Columns = {
+    tags: sorted.some((entry) => entry.session.tags.length > 0),
+    note: sorted.some((entry) => entry.session.notePath !== null),
+  };
   const block = [
-    DAY_NOTE_START,
     `# ${heading(day)}`,
     "",
     `**${minutesLabel(total)} focused** · ${plural(sorted.length, "session")} · ${cropSummary(sorted)}`,
     "",
-    "| Time | Crop | Focus | Status | Tags | Note |",
-    "| --- | --- | --- | --- | --- | --- |",
-    ...sorted.map(tableRow),
+    ...tableHeader(columns),
+    ...sorted.map((entry) => tableRow(entry, columns)),
     "",
     "## Sessions",
     ...sorted.flatMap((entry) => ["", ...sessionSection(entry, day)]),
-    DAY_NOTE_END,
   ].join("\n");
   return {
     frontmatter: {
@@ -152,14 +172,40 @@ function frontmatterLines(values: Record<string, FrontmatterValue>): string[] {
   return Object.entries(values).map(([key, value]) => `${key}: ${value}`);
 }
 
+const DATED_HEADING = new RegExp(
+  `^# (?:${WEEKDAYS.join("|")}), \\d{1,2} (?:${MONTHS.join("|")}) \\d{4}\\s*$`,
+);
+/** The generated section ends at the next level-2 heading that is not one of its own. */
+const SECTION_END = /^## (?!Sessions\s*$)/;
+
+function placeBlock(body: string, block: string): string {
+  const legacyStart = body.indexOf(LEGACY_START);
+  const legacyEnd = body.indexOf(LEGACY_END);
+  if (legacyStart >= 0 && legacyEnd > legacyStart) {
+    const after = body.slice(legacyEnd + LEGACY_END.length);
+    const rest = after.trim() === "" ? `\n\n${NOTES_HEADING}\n` : after;
+    return `${body.slice(0, legacyStart)}${block}${rest}`;
+  }
+  const lines = body.split("\n");
+  const start = lines.findIndex((line) => DATED_HEADING.test(line));
+  if (start >= 0) {
+    const next = lines.findIndex((line, index) => index > start && SECTION_END.test(line));
+    const tail = lines.slice(next < 0 ? lines.length : next);
+    const head = start > 0 ? `${lines.slice(0, start).join("\n")}\n` : "";
+    return `${head}${block}\n${tail.length > 0 ? `\n${tail.join("\n")}` : `\n${NOTES_HEADING}\n`}`;
+  }
+  const lead = body.trim() === "" ? "" : `${body.trimEnd()}\n\n`;
+  return `${lead}${block}\n\n${NOTES_HEADING}\n`;
+}
+
 /**
- * Produces the file text for `note`. The frontmatter keys and the block between the markers
- * belong to the plugin; everything else in an existing file is left exactly as it was.
+ * Produces the file text for `note`. The plugin owns its frontmatter keys and the section from the
+ * dated heading up to the next other `##` heading; everything else is kept exactly as written.
  */
 export function composeDayNote(existing: string | null, note: DayNote): string {
   const owned = new Set(Object.keys(note.frontmatter));
   const ours = frontmatterLines(note.frontmatter);
-  if (existing === null) return `---\n${ours.join("\n")}\n---\n${note.block}\n`;
+  if (existing === null) return `---\n${ours.join("\n")}\n---\n${note.block}\n\n${NOTES_HEADING}\n`;
 
   let body = existing;
   let others: string[] = [];
@@ -168,12 +214,5 @@ export function composeDayNote(existing: string | null, note: DayNote): string {
     body = existing.slice(match[0].length);
     others = match[1].split(/\r?\n/).filter((line) => !owned.has(line.split(":")[0].trim()));
   }
-  const start = body.indexOf(DAY_NOTE_START);
-  const end = body.indexOf(DAY_NOTE_END);
-  if (start >= 0 && end > start) {
-    body = body.slice(0, start) + note.block + body.slice(end + DAY_NOTE_END.length);
-  } else {
-    body = `${body.trimEnd()}${body.trim() === "" ? "" : "\n\n"}${note.block}\n`;
-  }
-  return `---\n${[...ours, ...others].join("\n")}\n---\n${body}`;
+  return `---\n${[...ours, ...others].join("\n")}\n---\n${placeBlock(body, note.block)}`;
 }

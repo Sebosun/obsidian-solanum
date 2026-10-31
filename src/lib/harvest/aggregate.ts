@@ -22,6 +22,8 @@ export function dailyHarvest(
   // Construct local midnight rather than adding 24 hours: DST days can be shorter or longer.
   const end = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1).getTime();
   const entries = sessions
+    // A crop stopped before it finished never matured, so it earns nothing.
+    .filter((s) => s.status !== "cancelled")
     .filter(
       (s) =>
         (!filter.tag || s.tags.includes(filter.tag)) &&

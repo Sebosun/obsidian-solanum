@@ -631,19 +631,32 @@ describe("Obsidian lifecycle integration", () => {
       vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
       return { ...fixture, plugin, openLinkText };
     }
+    /** Plants a crop, works for a minute and pauses, which is the earliest a note is worth writing. */
+    async function workAMinute(plugin: SolanumPlugin) {
+      const id = await plugin.timer.start(crop(["study"]));
+      await vi.advanceTimersByTimeAsync(61_000);
+      await plugin.timer.pause(id);
+      await vi.advanceTimersByTimeAsync(2_000);
+      return id;
+    }
     const commandNamed = (plugin: SolanumPlugin, id: string) => {
       const call = vi.mocked(plugin.addCommand).mock.calls.find(([command]) => command.id === id);
       if (!call?.[0].callback) throw new Error(`No command ${id}`);
       return call[0].callback;
     };
 
-    it("writes today's note shortly after a crop is planted and again when it is harvested", async () => {
+    it("writes today's note when a crop is paused and again when it is harvested", async () => {
       const { plugin, disk } = await loaded();
-      await plugin.timer.start(crop(["study"]));
+      const id = await plugin.timer.start(crop(["study"]));
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(notesIn(disk)).toEqual([]);
+      await vi.advanceTimersByTimeAsync(60_000);
+      await plugin.timer.pause(id);
       expect(notesIn(disk)).toEqual([]);
       await vi.advanceTimersByTimeAsync(2_000);
       expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
       expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Growing |");
+      await plugin.timer.resume(id);
       await vi.advanceTimersByTimeAsync(5 * 60_000 + 3_000);
       expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Harvested |");
       plugin.onunload();
@@ -651,8 +664,8 @@ describe("Obsidian lifecycle integration", () => {
 
     it("does not rewrite notes for existing history when the plugin starts", async () => {
       const first = await loaded();
-      await first.plugin.timer.start(crop([]));
-      await vi.advanceTimersByTimeAsync(2_000);
+      await workAMinute(first.plugin);
+      expect(notesIn(first.disk)).toEqual(["Solanum/days/2026-10-31.md"]);
       first.plugin.onunload();
       first.disk.files.delete("Solanum/days/2026-10-31.md");
       const second = new SolanumPlugin(first.app, { id: "solanum" } as PluginManifest);
@@ -664,8 +677,7 @@ describe("Obsidian lifecycle integration", () => {
 
     it("stays quiet when day notes are switched off, but still opens one on request", async () => {
       const { plugin, disk, openLinkText } = await loaded({ dayNotes: false });
-      await plugin.timer.start(crop([]));
-      await vi.advanceTimersByTimeAsync(2_000);
+      await workAMinute(plugin);
       expect(notesIn(disk)).toEqual([]);
       await plugin.openDayNote(new Date(2026, 9, 31));
       expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
@@ -684,8 +696,7 @@ describe("Obsidian lifecycle integration", () => {
 
     it("uses the configured folder", async () => {
       const { plugin, disk } = await loaded({ dayNotesFolder: "Journal/Focus" });
-      await plugin.timer.start(crop([]));
-      await vi.advanceTimersByTimeAsync(2_000);
+      await workAMinute(plugin);
       expect([...disk.files.keys()]).toContain("Journal/Focus/2026-10-31.md");
       plugin.onunload();
     });

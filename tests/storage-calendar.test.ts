@@ -145,13 +145,14 @@ describe("harvest aggregation", () => {
     expect(monthDays(2026, 9)[30].getDate()).toBe(31);
   });
 
-  it("filters by both tag and note, counts partial work, and caps visible crop density", async () => {
+  it("filters by both tag and note, counts finished work, and caps visible crop density", async () => {
     const f = await fixture();
-    f.advance(5 * 60_000);
-    await f.service.cancel(f.sessionId);
+    f.advance(25 * 60_000);
+    await f.service.tick();
     const sessions = f.service.getState().sessions;
+    // The fixture starts at 23:50, so only the last 10 minutes of the crop fall on this day.
     const day = new Date(2026, 9, 31);
-    expect(dailyHarvest(sessions, day, { tag: "work", notePath: "Old.md" }).minutes).toBe(5);
+    expect(dailyHarvest(sessions, day, { tag: "work", notePath: "Old.md" }).minutes).toBe(10);
     expect(dailyHarvest(sessions, day, { tag: "other" }).minutes).toBe(0);
     expect(dailyHarvest(sessions, day, { notePath: "Missing.md" }).minutes).toBe(0);
     const many = Array.from(
@@ -159,6 +160,6 @@ describe("harvest aggregation", () => {
       (_, i) => ({ ...sessions[0], sessionId: `s-${i}` }) as Revision,
     );
     expect(dailyHarvest(many, day).crops).toBeLessThanOrEqual(9);
-    expect(dailyHarvest(many, day).minutes).toBe(500);
+    expect(dailyHarvest(many, day).minutes).toBe(1000);
   });
 });

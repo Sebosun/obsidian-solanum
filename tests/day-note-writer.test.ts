@@ -54,7 +54,7 @@ describe("writing day notes into the vault", () => {
     const text = disk.files.get("Journal/Focus/Days/2026-10-31.md")!;
     expect(text.startsWith("---\nsolanum: day\ndate: 2026-10-31\n")).toBe(true);
     expect(text).toContain("# Saturday, 31 October 2026");
-    expect(text).toContain("| 09:00 | 🍅 Tomato | 25 min | Harvested | #study |  |");
+    expect(text).toContain("| 09:00 | 🍅 Tomato | 25 min | Harvested | #study |");
   });
 
   it("leaves text the user added and does not rewrite an unchanged note", async () => {
