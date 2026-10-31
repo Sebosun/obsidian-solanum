@@ -1,3 +1,5 @@
+import { GROWTH_MOTION } from "@/lib/scene/constants";
+
 export interface GrowthLayerState {
   stage: number;
   opacity: number;
@@ -8,7 +10,6 @@ export class GrowthTransition {
   private from: number;
   private target: number;
   private startedAt = 0;
-  private duration = 0.65;
 
   constructor(stage: number) {
     this.from = stage;
@@ -30,13 +31,21 @@ export class GrowthTransition {
   }
 
   sample(now: number): GrowthLayerState[] {
-    const elapsed = Math.max(0, (now - this.startedAt) / this.duration);
+    const elapsed = Math.max(0, (now - this.startedAt) / GROWTH_MOTION.transitionSeconds);
     if (this.from === this.target || elapsed >= 1)
       return [{ stage: this.target, opacity: 1, scale: 1 }];
     const eased = elapsed * elapsed * (3 - 2 * elapsed);
     return [
-      { stage: this.from, opacity: 1 - eased, scale: 1 - 0.02 * eased },
-      { stage: this.target, opacity: eased, scale: 0.92 + 0.08 * eased },
+      {
+        stage: this.from,
+        opacity: 1 - eased,
+        scale: 1 - GROWTH_MOTION.outgoingScaleChange * eased,
+      },
+      {
+        stage: this.target,
+        opacity: eased,
+        scale: GROWTH_MOTION.incomingScale + (1 - GROWTH_MOTION.incomingScale) * eased,
+      },
     ];
   }
 }

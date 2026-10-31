@@ -8,6 +8,7 @@ import { HarvestDayPlot } from "@/components/harvest/HarvestDayPlot";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
 import { getCropAssets } from "@/state/cropAssets";
+import { HARVEST_SCENE } from "@/lib/scene/constants";
 
 interface HarvestSceneProps {
   days: HarvestDay[];
@@ -35,7 +36,7 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
         <Suspense fallback={<HarvestLoading onRetry={retry} />}>
           <Canvas
             orthographic
-            camera={{ position: [2, 11, 9], zoom: 30 }}
+            camera={{ position: HARVEST_SCENE.cameraPosition, zoom: HARVEST_SCENE.initialZoom }}
             dpr={[1, 1.5]}
             frameloop="demand"
             fallback={fallback}
@@ -44,7 +45,7 @@ export function HarvestScene({ days, activeKey, onHover, onSelect }: HarvestScen
           >
             <ambientLight intensity={2} />
             <directionalLight position={[2, 8, 4]} intensity={2.8} color="#fff2d6" />
-            <Bounds fit clip observe margin={1.15}>
+            <Bounds fit clip observe margin={HARVEST_SCENE.fitMargin}>
               <group>
                 {days.map((day) => (
                   <HarvestDayPlot

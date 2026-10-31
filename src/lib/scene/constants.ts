@@ -18,3 +18,26 @@ export const CLOCK_TYPOGRAPHY = {
   renderPriority: 1,
   cameraPosition: [0, 0, 100] as [number, number, number],
 } as const;
+
+export const HARVEST_SCENE = {
+  cameraPosition: [2, 11, 9] as [number, number, number],
+  initialZoom: 30,
+  fitMargin: 1.15,
+} as const;
+
+export const GROWTH_MOTION = {
+  transitionSeconds: 0.65,
+  incomingScale: 0.92,
+  outgoingScaleChange: 0.02,
+  swayRadians: 0.025,
+  swaySpeed: 1.3,
+  basePosition: [0, -0.55, 0] as [number, number, number],
+} as const;
+
+export const HARVEST_FLOURISH = {
+  durationSeconds: 1.2,
+  lift: 0.06,
+  scaleChange: 0.035,
+  ringExpansion: 0.45,
+  ringOpacity: 0.35,
+} as const;

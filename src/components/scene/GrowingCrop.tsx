@@ -7,6 +7,7 @@ import { GrowthLayer } from "@/components/scene/GrowthLayer";
 import { GrowthSeed } from "@/components/scene/GrowthSeed";
 import { getCropAssets } from "@/state/cropAssets";
 import { useServices } from "@/state/hooks";
+import { GROWTH_MOTION } from "@/lib/scene/constants";
 
 interface GrowingCropProps {
   crop: CropId;
@@ -38,7 +39,9 @@ export function GrowingCrop({ crop, stage, moving, reduced }: GrowingCropProps) 
 
   useFrame(() => {
     if (group.current)
-      group.current.rotation.z = moving ? Math.sin(clock.elapsedTime * 1.3) * 0.025 : 0;
+      group.current.rotation.z = moving
+        ? Math.sin(clock.elapsedTime * GROWTH_MOTION.swaySpeed) * GROWTH_MOTION.swayRadians
+        : 0;
     const layers = transition.sample(clock.elapsedTime);
     if (layers.length > 1) invalidate();
     else if (retained.current.length > 1) {
@@ -48,7 +51,7 @@ export function GrowingCrop({ crop, stage, moving, reduced }: GrowingCropProps) 
   });
 
   return (
-    <group ref={group} position={[0, -0.55, 0]}>
+    <group ref={group} position={GROWTH_MOTION.basePosition}>
       {stages.map((value) =>
         value === 0 ? (
           <GrowthSeed key={value} transition={transition} />

@@ -1,3 +1,5 @@
+import { COMPLETION_CHIME } from "@/lib/audio/constants";
+
 /** A local synthesized chime: no network request or third-party audio license. */
 export class CompletionAudio {
   private context: AudioContext | null = null;
@@ -14,19 +16,25 @@ export class CompletionAudio {
   play(volume: number) {
     const context = this.context;
     if (!context || context.state !== "running" || volume <= 0) return;
-    [523.25, 659.25, 783.99].forEach((frequency, index) => {
-      const start = context.currentTime + index * 0.16;
+    COMPLETION_CHIME.frequenciesHz.forEach((frequency, index) => {
+      const start = context.currentTime + index * COMPLETION_CHIME.noteSpacingSeconds;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
       oscillator.type = "sine";
       oscillator.frequency.value = frequency;
       gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(volume * 0.25, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.65);
+      gain.gain.linearRampToValueAtTime(
+        volume * COMPLETION_CHIME.peakGain,
+        start + COMPLETION_CHIME.attackSeconds,
+      );
+      gain.gain.exponentialRampToValueAtTime(
+        COMPLETION_CHIME.silentGain,
+        start + COMPLETION_CHIME.releaseSeconds,
+      );
       oscillator.connect(gain);
       gain.connect(context.destination);
       oscillator.start(start);
-      oscillator.stop(start + 0.7);
+      oscillator.stop(start + COMPLETION_CHIME.noteDurationSeconds);
       oscillator.onended = () => {
         oscillator.disconnect();
         gain.disconnect();

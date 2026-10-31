@@ -1,3 +1,5 @@
+import { HARVEST_FLOURISH } from "@/lib/scene/constants";
+
 export interface CelebrationFrame {
   lift: number;
   scale: number;
@@ -7,15 +9,21 @@ export interface CelebrationFrame {
 }
 
 export function celebrationFrame(elapsed: number, reducedMotion = false): CelebrationFrame {
-  const progress = Math.min(1, Math.max(0, elapsed / 1.2));
+  const progress = Math.min(1, Math.max(0, elapsed / HARVEST_FLOURISH.durationSeconds));
   if (progress >= 1 || reducedMotion)
-    return { lift: 0, scale: 1, ringScale: 1.45, ringOpacity: 0, done: true };
+    return {
+      lift: 0,
+      scale: 1,
+      ringScale: 1 + HARVEST_FLOURISH.ringExpansion,
+      ringOpacity: 0,
+      done: true,
+    };
   const pulse = Math.sin(progress * Math.PI);
   return {
-    lift: pulse * 0.06,
-    scale: 1 + pulse * 0.035,
-    ringScale: 1 + progress * 0.45,
-    ringOpacity: (1 - progress) * 0.35,
+    lift: pulse * HARVEST_FLOURISH.lift,
+    scale: 1 + pulse * HARVEST_FLOURISH.scaleChange,
+    ringScale: 1 + progress * HARVEST_FLOURISH.ringExpansion,
+    ringOpacity: (1 - progress) * HARVEST_FLOURISH.ringOpacity,
     done: false,
   };
 }
