@@ -20,8 +20,8 @@ export function App({ host, screen, initialMonth }: { host: SolanumHost; screen:
     try { await action(); } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   };
-  return <main className="solanum-app">
-    <header className="solanum-header"><div><span className="solanum-eyebrow">A LITTLE EVERY DAY</span><h1>Solanum <span aria-hidden="true">🍅</span></h1></div></header>
+  return <main className="solanum-app sol:mx-auto sol:max-w-[560px] sol:px-4 sol:pt-5 sol:pb-7 sol:text-(--text-normal)">
+    <header className="solanum-header sol:flex sol:items-center sol:justify-between sol:mb-[18px]"><div><span className="solanum-eyebrow">A LITTLE EVERY DAY</span><h1>Solanum <span aria-hidden="true">🍅</span></h1></div></header>
     <nav className="solanum-tabs" aria-label="Solanum views">
       <button aria-current={screen === "timer" ? "page" : undefined} onClick={() => host.navigate("timer")}>Timer</button>
       <button aria-current={screen === "harvest" ? "page" : undefined} onClick={() => host.navigate("harvest")}>Harvest</button>
@@ -61,13 +61,13 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
       </select>
     </label>}
     <CropScene progress={Math.max(0, Math.min(1, progress))} running={session?.status === "running"} assetUrl={host.assetUrl} />
-    <section className="solanum-clock">
+    <section className="solanum-clock sol:text-center sol:pt-[23px] sol:pb-3.5">
       <span className="solanum-eyebrow">{session ? session.phase === "break" ? "REST & REPLENISH" : session.status === "paused" ? "GROWTH PAUSED" : "TIME TO GROW" : "READY WHEN YOU ARE"}</span>
-      <div role="timer" aria-label="Remaining time" className="solanum-countdown">{formatTime(remaining)}</div>
+      <div role="timer" aria-label="Remaining time" className="solanum-countdown sol:text-[clamp(40px,15cqi,64px)] sol:font-light sol:leading-[1.2] sol:tracking-[-3px] sol:tabular-nums sol:mt-2">{formatTime(remaining)}</div>
       <p>{session?.phase === "break" ? "Your crop is grown. Give yourself a little rest." : "One task. A little space. Something good grows."}</p>
     </section>
     {session ? <>
-      <div className="solanum-session-context">{session.tags.map((t) => <span className="solanum-tag" key={t}>#{t}</span>)}
+      <div className="solanum-session-context sol:flex sol:flex-wrap sol:gap-1.5 sol:items-center sol:justify-center sol:mb-3">{session.tags.map((t) => <span className="solanum-tag" key={t}>#{t}</span>)}
         {session.notePath && <button className="solanum-note-link" onClick={() => host.openNote(session.notePath!)}>{session.notePath}</button>}
       </div>
       <div className="solanum-actions">
@@ -78,7 +78,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
       </div>
       <p className="solanum-hint">Saved in your vault. Closing Obsidian won’t stop this crop.</p>
     </> : <>
-      <div className="solanum-presets" aria-label="Focus duration">{PRESETS.map((preset) => <button key={preset} aria-pressed={minutes === preset} onClick={() => setMinutes(preset)}>{preset} min</button>)}</div>
+      <div className="solanum-presets sol:flex sol:flex-wrap sol:justify-center sol:gap-1.5 sol:mb-[22px]" aria-label="Focus duration">{PRESETS.map((preset) => <button key={preset} aria-pressed={minutes === preset} onClick={() => setMinutes(preset)}>{preset} min</button>)}</div>
       <label className="solanum-field">Tags<input aria-label="Tags" list="solanum-tags" placeholder="#work, #study" value={tags} onChange={(e) => setTags(e.target.value)} /></label>
       <datalist id="solanum-tags">{allTags.map((t) => <option key={t} value={`#${t}`} />)}</datalist>
       <label className="solanum-field">Linked note<input aria-label="Linked note" list="solanum-notes" placeholder="Choose a note (optional)" value={note} onChange={(e) => setNote(e.target.value)} /></label>
@@ -99,7 +99,7 @@ function TimerPanel({ host, sessions, conflicted, busy, act }: {
 
 function Preferences({ host, act, busy }: { host: SolanumHost; act: Action; busy: boolean }) {
   const [draft, setDraft] = useState({ ...host.settings });
-  return <div className="solanum-preferences">
+  return <div className="solanum-preferences sol:flex sol:flex-col sol:gap-2.5 sol:pt-[18px]">
     <label className="solanum-field">Default focus<select value={draft.defaultMinutes} onChange={(e) => setDraft({ ...draft, defaultMinutes: Number(e.target.value) })}>{PRESETS.map((n) => <option key={n} value={n}>{n} min</option>)}</select></label>
     <label className="solanum-field">Break minutes<input type="number" min="1" max="1440" value={draft.breakMinutes} onChange={(e) => setDraft({ ...draft, breakMinutes: Number(e.target.value) })} /></label>
     <div className="solanum-actions">{[5, 20].map((n) => <button key={n} onClick={() => setDraft({ ...draft, breakMinutes: n })}>{n} min break</button>)}</div>
@@ -125,19 +125,19 @@ function HarvestPanel({ host, sessions, initialMonth }: { host: SolanumHost; ses
   const details = selected && dailyHarvest(sessions, selected, filter);
   const tags = [...new Set([...host.tags(), ...sessions.flatMap((s) => s.tags)])].sort();
   return <section className="solanum-harvest">
-    <div className="solanum-month-nav"><button aria-label="Previous month" onClick={() => { setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1)); setSelected(null); }}>‹</button>
+    <div className="solanum-month-nav sol:flex sol:items-center sol:justify-between sol:gap-1.5"><button aria-label="Previous month" onClick={() => { setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1)); setSelected(null); }}>‹</button>
       <h2>{month.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</h2>
       <button aria-label="Next month" onClick={() => { setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1)); setSelected(null); }}>›</button></div>
-    <p className="solanum-month-total">{Math.round(total)} min this month</p>
-    <div className="solanum-filters"><select aria-label="Filter by tag" value={tag} onChange={(e) => setTag(e.target.value)}><option value="">All tags</option>{tags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
+    <p className="solanum-month-total sol:text-center sol:text-xs sol:text-(--text-muted) sol:mt-0 sol:mb-5">{Math.round(total)} min this month</p>
+    <div className="solanum-filters sol:flex sol:gap-[7px] sol:mb-4"><select aria-label="Filter by tag" value={tag} onChange={(e) => setTag(e.target.value)}><option value="">All tags</option>{tags.map((t) => <option key={t} value={t}>#{t}</option>)}</select>
       <select aria-label="Filter by note" value={notePath} onChange={(e) => setNotePath(e.target.value)}><option value="">All notes</option>{[...new Set(sessions.map((s) => s.notePath).filter((p): p is string => !!p))].sort().map((p) => <option key={p}>{p}</option>)}</select></div>
-    <div className="solanum-calendar" aria-label="Monthly harvest calendar">
+    <div className="solanum-calendar sol:grid sol:grid-cols-7 sol:gap-1" aria-label="Monthly harvest calendar">
       {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span className="solanum-weekday" key={i}>{d}</span>)}
       {Array.from({ length: days[0].getDay() }, (_, i) => <span key={`empty-${i}`} />)}
       {days.map((day) => { const harvest = dailyHarvest(sessions, day, filter); const key = dateKey(day); return <button key={key}
         aria-label={`${key}, ${Math.round(harvest.minutes)} focused minutes`} aria-pressed={selected !== null && dateKey(selected) === key}
         className={`solanum-day ${harvest.crops ? "has-harvest" : ""}`} onClick={() => setSelected(day)}>
-        <span>{day.getDate()}</span><span className="solanum-mini-plot" aria-hidden="true">{Array.from({ length: harvest.crops }, (_, i) => <i key={i}>{harvest.minutes >= 25 ? "🍅" : "🌱"}</i>)}</span>
+        <span>{day.getDate()}</span><span className="solanum-mini-plot sol:grid sol:grid-cols-3 sol:gap-0 sol:w-full sol:max-w-[30px]" aria-hidden="true">{Array.from({ length: harvest.crops }, (_, i) => <i key={i}>{harvest.minutes >= 25 ? "🍅" : "🌱"}</i>)}</span>
       </button>; })}
     </div>
     <p className="solanum-hint">A fuller plot means more focus. Partial sessions count; breaks don’t. Days use this device’s time zone.</p>
