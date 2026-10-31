@@ -1,5 +1,6 @@
 import { useAppStore, useServices } from "@/state/hooks";
 import { selectCurrentSession } from "@/state/selectors";
+import { ControlIcon, type ControlIconKind } from "@/components/timer/ControlIcon";
 
 export function SessionControls() {
   const services = useServices();
@@ -11,10 +12,18 @@ export function SessionControls() {
   const id = session.sessionId;
   const blocked = busy || conflicts.some((conflict) => conflict.sessionId === id);
   let primaryLabel = "Start break";
+  let primaryIcon: ControlIconKind = "play";
   let endLabel = "End focus";
-  if (session.status === "running") primaryLabel = "Pause";
+  let endIcon: ControlIconKind = "stop";
+  if (session.status === "running") {
+    primaryLabel = "Pause";
+    primaryIcon = "pause";
+  }
   if (session.status === "paused") primaryLabel = "Resume";
-  if (session.phase === "break") endLabel = "Skip break";
+  if (session.phase === "break") {
+    endLabel = "Skip break";
+    endIcon = "skip";
+  }
 
   async function applyPrimaryAction() {
     if (session?.status === "running") await services.timer.pause(id);
@@ -50,11 +59,23 @@ export function SessionControls() {
         )}
       </div>
       <div className="solanum-actions">
-        <button className="mod-cta" disabled={blocked} onClick={handlePrimary}>
-          {primaryLabel}
+        <button
+          className="solanum-control"
+          aria-label={primaryLabel}
+          title={primaryLabel}
+          disabled={blocked}
+          onClick={handlePrimary}
+        >
+          <ControlIcon kind={primaryIcon} />
         </button>
-        <button disabled={blocked} onClick={handleEnd}>
-          {endLabel}
+        <button
+          className="solanum-control"
+          aria-label={endLabel}
+          title={endLabel}
+          disabled={blocked}
+          onClick={handleEnd}
+        >
+          <ControlIcon kind={endIcon} />
         </button>
       </div>
     </>

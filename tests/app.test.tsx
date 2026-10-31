@@ -172,6 +172,22 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
   });
 
+  it("shows pause and stop as quiet icon-only buttons with accessible names", async () => {
+    const f = fixture();
+    render(<App host={f.host} screen="timer" />);
+    fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
+    await revealControls();
+    for (const name of ["Pause", "End focus"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button.textContent).toBe("");
+      expect(button.querySelector("svg")).not.toBeNull();
+      expect(button.getAttribute("title")).toBe(name);
+      expect(button.classList.contains("mod-cta")).toBe(false);
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(await screen.findByRole("button", { name: "Resume" })).toBeTruthy();
+  });
+
   it("returns to the immersive view from the revealed controls, by button or Escape", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);

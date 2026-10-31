@@ -159,10 +159,14 @@
   @apply sol:w-full sol:mt-5 sol:p-[13px] sol:h-auto sol:rounded-[9px] sol:bg-[#69885c] sol:text-white sol:shadow-none;
 }
 .solanum-actions {
-  @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-2 sol:my-3;
+  @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-3 sol:my-3;
 }
-.solanum-actions button {
-  @apply sol:h-auto sol:py-[9px] sol:px-3.5 sol:text-xs sol:rounded-lg;
+/* Quiet, icon-only controls: the crop is the focus, not the buttons. */
+.solanum-app .solanum-actions .solanum-control {
+  @apply sol:flex sol:items-center sol:justify-center sol:w-10 sol:h-10 sol:p-0 sol:rounded-full sol:bg-transparent sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:text-(--text-muted) sol:transition-colors;
+}
+.solanum-app .solanum-actions .solanum-control:hover:not(:disabled) {
+  @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
 }
 .solanum-tag {
   @apply sol:inline-block sol:text-[10px] sol:rounded-[5px] sol:bg-[#87a87918] sol:text-(--text-muted) sol:py-1 sol:px-1.5 sol:m-0.5 sol:wrap-anywhere;
