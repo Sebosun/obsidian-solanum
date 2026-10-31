@@ -99,7 +99,10 @@ export function SceneFrame({
   if (immersive) classes.push("is-immersive");
   return (
     <div ref={container} className={classes.join(" ")} style={style}>
-      <TimeHeader remaining={remaining} reduced={reduced} caption={caption} />
+      <div className="solanum-scene-header">
+        <TimeHeader remaining={remaining} reduced={reduced} caption={caption} />
+        {controls && <div className="solanum-scene-controls">{controls}</div>}
+      </div>
       <SceneBoundary resetKey={resetKey} fallback={fallback}>
         {/* Nothing is drawn while models load: the placeholder is only for when WebGL fails. */}
         <Suspense fallback={null}>
@@ -117,7 +120,6 @@ export function SceneFrame({
         </Suspense>
       </SceneBoundary>
       <ProgressBar clock={clock} progress={clockProgress} label={progressLabel} />
-      {controls && <div className="solanum-scene-controls">{controls}</div>}
       <SrLabel id={labelId}>{label}</SrLabel>
       <SrLabel id={timerLabelId}>{timerLabel}</SrLabel>
       <span role="timer" aria-labelledby={timerLabelId} className="sol:sr-only">

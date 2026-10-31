@@ -64,9 +64,12 @@
   transition: opacity 1.1s linear;
 }
 /* The time centred at the top and a thin bar along the bottom, both sized from the view. */
-.solanum-time-header {
-  @apply sol:absolute sol:inset-x-0 sol:flex sol:flex-col sol:items-center sol:pointer-events-none sol:text-(--text-normal);
+.solanum-scene-header {
+  @apply sol:absolute sol:inset-x-0 sol:flex sol:flex-col sol:items-center sol:pointer-events-none;
   top: 4cqh;
+}
+.solanum-time-header {
+  @apply sol:flex sol:flex-col sol:items-center sol:pointer-events-none sol:text-(--text-normal);
 }
 .solanum-time-header .solanum-clock-readout {
   font-size: min(11cqw, 15cqh);
@@ -373,9 +376,10 @@
 .solanum-toolbar-actions {
   @apply sol:flex sol:items-center sol:gap-0.5;
 }
-/* Over the canvas, bottom right, clear of the progress bar along the very bottom. */
+/* Centre the actions directly below the clock, while keeping only the actions above the canvas. */
 .solanum-scene-controls {
-  @apply sol:absolute sol:right-3 sol:bottom-4 sol:z-10 sol:flex sol:items-center sol:gap-2;
+  @apply sol:relative sol:z-10 sol:flex sol:items-center sol:gap-2 sol:pointer-events-auto;
+  margin-top: 12px;
 }
 .solanum-app .solanum-scene-controls .solanum-control {
   @apply sol:flex sol:items-center sol:justify-center sol:w-10 sol:h-10 sol:p-0 sol:rounded-full sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:bg-(--background-primary)/60 sol:text-(--text-muted) sol:opacity-70 sol:transition-[opacity,background-color];

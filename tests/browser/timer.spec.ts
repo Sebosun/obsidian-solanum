@@ -82,7 +82,7 @@ for (const viewport of [
   { width: 320, height: 720 },
   { width: 640, height: 420 },
 ]) {
-  test(`running and paused use one full-view canvas with bottom-right actions at ${viewport.width}x${viewport.height}`, async ({
+  test(`running and paused use one full-view canvas with actions below the timer at ${viewport.width}x${viewport.height}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize(viewport);
@@ -95,11 +95,16 @@ for (const viewport of [
       await expect(page.getByRole("button", { name: "Show timer controls" })).toHaveCount(0);
       const frame = await page.locator(".solanum-scene").boundingBox();
       const controls = await page.locator(".solanum-scene-controls").boundingBox();
+      const header = await page.locator(".solanum-time-header").boundingBox();
       expect(frame && controls).toBeTruthy();
       expect(frame!.width).toBeGreaterThanOrEqual(viewport.width - 2);
       expect(frame!.height).toBeGreaterThanOrEqual(viewport.height - 2);
-      expect(controls!.x + controls!.width / 2).toBeGreaterThan(frame!.x + frame!.width / 2);
-      expect(controls!.y).toBeGreaterThan(frame!.y + frame!.height / 2);
+      expect(
+        Math.abs(controls!.x + controls!.width / 2 - (frame!.x + frame!.width / 2)),
+      ).toBeLessThan(2);
+      const gap = controls!.y - (header!.y + header!.height);
+      expect(gap).toBeGreaterThanOrEqual(8);
+      expect(gap).toBeLessThanOrEqual(16);
       expect(controls!.x + controls!.width).toBeLessThan(frame!.x + frame!.width);
       expect(await canvas?.evaluate((element) => element.isConnected)).toBe(true);
       await expect(page.getByRole("button", { name: "End focus" })).toBeVisible();
@@ -227,13 +232,15 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   await expect
     .poll(async () => changedPixels(page, first, await scene.screenshot(), 12), { timeout: 10_000 })
     .toBeGreaterThan(20);
-  // The break fills the view, like the focus, with its controls (pause, skip) in the scene's bottom right.
+  // Break controls sit directly below the countdown, just like focus controls.
   const skip = page.getByRole("button", { name: "Skip break" });
   await expect(skip).toBeVisible();
   const frame = await page.locator(".solanum-scene").boundingBox();
   const button = await skip.boundingBox();
-  expect(frame && button && button.x > frame.x + frame.width / 2).toBe(true);
-  expect(frame && button && button.y > frame.y + frame.height / 2).toBe(true);
+  const header = await page.locator(".solanum-time-header").boundingBox();
+  expect(frame && button && header).toBeTruthy();
+  expect(button!.y).toBeGreaterThanOrEqual(header!.y + header!.height + 8);
+  expect(button!.y).toBeLessThanOrEqual(header!.y + header!.height + 16);
   expect(errors).toEqual([]);
 });
 
