@@ -2,8 +2,40 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cropStage } from "../src/lib/crops/growth";
 import { CROPS } from "../src/lib/crops/catalog";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { Box3, Group, Vector3 } from "three";
+import { preparePlant } from "../src/lib/crops/geometry";
 
 describe("offline crop assets", () => {
+  it.each(Object.values(CROPS))(
+    "loads and consistently grounds $name growth models with Three.js",
+    async (crop) => {
+      const load = async (stage: number) => {
+        const buffer = readFileSync(`assets/crops/${crop.model}_${stage}.glb`);
+        return new GLTFLoader().parseAsync(
+          buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+          "",
+        );
+      };
+      const [young, mature] = await Promise.all([load(1), load(4)]);
+      const original = mature.scene.position.clone();
+      const normalized = preparePlant(mature.scene, mature.scene);
+      const group = new Group();
+      group.scale.setScalar(normalized.factor);
+      group.add(normalized.object);
+      const bounds = new Box3().setFromObject(group);
+      const size = bounds.getSize(new Vector3());
+      expect(Math.max(size.x, size.y, size.z)).toBeCloseTo(1.8);
+      expect(bounds.min.y).toBeCloseTo(0);
+      expect(bounds.getCenter(new Vector3()).x).toBeCloseTo(0);
+      expect(mature.scene.position).toEqual(original);
+      expect(preparePlant(young.scene, mature.scene).factor).toBe(normalized.factor);
+      expect(new Box3().setFromObject(young.scene).getSize(new Vector3()).y).toBeLessThan(
+        new Box3().setFromObject(mature.scene).getSize(new Vector3()).y,
+      );
+    },
+  );
+
   it.each(
     Object.values(CROPS).flatMap((crop) => [1, 2, 3, 4].map((stage) => `${crop.model}_${stage}`)),
   )("ships valid self-contained growth model %s", (model) => {
