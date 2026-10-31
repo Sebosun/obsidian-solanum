@@ -1,9 +1,13 @@
+import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+
 export interface Settings {
   defaultMinutes: number;
   breakMinutes: number;
   autoBreak: boolean;
   sound: boolean;
   volume: number;
+  /** Vault-relative folder holding session revision files. */
+  sessionFolder: string;
 }
 
 export const PRESETS = [5, 10, 25, 50, 60, 90, 120];
@@ -13,6 +17,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoBreak: false,
   sound: true,
   volume: 0.4,
+  sessionFolder: DEFAULT_SESSION_FOLDER,
 };
 
 export function readSettings(value: unknown): Settings {
@@ -26,5 +31,12 @@ export function readSettings(value: unknown): Settings {
     autoBreak: typeof s.autoBreak === "boolean" ? s.autoBreak : false,
     sound: typeof s.sound === "boolean" ? s.sound : true,
     volume: Number.isFinite(s.volume) ? Math.max(0, Math.min(1, s.volume!)) : 0.4,
+    sessionFolder: readSessionFolder(s.sessionFolder),
   };
+}
+
+function readSessionFolder(value: unknown): string {
+  if (typeof value !== "string") return DEFAULT_SESSION_FOLDER;
+  const parsed = parseSessionFolder(value);
+  return parsed.ok ? parsed.folder : DEFAULT_SESSION_FOLDER;
 }
