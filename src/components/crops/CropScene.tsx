@@ -9,6 +9,7 @@ import { SceneCountdown } from "../scene/SceneCountdown";
 import { useSceneColor } from "../../hooks/useSceneColor";
 import { formatTime } from "../../lib/time";
 import { useServices } from "../../state/hooks";
+import { CompletionFlourish } from "../scene/CompletionFlourish";
 
 export function CropScene({
   crop = "tomato",
@@ -72,14 +73,16 @@ export function CropScene({
               <circleGeometry args={[0.9, 8]} />
               <meshStandardMaterial color="#493324" />
             </mesh>
-            <GrowingCrop
-              key={crop}
-              crop={crop}
-              stage={stage}
-              assetUrl={assetUrl}
-              moving={moving}
-              reduced={reduced}
-            />
+            <CompletionFlourish reduced={reduced}>
+              <GrowingCrop
+                key={crop}
+                crop={crop}
+                stage={stage}
+                assetUrl={assetUrl}
+                moving={moving}
+                reduced={reduced}
+              />
+            </CompletionFlourish>
           </Canvas>
         </Suspense>
       </SceneBoundary>

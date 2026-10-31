@@ -35,6 +35,31 @@ function fixture() {
 }
 
 describe("shared application store", () => {
+  it("drops pending visual effects when views close without touching persisted crops", async () => {
+    const { host } = fixture();
+    const store = getAppStore(host);
+    const closeView = store.getState().registerView();
+    await store.getState().startFocus();
+    store.setState({
+      celebration: { id: "cue", sessionId: "session", crop: "tomato", claimed: false },
+    });
+    closeView();
+    expect(store.getState().celebration).toBeNull();
+    expect(store.getState().sessions[0].status).toBe("running");
+    releaseAppStore(host.timer);
+  });
+
+  it("claims a completion animation once across sidebar remounts", async () => {
+    const { host } = fixture();
+    const store = getAppStore(host);
+    store.setState({
+      celebration: { id: "new-harvest", sessionId: "session", crop: "tomato", claimed: false },
+    });
+    expect(store.getState().claimCelebration("new-harvest")).toBe(true);
+    expect(getAppStore(host).getState().claimCelebration("new-harvest")).toBe(false);
+    releaseAppStore(host.timer);
+  });
+
   it("shares session state and the draft across views, without resetting when a view remounts", async () => {
     const { host } = fixture();
     const timerView = getAppStore(host);

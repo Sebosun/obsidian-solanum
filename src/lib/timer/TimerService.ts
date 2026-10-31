@@ -1,6 +1,6 @@
 import { isCropId } from "../crops/catalog";
 import { isActive, normalizeTags, selectState } from "./selectors";
-import type { Revision, SessionStore, StartOptions, TimerState } from "./types";
+import type { CompletionEvent, Revision, SessionStore, StartOptions, TimerState } from "./types";
 import { completePhase } from "./transitions";
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
@@ -8,6 +8,7 @@ export class TimerService {
   private revisions = new Map<string, Revision>();
   private state: TimerState = { sessions: [], conflicts: [] };
   private listeners = new Set<() => void>();
+  private completionListeners = new Set<(event: CompletionEvent) => void>();
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(
@@ -21,6 +22,17 @@ export class TimerService {
   ) {}
 
   getState = (): TimerState => this.state;
+  subscribeCompletion(listener: (event: CompletionEvent) => void): () => void {
+    this.completionListeners.add(listener);
+    return () => {
+      this.completionListeners.delete(listener);
+    };
+  }
+
+  private notifyCompletion(event: CompletionEvent): void {
+    this.completionListeners.forEach((listener) => listener(event));
+    this.env.notify?.(event.phase);
+  }
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => {
@@ -173,14 +185,16 @@ export class TimerService {
 
   async debugFinish(sessionId: string) {
     if (!this.env.debug) throw new Error("Debug mode is disabled.");
-    let phase: "focus" | "break" | null = null;
+    let completion: CompletionEvent | undefined;
     await this.transition(sessionId, (s) => {
       if (s.source !== "debug" || !isActive(s))
         throw new Error("Only simulated debug sessions can be force-finished.");
-      phase = s.phase === "focus" ? "focus" : "break";
-      completePhase(s, this.env.now());
+      const phase = s.phase === "focus" ? "focus" : "break";
+      const at = this.env.now();
+      completion = { sessionId: s.sessionId, crop: s.crop, phase, at };
+      completePhase(s, at);
     });
-    if (phase) this.env.notify?.(phase);
+    if (completion) this.notifyCompletion(completion);
   }
 
   resolve(sessionId: string, revisionId: string) {
@@ -228,8 +242,9 @@ export class TimerService {
         next.id = `${s.id}-elapsed`;
         completePhase(next, deadline);
         await this.save(next);
-        if (notify && this.env.now() - deadline < 10_000 && phase !== "done")
-          this.env.notify?.(phase);
+        if (notify && this.env.now() - deadline < 10_000 && phase !== "done") {
+          this.notifyCompletion({ sessionId: s.sessionId, crop: s.crop, phase, at: deadline });
+        }
         s = next;
       }
     }

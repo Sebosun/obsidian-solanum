@@ -65,15 +65,6 @@
 }
 .solanum-scene.is-mature {
   @apply sol:shadow-[inset_0_0_0_1px_#87a87940];
-  animation: solanum-harvest-glow 1.1s ease-out;
-}
-@keyframes solanum-harvest-glow {
-  from {
-    box-shadow: inset 0 0 35px #87a87980;
-  }
-  to {
-    box-shadow: inset 0 0 0 1px #87a87940;
-  }
 }
 .solanum-clock p {
   @apply sol:text-[11px] sol:leading-relaxed sol:text-(--text-muted) sol:my-2 sol:mx-auto sol:max-w-60;

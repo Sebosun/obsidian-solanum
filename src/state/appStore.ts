@@ -23,6 +23,22 @@ export function getAppStore(services: SolanumHost): AppStore {
     revealedRevisionId: null,
     busy: false,
     error: "",
+    celebration: null,
+    activeViews: 0,
+    registerView() {
+      set({ activeViews: get().activeViews + 1 });
+      return () => {
+        const activeViews = Math.max(0, get().activeViews - 1);
+        set({ activeViews });
+        if (activeViews === 0) set({ celebration: null });
+      };
+    },
+    claimCelebration(id) {
+      const celebration = get().celebration;
+      if (!celebration || celebration.id !== id || celebration.claimed) return false;
+      set({ celebration: { ...celebration, claimed: true } });
+      return true;
+    },
     updateDraft(patch) {
       set({ draft: { ...get().draft, ...patch } });
     },
@@ -71,7 +87,22 @@ export function getAppStore(services: SolanumHost): AppStore {
     store.setState(services.timer.getState());
   }
   const unsubscribe = services.timer.subscribe(syncSessions);
-  stores.set(services.timer, { store, unsubscribe });
+  const unsubscribeCompletion = services.timer.subscribeCompletion((event) => {
+    if (event.phase !== "focus" || store.getState().activeViews === 0) return;
+    store.setState({
+      celebration: {
+        id: `${event.sessionId}-${event.at}`,
+        sessionId: event.sessionId,
+        crop: event.crop,
+        claimed: false,
+      },
+    });
+  });
+  function dispose() {
+    unsubscribe();
+    unsubscribeCompletion();
+  }
+  stores.set(services.timer, { store, unsubscribe: dispose });
   return store;
 }
 

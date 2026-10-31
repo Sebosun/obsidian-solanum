@@ -3,6 +3,13 @@ import type { CropId } from "../crops/catalog";
 export type Phase = "focus" | "break" | "done";
 export type Status = "running" | "paused" | "waiting" | "completed" | "cancelled";
 
+export interface CompletionEvent {
+  sessionId: string;
+  crop: CropId;
+  phase: "focus" | "break";
+  at: number;
+}
+
 export interface Revision {
   schema: 1;
   id: string;
