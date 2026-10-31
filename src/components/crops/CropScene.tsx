@@ -2,7 +2,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas, type RootState } from "@react-three/fiber";
 import { cropStage } from "../../lib/crops/growth";
 import type { CropId } from "../../lib/crops/catalog";
-import { Plant } from "../scene/Plant";
+import { GrowingCrop } from "../scene/GrowingCrop";
 import { SceneBoundary } from "../scene/SceneBoundary";
 import { CropFallback } from "./CropFallback";
 import { SceneCountdown } from "../scene/SceneCountdown";
@@ -72,22 +72,14 @@ export function CropScene({
               <circleGeometry args={[0.9, 8]} />
               <meshStandardMaterial color="#493324" />
             </mesh>
-            {stage > 0 ? (
-              <group position={[0, -0.55, 0]}>
-                <Plant
-                  key={`${crop}-${stage}`}
-                  crop={crop}
-                  stage={stage}
-                  assetUrl={assetUrl}
-                  moving={moving}
-                />
-              </group>
-            ) : (
-              <mesh position={[0, -0.48, 0]} scale={[1, 0.55, 0.7]}>
-                <sphereGeometry args={[0.09, 12, 8]} />
-                <meshStandardMaterial color="#e8bb77" />
-              </mesh>
-            )}
+            <GrowingCrop
+              key={crop}
+              crop={crop}
+              stage={stage}
+              assetUrl={assetUrl}
+              moving={moving}
+              reduced={reduced}
+            />
           </Canvas>
         </Suspense>
       </SceneBoundary>
