@@ -6,8 +6,11 @@ import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
+import { DayNoteWriter, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import { daysTouched } from "@/lib/notes/days";
+import { dayKey } from "@/lib/harvest/model";
 import type { CompletionPhase } from "@/types/host";
-import type { SessionExchangePort, SessionFolderPort, SolanumHost } from "@/types/host";
+import type { SettingsServices, SolanumHost } from "@/types/host";
 import {
   SessionExchange,
   type ExportResult,
@@ -21,6 +24,12 @@ import { VaultNoteIndex } from "@/plugin/VaultNoteIndex";
 import { SolanumSettingsTab } from "@/plugin/SolanumSettingsTab";
 import { releaseAppStore, updateDefaultMinutes, updateSeason } from "@/state/appStore";
 
+const DAY_NOTE_DEBOUNCE_MS = 1_500;
+
+function describeDayNotes(totals: DayNoteTotals): string {
+  return `Day notes: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`;
+}
+
 interface SettingsController {
   open(): void;
   openTabById(id: string): void;
@@ -29,10 +38,7 @@ interface SettingsApp extends App {
   setting: SettingsController;
 }
 
-export default class SolanumPlugin
-  extends Plugin
-  implements SolanumHost, SessionFolderPort, SessionExchangePort
-{
+export default class SolanumPlugin extends Plugin implements SolanumHost, SettingsServices {
   timer!: TimerService;
   debug?: DebugTools;
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -47,6 +53,11 @@ export default class SolanumPlugin
   private store!: VaultSessionStore;
   private folders!: SessionFolderManager;
   private exchange!: SessionExchange;
+  private dayNotes!: DayNoteWriter;
+  private seenRevisions = new Map<string, string>();
+  private pendingDays = new Map<string, Date>();
+  private dayNoteTimer: number | null = null;
+  private unsubscribeDayNotes: (() => void) | null = null;
 
   async onload(): Promise<void> {
     this.stopped = false;
@@ -57,7 +68,7 @@ export default class SolanumPlugin
       (path) => this.app.vault.adapter.readBinary(path),
       (path, reason) => new Notice(`Solanum: ${path}: ${reason} Using the built-in chime.`),
     );
-    this.addSettingTab(new SolanumSettingsTab(this.app, this, this, this, this));
+    this.addSettingTab(new SolanumSettingsTab(this.app, this, this, this));
     const store = new VaultSessionStore(this.app.vault.adapter, {
       debug: DEBUG_CONFIG.enabled,
       folder: this.settings.sessionFolder,
@@ -79,7 +90,12 @@ export default class SolanumPlugin
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
     this.exchange = new SessionExchange(this.app.vault.adapter, store, this.timer, Date.now);
     if (DEBUG_CONFIG.enabled) this.debug = new DebugTools(this.timer, store, DEBUG_CONFIG);
+    this.dayNotes = new DayNoteWriter(this.app.vault.adapter, () => this.settings.dayNotesFolder);
     await this.background(() => this.timer.refresh());
+    // Existing history is the baseline: notes follow changes, they are not backfilled at startup.
+    for (const session of this.timer.getState().sessions)
+      this.seenRevisions.set(session.sessionId, session.id);
+    this.unsubscribeDayNotes = this.timer.subscribe(this.onSessionsChanged);
     this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this, "timer"));
     this.registerView(VIEW_TYPE_HARVEST, (leaf) => new SolanumView(leaf, this, "harvest"));
 
@@ -95,6 +111,19 @@ export default class SolanumPlugin
       },
     });
 
+    this.addCommand({
+      id: "open-today-note",
+      name: "Open today's day note",
+      callback: () => void this.openDayNote(new Date()),
+    });
+    this.addCommand({
+      id: "write-all-day-notes",
+      name: "Write day notes for all history",
+      callback: () =>
+        void this.background(async () => {
+          new Notice(describeDayNotes(await this.writeAllDayNotes()));
+        }),
+    });
     this.addCommand({
       id: "open-harvest",
       name: "Open harvest calendar",
@@ -152,6 +181,8 @@ export default class SolanumPlugin
     if (this.heartbeat !== null) window.clearInterval(this.heartbeat);
     if (this.syncPoll !== null) window.clearInterval(this.syncPoll);
     if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
+    if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
+    this.unsubscribeDayNotes?.();
     this.audio.close();
     releaseAppStore(this.timer);
     // Never cancel or pause persisted crops when the plugin / Obsidian closes.
@@ -201,6 +232,49 @@ export default class SolanumPlugin
     await this.persist({ ...this.settings, sessionFolder: target });
     return result;
   };
+
+  private onSessionsChanged = () => {
+    const { sessions } = this.timer.getState();
+    const changed = sessions.filter(
+      (session) =>
+        session.source === undefined && this.seenRevisions.get(session.sessionId) !== session.id,
+    );
+    for (const session of sessions) this.seenRevisions.set(session.sessionId, session.id);
+    if (!this.settings.dayNotes || this.stopped || changed.length === 0) return;
+    for (const day of daysTouched(changed, Date.now())) this.pendingDays.set(dayKey(day), day);
+    if (this.dayNoteTimer !== null) window.clearTimeout(this.dayNoteTimer);
+    this.dayNoteTimer = window.setTimeout(this.flushDayNotes, DAY_NOTE_DEBOUNCE_MS);
+  };
+
+  private flushDayNotes = () => {
+    const days = [...this.pendingDays.values()];
+    this.pendingDays.clear();
+    this.dayNoteTimer = null;
+    void this.background(async () => {
+      for (const day of days) await this.dayNotes.write(this.writableSessions(), day, Date.now());
+    });
+  };
+
+  /** Sessions with an unresolved sync conflict have no single truth to write down yet. */
+  private writableSessions() {
+    const { sessions, conflicts } = this.timer.getState();
+    return sessions.filter(
+      (session) => !conflicts.some((conflict) => conflict.sessionId === session.sessionId),
+    );
+  }
+
+  openDayNote = (day: Date): Promise<void> =>
+    this.background(async () => {
+      const outcome = await this.dayNotes.write(this.writableSessions(), day, Date.now());
+      if (outcome === "empty") {
+        new Notice(`Solanum: no focused time on ${dayKey(day)}.`);
+        return;
+      }
+      await this.app.workspace.openLinkText(this.dayNotes.pathFor(day), "", false);
+    });
+
+  writeAllDayNotes = (): Promise<DayNoteTotals> =>
+    this.dayNotes.writeAll(this.writableSessions(), Date.now());
 
   exportSessions = (): Promise<ExportResult> => this.exchange.export();
   importSessions = (text: string): Promise<ImportResult> => this.exchange.import(text);

@@ -607,4 +607,119 @@ describe("Obsidian lifecycle integration", () => {
       plugin.onunload();
     });
   });
+
+  describe("day notes", () => {
+    const crop = (tags: string[], minutes = 5) => ({
+      durationMs: minutes * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags,
+      notePath: null,
+    });
+    const notesIn = (disk: MemoryDisk) =>
+      [...disk.files.keys()].filter((path) => path.startsWith("Solanum/days/"));
+
+    async function loaded(saved: unknown = null) {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 9, 31, 12));
+      const fixture = vaultFixture();
+      const openLinkText = vi.fn(async () => {});
+      (fixture.app.workspace as unknown as { openLinkText: unknown }).openLinkText = openLinkText;
+      const plugin = new SolanumPlugin(fixture.app, { id: "solanum" } as PluginManifest);
+      plugin.loadData = async () => saved;
+      await plugin.onload();
+      vi.mocked(plugin.addSettingTab).mock.calls[0][0].display();
+      return { ...fixture, plugin, openLinkText };
+    }
+    const commandNamed = (plugin: SolanumPlugin, id: string) => {
+      const call = vi.mocked(plugin.addCommand).mock.calls.find(([command]) => command.id === id);
+      if (!call?.[0].callback) throw new Error(`No command ${id}`);
+      return call[0].callback;
+    };
+
+    it("writes today's note shortly after a crop is planted and again when it is harvested", async () => {
+      const { plugin, disk } = await loaded();
+      await plugin.timer.start(crop(["study"]));
+      expect(notesIn(disk)).toEqual([]);
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
+      expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Growing |");
+      await vi.advanceTimersByTimeAsync(5 * 60_000 + 3_000);
+      expect(disk.files.get("Solanum/days/2026-10-31.md")).toContain("| Harvested |");
+      plugin.onunload();
+    });
+
+    it("does not rewrite notes for existing history when the plugin starts", async () => {
+      const first = await loaded();
+      await first.plugin.timer.start(crop([]));
+      await vi.advanceTimersByTimeAsync(2_000);
+      first.plugin.onunload();
+      first.disk.files.delete("Solanum/days/2026-10-31.md");
+      const second = new SolanumPlugin(first.app, { id: "solanum" } as PluginManifest);
+      await second.onload();
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(notesIn(first.disk)).toEqual([]);
+      second.onunload();
+    });
+
+    it("stays quiet when day notes are switched off, but still opens one on request", async () => {
+      const { plugin, disk, openLinkText } = await loaded({ dayNotes: false });
+      await plugin.timer.start(crop([]));
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(notesIn(disk)).toEqual([]);
+      await plugin.openDayNote(new Date(2026, 9, 31));
+      expect(notesIn(disk)).toEqual(["Solanum/days/2026-10-31.md"]);
+      expect(openLinkText).toHaveBeenCalledWith("Solanum/days/2026-10-31.md", "", false);
+      plugin.onunload();
+    });
+
+    it("tells the user instead of creating an empty note", async () => {
+      const { plugin, disk, openLinkText } = await loaded();
+      await plugin.openDayNote(new Date(2026, 9, 30));
+      expect(notesIn(disk)).toEqual([]);
+      expect(openLinkText).not.toHaveBeenCalled();
+      expect(nativeUi.notices.join(" ")).toMatch(/no focused time on 2026-10-30/i);
+      plugin.onunload();
+    });
+
+    it("uses the configured folder", async () => {
+      const { plugin, disk } = await loaded({ dayNotesFolder: "Journal/Focus" });
+      await plugin.timer.start(crop([]));
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect([...disk.files.keys()]).toContain("Journal/Focus/2026-10-31.md");
+      plugin.onunload();
+    });
+
+    it("opens today's note from the command palette and backfills all history on demand", async () => {
+      const { plugin, disk, openLinkText } = await loaded({ dayNotes: false });
+      const id = await plugin.timer.start(crop(["a"]));
+      vi.setSystemTime(new Date(2026, 9, 31, 12, 5));
+      await plugin.timer.cancel(id);
+      vi.setSystemTime(new Date(2026, 10, 2, 9));
+      await plugin.timer.start(crop(["b"]));
+      vi.setSystemTime(new Date(2026, 10, 2, 9, 5));
+      await commandNamed(plugin, "open-today-note")();
+      await vi.advanceTimersByTimeAsync(10);
+      expect(openLinkText).toHaveBeenCalledWith("Solanum/days/2026-11-02.md", "", false);
+      await nativeUi.buttons.get("Write notes for all history")!();
+      expect(notesIn(disk).sort()).toEqual([
+        "Solanum/days/2026-10-31.md",
+        "Solanum/days/2026-11-02.md",
+      ]);
+      expect(nativeUi.notices.join(" ")).toMatch(/Day notes: 1 new, 0 updated, 1 unchanged/);
+      plugin.onunload();
+    });
+
+    it("saves the day notes settings, rejecting folders that cannot work", async () => {
+      const { plugin } = await loaded();
+      await nativeSettings.get("Day notes")!(false);
+      expect(plugin.settings.dayNotes).toBe(false);
+      await nativeSettings.get("Day notes folder")!(".hidden/days");
+      expect(nativeUi.descriptions.get("Day notes folder")).toMatch(/hidden/i);
+      expect(plugin.settings.dayNotesFolder).toBe("Solanum/days");
+      await nativeSettings.get("Day notes folder")!("Journal/Focus");
+      expect(plugin.settings.dayNotesFolder).toBe("Journal/Focus");
+      plugin.onunload();
+    });
+  });
 });

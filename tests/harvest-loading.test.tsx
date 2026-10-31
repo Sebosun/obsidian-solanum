@@ -37,6 +37,7 @@ describe("farm loading recovery", () => {
       notes: () => [],
       activeNote: () => null,
       openNote: vi.fn(),
+      openDayNote: vi.fn(async () => {}),
       openSettings: vi.fn(),
       navigate: vi.fn(),
       assetUrl: (name) => name,

@@ -155,7 +155,7 @@
   @apply sol:min-w-0 sol:truncate sol:text-[10px] sol:text-(--text-faint);
 }
 .solanum-app .solanum-subtle {
-  @apply sol:bg-transparent sol:shadow-none sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent);
+  @apply sol:bg-transparent sol:shadow-none sol:border-0 sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent);
 }
 .solanum-app .solanum-start {
   @apply sol:w-full sol:mt-5 sol:p-[13px] sol:h-auto sol:rounded-[9px] sol:bg-[#69885c] sol:text-white sol:shadow-none;
@@ -169,6 +169,9 @@
 }
 .solanum-app .solanum-actions .solanum-control:hover:not(:disabled) {
   @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
+}
+.solanum-app .solanum-day-note-link {
+  @apply sol:mt-1 sol:mb-2;
 }
 .solanum-tag {
   @apply sol:inline-block sol:text-[10px] sol:rounded-[5px] sol:bg-[#87a87918] sol:text-(--text-muted) sol:py-1 sol:px-1.5 sol:m-0.5 sol:wrap-anywhere;

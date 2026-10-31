@@ -2,6 +2,7 @@ import type { TimerService } from "@/lib/timer/TimerService";
 import type { DebugTools } from "@/lib/debug/DebugTools";
 import type { Settings } from "@/lib/settings";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
+import type { DayNoteTotals } from "@/lib/notes/DayNoteWriter";
 import type { ExportResult, ImportResult } from "@/lib/storage/SessionExchange";
 
 export type CompletionPhase = "focus" | "break";
@@ -17,6 +18,8 @@ export interface SolanumHost {
   notes(): string[];
   activeNote(): string | null;
   openNote(path: string): void;
+  /** Writes (if needed) and opens the markdown note summarising one day. */
+  openDayNote(day: Date): Promise<void>;
   assetUrl(name: string): string;
   readAsset?(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;
@@ -39,3 +42,11 @@ export interface SessionExchangePort {
   exportSessions(): Promise<ExportResult>;
   importSessions(text: string): Promise<ImportResult>;
 }
+
+/** Writing day notes for the whole history, used only by the settings tab. */
+export interface DayNotesPort {
+  writeAllDayNotes(): Promise<DayNoteTotals>;
+}
+
+/** Everything the settings tab can ask the plugin to do beyond saving preferences. */
+export interface SettingsServices extends SessionFolderPort, SessionExchangePort, DayNotesPort {}

@@ -9,20 +9,21 @@ import {
 import { PRESETS, type Settings } from "@/lib/settings";
 import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, SEASON_THEMES } from "@/lib/scene/seasons";
-import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+import {
+  DEFAULT_DAY_NOTES_FOLDER,
+  DEFAULT_SESSION_FOLDER,
+  parseDayNotesFolder,
+  parseSessionFolder,
+} from "@/lib/storage/folder";
 import type { MovePlan } from "@/lib/storage/migration";
 import { summarizeImport } from "@/lib/storage/exchange";
 import { confirmMove } from "@/plugin/ConfirmMoveModal";
 import { pickTextFile } from "@/plugin/pickTextFile";
 import { AudioFileSuggest } from "@/plugin/AudioFileSuggest";
 import { FolderSuggest } from "@/plugin/FolderSuggest";
-import type {
-  CompletionPhase,
-  SessionExchangePort,
-  SessionFolderPort,
-  SolanumHost,
-} from "@/types/host";
+import type { CompletionPhase, SettingsServices, SolanumHost } from "@/types/host";
 
+const DAY_NOTES_HELP = "Existing notes stay where they are if you change this.";
 const SOUND_HELP = "Audio file from your vault. Leave empty for the built-in chime.";
 type SoundKey = "focusSound" | "breakSound";
 
@@ -49,8 +50,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
     app: App,
     plugin: Plugin,
     private host: SolanumHost,
-    private folders: SessionFolderPort,
-    private exchange: SessionExchangePort,
+    private services: SettingsServices,
   ) {
     super(app, plugin);
   }
@@ -99,6 +99,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
       control.onChange(this.changeVolume);
     });
     this.displaySessionFolder();
+    this.displayDayNotes();
     this.displayBackup();
     this.displaySound("Focus completion sound", "focusSound", "focus");
     this.displaySound("Break completion sound", "breakSound", "break");
@@ -151,6 +152,52 @@ export class SolanumSettingsTab extends PluginSettingTab {
 
   private previewFocus = () => this.host.previewSound("focus");
 
+  private displayDayNotes(): void {
+    new Setting(this.containerEl)
+      .setName("Day notes")
+      .setDesc("Keep a note per day with a summary of its sessions.")
+      .addToggle((control) => {
+        control.setValue(this.host.settings.dayNotes).onChange(this.changeDayNotes);
+      });
+    const folder = new Setting(this.containerEl)
+      .setName("Day notes folder")
+      .setDesc(DAY_NOTES_HELP);
+    folder.addText((control) => {
+      control.setPlaceholder(DEFAULT_DAY_NOTES_FOLDER).setValue(this.host.settings.dayNotesFolder);
+      new FolderSuggest(this.app, control.inputEl);
+      control.onChange((value) => this.editDayNotesFolder(folder, value));
+    });
+    new Setting(this.containerEl)
+      .setName("Write notes for all history")
+      .setDesc("Create or refresh a note for every day you have focused.")
+      .addButton((control) => {
+        control.setButtonText("Write notes for all history").onClick(this.writeAllDayNotes);
+      });
+  }
+
+  private changeDayNotes = (value: boolean) => this.save({ dayNotes: value });
+
+  private editDayNotesFolder = async (setting: Setting, value: string): Promise<void> => {
+    const parsed = parseDayNotesFolder(value);
+    if (!parsed.ok) {
+      setting.setDesc(parsed.reason);
+      return;
+    }
+    setting.setDesc(DAY_NOTES_HELP);
+    await this.save({ dayNotesFolder: parsed.folder });
+  };
+
+  private writeAllDayNotes = async (): Promise<void> => {
+    try {
+      const totals = await this.services.writeAllDayNotes();
+      new Notice(
+        `Day notes: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`,
+      );
+    } catch (error) {
+      this.reportError(error);
+    }
+  };
+
   private displayBackup(): void {
     new Setting(this.containerEl)
       .setName("Export sessions")
@@ -168,7 +215,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
 
   private exportSessions = async (): Promise<void> => {
     try {
-      const { path, count } = await this.exchange.exportSessions();
+      const { path, count } = await this.services.exportSessions();
       new Notice(`Exported ${count} revisions to ${path}`);
     } catch (error) {
       this.reportError(error);
@@ -179,7 +226,7 @@ export class SolanumSettingsTab extends PluginSettingTab {
     try {
       const text = await pickTextFile();
       if (text === null) return;
-      new Notice(summarizeImport(await this.exchange.importSessions(text)), 10_000);
+      new Notice(summarizeImport(await this.services.importSessions(text)), 10_000);
     } catch (error) {
       this.reportError(error);
     }
@@ -202,13 +249,13 @@ export class SolanumSettingsTab extends PluginSettingTab {
     if (!parsed.ok) return;
     const from = this.host.settings.sessionFolder;
     try {
-      const plan = await this.folders.planSessionFolder(parsed.folder);
+      const plan = await this.services.planSessionFolder(parsed.folder);
       if (plan.conflicts.length > 0)
         throw new Error(
           `${plural(plan.conflicts.length, "file")} in ${parsed.folder} would be overwritten with different content. Nothing was moved.`,
         );
       if (!(await confirmMove(this.app, describeMove(from, parsed.folder, plan)))) return;
-      const result = await this.folders.moveSessionFolder(parsed.folder);
+      const result = await this.services.moveSessionFolder(parsed.folder);
       new Notice(`Moved ${plural(result.moved, "session file")} to ${parsed.folder}.`);
     } catch (error) {
       this.reportError(error);

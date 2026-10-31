@@ -1,4 +1,5 @@
 import { CROPS } from "@/lib/crops/catalog";
+import { sessionStatus } from "@/lib/harvest/status";
 import type { Revision } from "@/lib/timer/types";
 import { useServices } from "@/state/hooks";
 
@@ -10,9 +11,7 @@ interface HarvestEntryProps {
 export function HarvestEntry({ session, minutes }: HarvestEntryProps) {
   const services = useServices();
   const crop = CROPS[session.crop];
-  let status = "Growing";
-  if (session.focusEndedAt !== null) status = "Harvested";
-  else if (session.status === "cancelled") status = "Partial crop";
+  let status: string = sessionStatus(session);
   if (session.source === "seed") status += " · Demo";
   if (session.source === "debug") status += " · Debug";
   const started = new Date(session.startedAt).toLocaleTimeString(undefined, {

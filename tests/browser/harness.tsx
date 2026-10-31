@@ -31,6 +31,7 @@ const host: SolanumHost = {
   activeNote: () => null,
   assetUrl: (name) => `${location.origin}/assets/crops/${name}`,
   openNote() {},
+  async openDayNote() {},
   openSettings() {},
   unlockAudio() {},
   previewSound() {},

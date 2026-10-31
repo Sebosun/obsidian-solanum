@@ -1,6 +1,11 @@
 import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
-import { DEFAULT_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+import {
+  DEFAULT_DAY_NOTES_FOLDER,
+  DEFAULT_SESSION_FOLDER,
+  parseDayNotesFolder,
+  parseSessionFolder,
+} from "@/lib/storage/folder";
 
 export interface Settings {
   defaultMinutes: number;
@@ -10,6 +15,10 @@ export interface Settings {
   volume: number;
   /** Vault-relative folder holding session revision files. */
   sessionFolder: string;
+  /** Keep a markdown note per day summarising its sessions. */
+  dayNotes: boolean;
+  /** Vault folder for the day notes. */
+  dayNotesFolder: string;
   /** Vault audio file played when focus ends; empty uses the built-in chime. */
   focusSound: string;
   /** Vault audio file played when a break ends; empty uses the built-in chime. */
@@ -29,6 +38,8 @@ export const DEFAULT_SETTINGS: Settings = {
   season: "auto",
   focusSound: "",
   breakSound: "",
+  dayNotes: true,
+  dayNotesFolder: DEFAULT_DAY_NOTES_FOLDER,
 };
 
 export function readSettings(value: unknown): Settings {
@@ -43,6 +54,8 @@ export function readSettings(value: unknown): Settings {
     sound: typeof s.sound === "boolean" ? s.sound : true,
     volume: Number.isFinite(s.volume) ? Math.max(0, Math.min(1, s.volume!)) : 0.4,
     sessionFolder: readSessionFolder(s.sessionFolder),
+    dayNotes: typeof s.dayNotes === "boolean" ? s.dayNotes : true,
+    dayNotesFolder: readDayNotesFolder(s.dayNotesFolder),
     focusSound: readSoundPath(s.focusSound),
     breakSound: readSoundPath(s.breakSound),
     season: SEASON_CHOICES.find((choice) => choice === s.season) ?? "auto",
@@ -59,4 +72,10 @@ function readSoundPath(value: unknown): string {
   if (typeof value !== "string") return "";
   const parsed = parseSoundPath(value);
   return parsed.ok ? parsed.path : "";
+}
+
+function readDayNotesFolder(value: unknown): string {
+  if (typeof value !== "string") return DEFAULT_DAY_NOTES_FOLDER;
+  const parsed = parseDayNotesFolder(value);
+  return parsed.ok ? parsed.folder : DEFAULT_DAY_NOTES_FOLDER;
 }

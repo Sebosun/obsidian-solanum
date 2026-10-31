@@ -78,6 +78,7 @@ function fixture(debug = false) {
     notes: () => ["Project.md", "Other.md"],
     activeNote: () => "Project.md",
     openNote: vi.fn(),
+    openDayNote: vi.fn(async () => {}),
     assetUrl: (name) => name,
     navigate: vi.fn(),
     unlockAudio: vi.fn(),
@@ -501,6 +502,45 @@ describe("sidebar workflows backed by the real timer service", () => {
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
       expect(monthButtons()).toHaveLength(12);
     });
+  });
+
+  it("opens the day's note from its harvest details", async () => {
+    const f = fixture();
+    await f.host.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: [],
+      notePath: null,
+    });
+    f.advance(5 * 60_000);
+    await f.host.timer.tick();
+    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+    expect(screen.queryByRole("button", { name: "Open day note" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open day note" }));
+    expect(f.host.openDayNote).toHaveBeenCalledOnce();
+    const [day] = vi.mocked(f.host.openDayNote).mock.calls[0];
+    expect(day.getFullYear()).toBe(2026);
+    expect(day.getMonth()).toBe(9);
+    expect(day.getDate()).toBe(31);
+  });
+
+  it("offers no day note for days that only hold simulated crops", async () => {
+    const f = fixture(true);
+    await f.host.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: [],
+      notePath: null,
+    });
+    f.advance(5 * 60_000);
+    await f.host.timer.tick();
+    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
+    expect(screen.getByRole("region", { name: "Harvest details" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Open day note" })).toBeNull();
   });
 
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {
