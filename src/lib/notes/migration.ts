@@ -74,7 +74,7 @@ export async function moveDayNotes(
       const reason = error instanceof Error ? error.message : String(error);
       throw Object.assign(
         new Error(
-          `${moved} documents moved. ${reason}. Resume the day-note migration in settings.`,
+          `${moved} documents moved. ${reason}. Retry the document update or use “Write documents for all history”.`,
         ),
         { cause: error },
       );

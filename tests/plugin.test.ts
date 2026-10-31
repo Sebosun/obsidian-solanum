@@ -318,7 +318,11 @@ describe("Obsidian lifecycle integration", () => {
         "Preview",
       ],
       Sessions: ["Session folder"],
-      "Day notes": ["Keep day notes up to date", "Day notes folder", "Write notes for all history"],
+      Documents: [
+        "Keep documents up to date",
+        "Documents folder",
+        "Write documents for all history",
+      ],
       Backup: [
         "Export sessions",
         "Create/update documents when importing",
@@ -778,6 +782,112 @@ describe("Obsidian lifecycle integration", () => {
     const notesIn = (disk: MemoryDisk) =>
       [...disk.files.keys()].filter((path) => /^Solanum\/\d{4}\/\d{2}\/.*\.md$/.test(path));
 
+    describe("legacy imports", () => {
+      const sample = readFileSync("tests/fixtures/forest-sample.csv", "utf8");
+      const mapping: ForestMapping = {
+        tags: {},
+        trees: { Bush: "tomato", Cedar: "carrot", "Statue of Tada": "corn" },
+      };
+      const choose = () => nativeUi.buttons.get("Choose CSV…")!();
+
+      it("uses the same calendar system when a legacy-configured live session changes", async () => {
+        const { plugin, disk } = await loaded({ dayNotesFolder: "Solanum/days" });
+        await workAMinute(plugin);
+        expect(plugin.settings.dayNotesLayout).toBe("calendar");
+        expect(notesIn(disk)).toEqual(["Solanum/2026/10/2026-10-31.md"]);
+        expect([...disk.files.keys()].some((path) => path.startsWith("Solanum/days/"))).toBe(false);
+        plugin.onunload();
+      });
+
+      it("uses the same preview and migration when restoring a legacy-configured backup", async () => {
+        const { plugin, disk } = await loaded({ dayNotesFolder: "Solanum/days" });
+        await plugin.importForest(sample, { ...mapping, createDocuments: false });
+        await disk.mkdir("Solanum/days");
+        disk.files.set(
+          "Solanum/days/2021-07-28.md",
+          "---\nsolanum: day\ndate: 2021-07-28\n---\n## Notes\nBackup reflection.\n",
+        );
+        const exported = await plugin.exportSessions();
+        picker.text = await disk.read(exported.path);
+        await nativeUi.buttons.get("Import…")!();
+        expect(nativeUi.confirm.messages).toHaveLength(1);
+        expect(plugin.settings).toMatchObject({
+          dayNotesFolder: "Solanum",
+          dayNotesLayout: "calendar",
+        });
+        expect(disk.files.get("Solanum/2021/07/2021-07-28.md")).toContain("Backup reflection.");
+        expect([...disk.files.keys()].some((path) => path.startsWith("Solanum/days/"))).toBe(false);
+        plugin.onunload();
+      });
+
+      it("upgrades legacy Forest imports and moves existing documents without losing personal notes", async () => {
+        const { plugin, disk, app } = await loaded({ dayNotesFolder: "Solanum/days" });
+        await disk.mkdir("Solanum/days");
+        const original =
+          "---\nsolanum: day\ndate: 2021-07-28\n---\n## Notes\nKeep my reflection.\n";
+        disk.files.set("Solanum/days/2021-07-28.md", original);
+        // Reproduce a vault where the CSV was already imported before the layout fix.
+        await plugin.importForest(sample, { ...mapping, createDocuments: false });
+        picker.text = sample;
+        forestDialog.answer = mapping;
+        await choose();
+        expect(nativeUi.confirm.messages).toHaveLength(1);
+        expect(nativeUi.confirm.messages[0]).toContain("Solanum/2021/07/2021-07-28.md");
+        expect(app.fileManager.renameFile).toHaveBeenCalledOnce();
+        expect(plugin.settings).toMatchObject({
+          dayNotesFolder: "Solanum",
+          dayNotesLayout: "calendar",
+        });
+        expect(disk.files.has("Solanum/days/2021-07-28.md")).toBe(false);
+        expect(disk.files.get("Solanum/2021/07/2021-07-28.md")).toContain("Keep my reflection.");
+        expect(notesIn(disk).length).toBeGreaterThan(1);
+        await vi.advanceTimersByTimeAsync(5_000);
+        expect([...disk.files.keys()].some((path) => path.startsWith("Solanum/days/"))).toBe(false);
+        await choose();
+        expect(plugin.timer.getState().sessions).toHaveLength(17);
+        expect(nativeUi.confirm.messages).toHaveLength(1);
+        plugin.onunload();
+      });
+
+      it("does not import or move anything if the import migration preview is cancelled", async () => {
+        const { plugin, disk, app } = await loaded({ dayNotesFolder: "Solanum/days" });
+        await disk.mkdir("Solanum/days");
+        const original = "---\nsolanum: day\ndate: 2021-07-28\n---\n## Notes\nKeep this.\n";
+        disk.files.set("Solanum/days/2021-07-28.md", original);
+        nativeUi.confirm.answer = false;
+        picker.text = sample;
+        forestDialog.answer = mapping;
+        await choose();
+        expect(plugin.timer.getState().sessions).toEqual([]);
+        expect(app.fileManager.renameFile).not.toHaveBeenCalled();
+        expect(disk.files.get("Solanum/days/2021-07-28.md")).toBe(original);
+        plugin.onunload();
+      });
+
+      it("upgrades a legacy custom root on direct import and keeps imported history safe on collisions", async () => {
+        const { plugin, disk } = await loaded({ dayNotesFolder: "Journal/Focus" });
+        await disk.mkdir("Journal/Focus");
+        const original = "---\nsolanum: day\ndate: 2021-07-28\n---\n## Notes\nKeep this.\n";
+        disk.files.set("Journal/Focus/2021-07-28.md", original);
+        disk.files.set("Journal/Focus/2021/07/2021-07-28.md", "Do not overwrite me.");
+        const failed = await plugin.importForest(sample, mapping);
+        expect(failed.imported.added).toBe(17);
+        expect(failed.imported.documents?.failures).toHaveLength(1);
+        expect(disk.files.get("Journal/Focus/2021/07/2021-07-28.md")).toBe("Do not overwrite me.");
+        disk.files.delete("Journal/Focus/2021/07/2021-07-28.md");
+        const retry = await plugin.importForest(sample, mapping);
+        expect(retry.imported.duplicates).toBe(17);
+        expect(retry.imported.documents?.failures).toEqual([]);
+        expect(plugin.settings).toMatchObject({
+          dayNotesFolder: "Journal/Focus",
+          dayNotesLayout: "calendar",
+        });
+        expect(disk.files.has("Journal/Focus/2021-07-28.md")).toBe(false);
+        expect(disk.files.get("Journal/Focus/2021/07/2021-07-28.md")).toContain("Keep this.");
+        plugin.onunload();
+      });
+    });
+
     async function loaded(saved: unknown = null) {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(2026, 9, 31, 12));
@@ -874,66 +984,79 @@ describe("Obsidian lifecycle integration", () => {
       await commandNamed(plugin, "open-today-note")();
       await vi.advanceTimersByTimeAsync(10);
       expect(openLinkText).toHaveBeenCalledWith("Solanum/2026/11/2026-11-02.md", "", false);
-      await nativeUi.buttons.get("Write notes for all history")!();
+      await nativeUi.buttons.get("Write documents for all history")!();
       expect(notesIn(disk).sort()).toEqual([
         "Solanum/2026/10/2026-10-31.md",
         "Solanum/2026/11/2026-11-02.md",
       ]);
-      expect(nativeUi.notices.join(" ")).toMatch(/Day notes: 1 new, 0 updated, 1 unchanged/);
+      expect(nativeUi.notices.join(" ")).toMatch(/Documents: 1 new, 0 updated, 1 unchanged/);
       plugin.onunload();
     });
 
     it("saves the day notes settings, rejecting folders that cannot work", async () => {
       const { plugin } = await loaded();
-      await nativeSettings.get("Keep day notes up to date")!(false);
+      await nativeSettings.get("Keep documents up to date")!(false);
       expect(plugin.settings.dayNotes).toBe(false);
-      await nativeSettings.get("Day notes folder")!(".hidden/days");
-      expect(nativeUi.descriptions.get("Day notes folder")).toMatch(/hidden/i);
+      await nativeSettings.get("Documents folder")!(".hidden/days");
+      expect(nativeUi.descriptions.get("Documents folder")).toMatch(/hidden/i);
       expect(plugin.settings.dayNotesFolder).toBe("Solanum");
-      await nativeSettings.get("Day notes folder")!("Journal/Focus");
+      await nativeSettings.get("Documents folder")!("Journal/Focus");
       expect(plugin.settings.dayNotesFolder).toBe("Journal/Focus");
       plugin.onunload();
     });
 
-    it("keeps old paths until confirmed, then migrates through Obsidian and saves the new root", async () => {
-      const { plugin, disk, app } = await loaded({ dayNotesFolder: "Solanum/days" });
-      await workAMinute(plugin);
-      const source = "Solanum/days/2026-10-31.md";
-      disk.files.set(source, `${await disk.read(source)}\n## Reflection\nKeep this.\n`);
-      const original = await disk.read(source);
-      expect(plugin.settings.dayNotesLayout).toBe("flat");
-      nativeUi.confirm.answer = false;
-      await nativeUi.buttons.get("Preview migration…")!();
-      expect(disk.files.get(source)).toBe(original);
-      expect(nativeUi.confirm.messages[0]).toContain("Solanum/2026/10/2026-10-31.md");
-      nativeUi.confirm.answer = true;
-      await nativeUi.buttons.get("Preview migration…")!();
-      expect(app.fileManager.renameFile).toHaveBeenCalledOnce();
-      expect(disk.files.has(source)).toBe(false);
-      expect(disk.folders.has("Solanum/days")).toBe(false);
-      expect(disk.files.get("Solanum/2026/10/2026-10-31.md")).toBe(original);
-      expect(plugin.settings).toMatchObject({
-        dayNotesFolder: "Solanum",
-        dayNotesLayout: "calendar",
-        dayNotesMigrationRoot: null,
+    it.each(["flat", "calendar"])(
+      "shows one document system regardless of saved %s metadata",
+      async (layout) => {
+        const { plugin } = await loaded({
+          dayNotesFolder: "assets/solanum",
+          dayNotesLayout: layout,
+        });
+        expect(nativeUi.headings.has("Documents")).toBe(true);
+        expect(nativeUi.descriptions.get("Documents folder")).toContain("YYYY/MM/YYYY-MM-DD.md");
+        expect([...nativeUi.descriptions.values()].join(" ")).not.toMatch(
+          /legacy|flat layout|migration/i,
+        );
+        expect(nativeUi.order).not.toContain("Organize notes by year/month");
+        expect(nativeUi.buttons.has("Preview migration…")).toBe(false);
+        expect(nativeUi.buttons.has("Resume migration…")).toBe(false);
+        plugin.onunload();
+      },
+    );
+
+    it("recovers an interrupted document update with the normal write-history action", async () => {
+      const { plugin } = await loaded({
+        dayNotesFolder: "assets/solanum",
+        dayNotesLayout: "flat",
+        dayNotesMigrationRoot: "assets/solanum",
       });
+      expect(nativeUi.descriptions.get("Documents folder")).toMatch(/update was interrupted/);
+      expect(nativeUi.descriptions.get("Documents folder")).not.toMatch(/legacy|migration/i);
+      await nativeUi.buttons.get("Write documents for all history")!();
+      expect(plugin.settings.dayNotesMigrationRoot).toBe(null);
+      expect(nativeUi.descriptions.get("Documents folder")).toContain("YYYY/MM/YYYY-MM-DD.md");
+      expect(nativeUi.descriptions.get("Documents folder")).not.toMatch(/interrupted/);
       plugin.onunload();
     });
 
-    it("blocks document writes after interrupted migration, including after restart, and resumes", async () => {
+    it("never writes flat documents after interrupted migration and resumes after restart", async () => {
       const { plugin, disk, app } = await loaded({ dayNotesFolder: "Journal/Focus" });
-      await workAMinute(plugin);
+      await disk.mkdir("Journal/Focus");
+      disk.files.set(
+        "Journal/Focus/2026-10-31.md",
+        "---\nsolanum: day\ndate: 2026-10-31\n---\n## Notes\nKeep this.\n",
+      );
       disk.failWrites.add("Journal/Focus/2026/10/2026-10-31.md");
-      await expect(plugin.migrateDayNotes()).rejects.toThrow(/Resume/);
+      await expect(plugin.writeAllDayNotes()).rejects.toThrow(/Retry the document update/);
       expect(plugin.settings.dayNotesMigrationRoot).toBe("Journal/Focus");
       const saved = { ...plugin.settings };
       plugin.onunload();
       const restarted = new SolanumPlugin(app, { id: "solanum" } as PluginManifest);
       restarted.loadData = async () => saved;
       await restarted.onload();
-      await expect(restarted.writeAllDayNotes()).rejects.toThrow(/migration is incomplete/);
+      await expect(restarted.writeAllDayNotes()).rejects.toThrow(/Retry the document update/);
       disk.failWrites.clear();
-      expect(await restarted.migrateDayNotes()).toBe(1);
+      await restarted.writeAllDayNotes();
       expect(restarted.settings).toMatchObject({
         dayNotesFolder: "Journal/Focus",
         dayNotesLayout: "calendar",
@@ -1091,7 +1214,7 @@ describe("Obsidian lifecycle integration", () => {
       await vi.advanceTimersByTimeAsync(5_000);
       expect(plugin.timer.getState().sessions).toHaveLength(20);
       expect(notesIn(disk)).toHaveLength(20);
-      await nativeUi.buttons.get("Write notes for all history")!();
+      await nativeUi.buttons.get("Write documents for all history")!();
       expect(notesIn(disk)).toHaveLength(20);
       plugin.onunload();
     });

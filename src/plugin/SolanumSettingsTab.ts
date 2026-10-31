@@ -4,7 +4,7 @@ import type { SettingsServices, SolanumHost } from "@/types/host";
 import type { SettingsContext } from "@/plugin/settings/SettingsContext";
 import { displayAppearanceSettings } from "@/plugin/settings/AppearanceSettings";
 import { displayBackupSettings } from "@/plugin/settings/BackupSettings";
-import { displayDayNotesSettings } from "@/plugin/settings/DayNotesSettings";
+import { displayDocumentsSettings } from "@/plugin/settings/DocumentsSettings";
 import { displaySessionStorageSettings } from "@/plugin/settings/SessionStorageSettings";
 import { displaySoundSettings } from "@/plugin/settings/SoundSettings";
 import { displayTimerSettings } from "@/plugin/settings/TimerSettings";
@@ -15,7 +15,7 @@ const SECTIONS = [
   displayAppearanceSettings,
   displaySoundSettings,
   displaySessionStorageSettings,
-  displayDayNotesSettings,
+  displayDocumentsSettings,
   displayBackupSettings,
 ];
 

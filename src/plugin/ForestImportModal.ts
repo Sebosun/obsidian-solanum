@@ -65,7 +65,7 @@ class ForestImportModal extends Modal {
 
     new Setting(this.contentEl)
       .setName("Create/update documents")
-      .setDesc("Write day documents for all imported dates, even if automatic day notes are off.")
+      .setDesc("Write session documents for all imported dates, even if automatic updates are off.")
       .addToggle((control) => {
         control.setValue(this.mapping.createDocuments !== false).onChange((value) => {
           this.mapping.createDocuments = value;

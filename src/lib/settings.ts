@@ -1,5 +1,5 @@
 import { DEFAULT_PRESETS, readPresets } from "@/lib/timer/presets";
-import type { DayNotesLayout } from "@/lib/notes/path";
+import type { DayNoteLocation } from "@/lib/notes/DayNoteService";
 import { parseSoundPath } from "@/lib/audio/soundPath";
 import { SEASON_CHOICES, type SeasonChoice } from "@/lib/scene/seasons";
 import {
@@ -9,7 +9,7 @@ import {
   parseSessionFolder,
 } from "@/lib/storage/folder";
 
-export interface Settings {
+export interface Settings extends DayNoteLocation {
   defaultMinutes: number;
   /** Focus durations offered as quick choices, in minutes. */
   presets: number[];
@@ -21,12 +21,6 @@ export interface Settings {
   sessionFolder: string;
   /** Keep a markdown note per day summarising its sessions. */
   dayNotes: boolean;
-  /** Vault folder for the day notes. */
-  dayNotesFolder: string;
-  /** Old vaults keep their flat layout until a confirmed, link-aware migration. */
-  dayNotesLayout: DayNotesLayout;
-  /** Persisted before moving; blocks note writes until an interrupted migration is resumed. */
-  dayNotesMigrationRoot: string | null;
   /** Vault audio file played when focus ends; empty uses the built-in chime. */
   focusSound: string;
   /** Vault audio file played when a break ends; empty uses the built-in chime. */
@@ -81,7 +75,7 @@ export function readSettings(value: unknown): Settings {
   };
 }
 
-function readDayNotesLayout(settings: Partial<Settings>): DayNotesLayout {
+function readDayNotesLayout(settings: Partial<Settings>): DayNoteLocation["dayNotesLayout"] {
   if (settings.dayNotesLayout === "flat" || settings.dayNotesLayout === "calendar")
     return settings.dayNotesLayout;
   if (typeof settings.dayNotesFolder === "string" && settings.dayNotesFolder.trim() !== "")

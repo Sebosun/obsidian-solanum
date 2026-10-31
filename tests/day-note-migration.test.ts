@@ -56,7 +56,7 @@ describe("moving readable day notes into the calendar hierarchy", () => {
   it("resumes after interruption without re-moving completed files", async () => {
     const { disk, rename, renamed } = await fixture();
     disk.failWrites.add("Solanum/2026/11/2026-11-01.md");
-    await expect(moveDayNotes(disk, FROM, TO, rename)).rejects.toThrow(/Resume/);
+    await expect(moveDayNotes(disk, FROM, TO, rename)).rejects.toThrow(/Retry the document update/);
     expect(renamed).toHaveLength(1);
     disk.failWrites.clear();
     expect(await moveDayNotes(disk, FROM, TO, rename)).toBe(1);

@@ -7,6 +7,7 @@ import {
 } from "@/lib/import/forest";
 import { summarizeImport } from "@/lib/storage/exchange";
 import { askForestMapping } from "@/plugin/ForestImportModal";
+import { confirmDocumentOrganization } from "@/plugin/confirmDocumentOrganization";
 import { pickTextFile } from "@/plugin/pickTextFile";
 import { pickVaultFile } from "@/plugin/pickVaultFile";
 import { addHeading, type SettingsContext } from "@/plugin/settings/SettingsContext";
@@ -47,6 +48,7 @@ export function displayBackupSettings(context: SettingsContext): void {
 
   async function importSessionsFrom(text: string | null): Promise<void> {
     if (text === null) return;
+    if (!(await confirmCalendarDocuments(createDocuments))) return;
     const result = await whileImporting((onDocumentProgress) =>
       services.importSessions(text, { createDocuments, onDocumentProgress }),
     );
@@ -67,10 +69,16 @@ export function displayBackupSettings(context: SettingsContext): void {
       host.tags(),
     );
     if (mapping === null) return;
+    if (!(await confirmCalendarDocuments(mapping.createDocuments !== false))) return;
     const result = await whileImporting((onDocumentProgress) =>
       services.importForest(text, mapping, { onDocumentProgress }),
     );
     new Notice(summarizeForestImport(result), 10_000);
+  }
+
+  async function confirmCalendarDocuments(enabled: boolean): Promise<boolean> {
+    if (!enabled || host.settings.dayNotesLayout !== "flat") return true;
+    return confirmDocumentOrganization(app, await services.planDayNoteMigration());
   }
 
   const fromSystem = (accept: string) =>

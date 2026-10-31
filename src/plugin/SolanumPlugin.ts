@@ -2,17 +2,8 @@ import { Notice, Plugin, TFile, type App, type TAbstractFile } from "obsidian";
 import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "@/views/SolanumView";
 import { TimerService } from "@/lib/timer/TimerService";
 import { VaultSessionStore } from "@/lib/storage/VaultSessionStore";
-import {
-  DEBUG_SESSION_FOLDER,
-  DEFAULT_DAY_NOTES_FOLDER,
-  LEGACY_DAY_NOTES_FOLDER,
-  parseSessionFolder,
-} from "@/lib/storage/folder";
-import {
-  planDayNoteMigration,
-  moveDayNotes,
-  type DayNoteMigrationPlan,
-} from "@/lib/notes/migration";
+import { DEBUG_SESSION_FOLDER, parseSessionFolder } from "@/lib/storage/folder";
+import type { DayNoteMigrationPlan } from "@/lib/notes/migration";
 import { SessionFolderManager } from "@/lib/storage/SessionFolderManager";
 import type { MovePlan, MoveResult } from "@/lib/storage/migration";
 import { DEFAULT_SETTINGS, readSettings, type Settings } from "@/lib/settings";
@@ -23,7 +14,8 @@ import {
   type ForestImportResult,
   type ForestMapping,
 } from "@/lib/import/forest";
-import { DayNoteWriter, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import { describeDocumentTotals, type DayNoteTotals } from "@/lib/notes/DayNoteWriter";
+import { DayNoteService } from "@/lib/notes/DayNoteService";
 import { parseExport } from "@/lib/storage/exchange";
 import type { ImportOptions } from "@/lib/storage/SessionExchange";
 import type { Revision } from "@/lib/timer/types";
@@ -52,10 +44,6 @@ import {
 const DAY_NOTE_DEBOUNCE_MS = 1_500;
 const AUTO_DAY_NOTE_MAX_DAYS = 14;
 
-function describeDayNotes(totals: DayNoteTotals): string {
-  return `Day notes: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`;
-}
-
 interface SettingsController {
   open(): void;
   openTabById(id: string): void;
@@ -79,7 +67,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   private store!: VaultSessionStore;
   private folders!: SessionFolderManager;
   private exchange!: SessionExchange;
-  private dayNotes!: DayNoteWriter;
+  private dayNotes!: DayNoteService;
   private seenRevisions = new Map<string, string>();
   private pendingDays = new Map<string, Date>();
   private dayNoteTimer: number | null = null;
@@ -117,12 +105,17 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
     this.folders = new SessionFolderManager(this.app.vault.adapter, store, this.timer);
     this.exchange = new SessionExchange(this.app.vault.adapter, store, this.timer, Date.now);
     if (DEBUG_CONFIG.enabled) this.debug = new DebugTools(this.timer, store, DEBUG_CONFIG);
-    this.dayNotes = new DayNoteWriter(
-      this.app.vault.adapter,
-      () => this.settings.dayNotesFolder,
-      () => this.settings.dayNotesLayout,
-      () => this.settings.dayNotesMigrationRoot !== null,
-    );
+    this.dayNotes = new DayNoteService({
+      adapter: this.app.vault.adapter,
+      getLocation: () => this.settings,
+      saveLocation: (location) => this.persist({ ...this.settings, ...location }),
+      rename: async (source, target) => {
+        const file = this.app.vault.getAbstractFileByPath(source);
+        if (!(file instanceof TFile))
+          throw new Error(`Document not indexed yet: ${source}. Retry shortly`);
+        await this.app.fileManager.renameFile(file, target);
+      },
+    });
     await this.background(() => this.timer.refresh());
     // Existing history is the baseline: notes follow changes, they are not backfilled at startup.
     for (const session of this.timer.getState().sessions)
@@ -145,15 +138,15 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
 
     this.addCommand({
       id: "open-today-note",
-      name: "Open today's day note",
+      name: "Open today's document",
       callback: () => void this.openDayNote(new Date()),
     });
     this.addCommand({
       id: "write-all-day-notes",
-      name: "Write day notes for all history",
+      name: "Write documents for all history",
       callback: () =>
         void this.background(async () => {
-          new Notice(describeDayNotes(await this.writeAllDayNotes()));
+          new Notice(describeDocumentTotals(await this.writeAllDayNotes()));
         }),
     });
     this.addCommand({
@@ -314,52 +307,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
   writeAllDayNotes = (): Promise<DayNoteTotals> =>
     this.dayNotes.writeAll(this.writableSessions(), Date.now());
 
-  private dayNoteMigrationTarget(): string {
-    if (this.settings.dayNotesMigrationRoot) return this.settings.dayNotesMigrationRoot;
-    if (this.settings.dayNotesFolder === LEGACY_DAY_NOTES_FOLDER) return DEFAULT_DAY_NOTES_FOLDER;
-    return this.settings.dayNotesFolder;
-  }
-
-  planDayNoteMigration = (): Promise<DayNoteMigrationPlan> =>
-    this.dayNotes.exclusive(() =>
-      planDayNoteMigration(
-        this.app.vault.adapter,
-        this.settings.dayNotesFolder,
-        this.dayNoteMigrationTarget(),
-      ),
-    );
-
-  migrateDayNotes = (): Promise<number> =>
-    this.dayNotes.exclusive(async () => {
-      if (this.settings.dayNotesLayout !== "flat") return 0;
-      const from = this.settings.dayNotesFolder;
-      const to = this.dayNoteMigrationTarget();
-      const plan = await planDayNoteMigration(this.app.vault.adapter, from, to);
-      if (plan.conflicts.length > 0)
-        throw new Error(
-          `Documents already exist at ${plan.conflicts.join(", ")}. Nothing was moved.`,
-        );
-      // Survives a restart: no background write may recreate a moved source note.
-      await this.persist({ ...this.settings, dayNotesMigrationRoot: to });
-      const moved = await moveDayNotes(this.app.vault.adapter, from, to, async (source, target) => {
-        const file = this.app.vault.getAbstractFileByPath(source);
-        if (!(file instanceof TFile))
-          throw new Error(`Document not indexed yet: ${source}. Retry shortly`);
-        await this.app.fileManager.renameFile(file, target);
-      });
-      if (from !== to && (await this.app.vault.adapter.exists(from))) {
-        const { files, folders } = await this.app.vault.adapter.list(from);
-        if (files.length === 0 && folders.length === 0)
-          await this.app.vault.adapter.rmdir(from, false);
-      }
-      await this.persist({
-        ...this.settings,
-        dayNotesFolder: to,
-        dayNotesLayout: "calendar",
-        dayNotesMigrationRoot: null,
-      });
-      return moved;
-    });
+  planDayNoteMigration = (): Promise<DayNoteMigrationPlan> => this.dayNotes.planMigration();
 
   exportSessions = (): Promise<ExportResult> => this.exchange.export();
   importSessions = async (text: string, options: ImportOptions = {}): Promise<ImportResult> => {
@@ -388,7 +336,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
         else this.importingSessions.set(id, remaining);
       }
     }
-    if (options.createDocuments === false) return result;
+    if (options.createDocuments === false || ids.size === 0) return result;
     const sessions = this.writableSessions();
     const now = Date.now();
     result.documents = await this.dayNotes.writeDays(

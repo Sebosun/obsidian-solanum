@@ -53,7 +53,6 @@ export interface SessionExchangePort {
 export interface DayNotesPort {
   writeAllDayNotes(): Promise<DayNoteTotals>;
   planDayNoteMigration(): Promise<DayNoteMigrationPlan>;
-  migrateDayNotes(): Promise<number>;
 }
 
 /** Everything the settings tab can ask the plugin to do beyond saving preferences. */

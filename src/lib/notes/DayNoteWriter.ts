@@ -3,7 +3,7 @@ import { ensureFolder } from "@/lib/storage/ensureFolder";
 import { buildDayNote, composeDayNote } from "@/lib/notes/dayNote";
 import { daysTouched } from "@/lib/notes/days";
 import { dayKey } from "@/lib/harvest/model";
-import { pathForDay, type DayNotesLayout } from "@/lib/notes/path";
+import { pathForDay } from "@/lib/notes/path";
 import type { FileAdapter } from "@/lib/storage/VaultSessionStore";
 import type { Revision } from "@/lib/timer/types";
 
@@ -19,10 +19,14 @@ export interface DocumentWriteResult extends DayNoteTotals {
   failures: { path: string; reason: string }[];
 }
 
+export function describeDocumentTotals(totals: DayNoteTotals): string {
+  return `Documents: ${totals.created} new, ${totals.updated} updated, ${totals.unchanged} unchanged.`;
+}
+
 export function describeDocuments(result: DocumentWriteResult): string {
-  let message = `Documents: ${result.created} new, ${result.updated} updated, ${result.unchanged} unchanged.`;
+  let message = describeDocumentTotals(result);
   if (result.failures.length > 0)
-    message += ` ${result.failures.length} failed. Session history is safe. Retry the import or use “Write notes for all history”. ${result.failures[0].reason}`;
+    message += ` ${result.failures.length} failed. Session history is safe. Retry the import or use “Write documents for all history”. ${result.failures[0].reason}`;
   return message;
 }
 
@@ -33,19 +37,16 @@ export class DayNoteWriter {
   constructor(
     private adapter: FileAdapter,
     private folder: () => string,
-    private layout: () => DayNotesLayout = () => "calendar",
-    private migrationPending: () => boolean = () => false,
   ) {}
 
-  /** Notes and migration share a queue so a write cannot race a move. */
-  exclusive<T>(action: () => Promise<T>): Promise<T> {
+  private exclusive<T>(action: () => Promise<T>): Promise<T> {
     const result = this.queue.then(action);
     this.queue = result.catch(() => {});
     return result;
   }
 
   pathFor(day: Date): string {
-    return pathForDay(this.folder(), day, this.layout());
+    return pathForDay(this.folder(), day);
   }
 
   write(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
@@ -53,10 +54,6 @@ export class DayNoteWriter {
   }
 
   private async writeNow(sessions: Revision[], day: Date, now: number): Promise<DayNoteOutcome> {
-    if (this.migrationPending())
-      throw new Error(
-        "Day-note migration is incomplete. Resume it in Solanum settings before writing documents.",
-      );
     const real = sessions.filter((session) => session.source === undefined);
     const note = buildDayNote(day, dailyHarvest(real, day, {}, now).entries);
     if (!note) return "empty";
