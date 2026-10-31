@@ -8,9 +8,12 @@ interface ClockDigitProps {
   reduced: boolean;
 }
 
-const ROLL_MS = CLOCK_DIGITS.roll.seconds * 1000;
+const FLIP_MS = CLOCK_DIGITS.flip.seconds * 1000;
 
-/** One fixed-width character. When it changes, the old one rolls out and the new one drops in. */
+/**
+ * One fixed-width character. When it changes it flips like a flip clock's: the old top half folds
+ * down over the new digit, then the new bottom half drops into place over the old one.
+ */
 export function ClockDigit({ char, width, reduced }: ClockDigitProps) {
   const shown = useRef(char);
   const [leaving, setLeaving] = useState<string | null>(null);
@@ -24,19 +27,24 @@ export function ClockDigit({ char, width, reduced }: ClockDigitProps) {
       return;
     }
     setLeaving(previous);
-    const timer = setTimeout(() => setLeaving(null), ROLL_MS);
+    const timer = setTimeout(() => setLeaving(null), FLIP_MS);
     return () => clearTimeout(timer);
   }, [char, reduced]);
 
   return (
     <span className="solanum-clock-cell" style={{ width: `${width}em` }}>
-      {leaving !== null && <span className="solanum-clock-glyph is-out">{leaving}</span>}
-      <span
-        key={char}
-        className={leaving === null ? "solanum-clock-glyph" : "solanum-clock-glyph is-in"}
-      >
-        {char}
-      </span>
+      {leaving === null ? (
+        <span className="solanum-clock-glyph">{char}</span>
+      ) : (
+        <span key={char} className="solanum-flip">
+          {/* Behind: the new digit's top, and the old digit's bottom until the new one covers it. */}
+          <span className="solanum-flip-half is-top is-static">{char}</span>
+          <span className="solanum-flip-half is-bottom is-static">{leaving}</span>
+          {/* In front: the old top folds away, then the new bottom unfolds. */}
+          <span className="solanum-flip-half is-top is-leaf">{leaving}</span>
+          <span className="solanum-flip-half is-bottom is-leaf">{char}</span>
+        </span>
+      )}
     </span>
   );
 }

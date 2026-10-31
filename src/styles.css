@@ -100,22 +100,69 @@
 .solanum-clock-glyph {
   @apply sol:absolute sol:inset-0;
 }
-.solanum-clock-glyph.is-in {
-  animation: solanum-digit-in var(--roll-seconds) cubic-bezier(0.215, 0.61, 0.355, 1) both;
+/* The flip: each half shows half of a digit; the old top folds down, then the new bottom drops in. */
+.solanum-flip {
+  @apply sol:absolute sol:inset-0;
 }
-.solanum-clock-glyph.is-out {
-  animation: solanum-digit-out var(--roll-seconds) cubic-bezier(0.215, 0.61, 0.355, 1) both;
+.solanum-flip-half {
+  @apply sol:absolute sol:inset-0;
+  backface-visibility: hidden;
 }
-@keyframes solanum-digit-in {
-  from {
+.solanum-flip-half.is-top {
+  clip-path: inset(0 0 50% 0);
+}
+.solanum-flip-half.is-bottom {
+  clip-path: inset(50% 0 0 0);
+}
+/* Both halves turn on the line between them, which is the middle of the digit's cell. */
+.solanum-flip-half.is-leaf {
+  transform-origin: 50% 50%;
+}
+.solanum-flip-half.is-leaf.is-top {
+  animation: solanum-flip-top calc(var(--flip-seconds) / 2) cubic-bezier(0.55, 0, 0.9, 0.6) both;
+}
+.solanum-flip-half.is-leaf.is-bottom {
+  animation: solanum-flip-bottom calc(var(--flip-seconds) / 2) cubic-bezier(0.2, 0.7, 0.4, 1)
+    calc(var(--flip-seconds) / 2) both;
+}
+/* Bare glyphs have no card to hide what is behind them, so the halves behind appear and go on cue:
+   the new top shows only once the old top has folded most of the way, the old bottom goes as the
+   new one starts to fall. */
+.solanum-flip-half.is-static.is-top {
+  animation: solanum-flip-reveal calc(var(--flip-seconds) / 2) linear both;
+}
+.solanum-flip-half.is-static.is-bottom {
+  animation: solanum-flip-vanish 1ms linear calc(var(--flip-seconds) / 2) both;
+}
+@keyframes solanum-flip-reveal {
+  from,
+  55% {
     opacity: 0;
-    transform: translateY(calc(var(--roll-travel) * -1em));
+  }
+  56%,
+  to {
+    opacity: 1;
   }
 }
-@keyframes solanum-digit-out {
+@keyframes solanum-flip-vanish {
   to {
     opacity: 0;
-    transform: translateY(calc(var(--roll-travel) * 1em));
+  }
+}
+@keyframes solanum-flip-top {
+  from {
+    transform: perspective(10em) rotateX(0deg);
+  }
+  to {
+    transform: perspective(10em) rotateX(-90deg);
+  }
+}
+@keyframes solanum-flip-bottom {
+  from {
+    transform: perspective(10em) rotateX(90deg);
+  }
+  to {
+    transform: perspective(10em) rotateX(0deg);
   }
 }
 .solanum-crop-fallback > span {

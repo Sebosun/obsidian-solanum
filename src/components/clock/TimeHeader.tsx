@@ -13,20 +13,18 @@ interface TimeHeaderProps {
 
 interface HeaderStyle extends CSSProperties {
   "--digit-opacity": number;
-  "--roll-travel": number;
-  "--roll-seconds": string;
+  "--flip-seconds": string;
 }
 
 const STYLE: HeaderStyle = {
   "--digit-opacity": 0.62,
-  "--roll-travel": CLOCK_DIGITS.roll.travel,
-  "--roll-seconds": `${CLOCK_DIGITS.roll.seconds}s`,
+  "--flip-seconds": `${CLOCK_DIGITS.flip.seconds}s`,
 };
 
 /** The clock's own typeface, bundled into the plugin as a data URL: nothing is fetched. */
 const FONT_FACE = `@font-face{font-family:"Solanum Clock";font-weight:700;font-style:normal;font-display:block;src:url(${fontUrl}) format("woff2")}`;
 
-/** The time left, centred at the top of a view, in rolling fixed-width digits. */
+/** The time left, centred at the top of a view, in fixed-width digits that flip like a flip clock. */
 export function TimeHeader({ remaining, reduced, caption }: TimeHeaderProps) {
   return (
     <div className="solanum-time-header" aria-hidden="true">

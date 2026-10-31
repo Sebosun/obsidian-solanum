@@ -32,12 +32,15 @@ export const SUN_CLOCK = {
   smoothing: 6,
 } as const;
 
-/** The digits of the time: each character has a cell of fixed width, and a changed digit rolls. */
+/** The digits of the time: each character has a cell of fixed width, and a changed digit flips. */
 export const CLOCK_DIGITS = {
   /** Cell widths in ems, so changing digits never shift the row. */
   cell: { digit: 0.66, colon: 0.3 },
-  /** A digit that changes rolls out downwards and the new one drops in from above, in ems. */
-  roll: { seconds: 0.45, travel: 0.55 },
+  /**
+   * A digit that changes flips like a flip clock's: the top half folds down to show the new digit,
+   * then the new bottom half drops into place. The seconds are for the whole flip, half for each.
+   */
+  flip: { seconds: 0.5 },
 } as const;
 
 export const HARVEST_SCENE = {
