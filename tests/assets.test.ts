@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { cropStage } from "../src/crops";
+import { CROPS } from "../src/lib/crops/catalog";
 
 describe("offline crop assets", () => {
-  it.each([1, 2, 3, 4])("ships valid self-contained tomato growth stage %i", (stage) => {
-    const buffer = readFileSync(`assets/crops/Tomato_${stage}.glb`);
+  it.each(Object.values(CROPS).flatMap((crop) => [1, 2, 3, 4].map((stage) => `${crop.model}_${stage}`)))("ships valid self-contained growth model %s", (model) => {
+    const buffer = readFileSync(`assets/crops/${model}.glb`);
     expect(buffer.subarray(0, 4).toString()).toBe("glTF");
     expect(buffer.readUInt32LE(4)).toBe(2);
     expect(buffer.readUInt32LE(8)).toBe(buffer.length);

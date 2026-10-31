@@ -3,6 +3,7 @@ import { CropScene } from "./CropScene";
 import { PRESETS, type SolanumHost } from "./host";
 import { isActive, normalizeTags, type Revision } from "./timer";
 import { dailyHarvest, monthDays } from "./harvest";
+import { DebugPanel } from "./components/debug/DebugPanel";
 
 const formatTime = (ms: number) => {
   const seconds = Math.ceil(ms / 1000);
@@ -35,6 +36,7 @@ export function App({ host, screen, initialMonth }: { host: SolanumHost; screen:
     </section>)}
     {screen === "timer" ? <TimerPanel host={host} sessions={state.sessions} conflicted={state.conflicts.map((c) => c.sessionId)} busy={busy} act={act} />
       : <HarvestPanel host={host} sessions={state.sessions.filter((s) => !state.conflicts.some((c) => c.sessionId === s.sessionId))} initialMonth={initialMonth} />}
+    {host.debug?.config.enabled && <DebugPanel host={host} act={act} busy={busy} />}
   </main>;
 }
 

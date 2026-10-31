@@ -1,9 +1,18 @@
 import * as esbuild from "esbuild";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { parse } from "dotenv";
 
 const production = process.argv.includes("--production");
+const env = {};
+for (const path of [".env", ...(!production ? [".env.development"] : []), ".env.local"]) {
+  if (existsSync(path)) Object.assign(env, parse(readFileSync(path)));
+}
+Object.assign(env, process.env);
+const debug = !production && env.SOLANUM_DEBUG === "true";
+const seconds = Number(env.SOLANUM_AUTO_FINISH_SECONDS ?? 0);
+const autoFinishSeconds = debug && Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600 ? seconds : 0;
 
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
@@ -16,6 +25,8 @@ const context = await esbuild.context({
   sourcemap: production ? false : "inline",
   minify: production,
   define: {
+    __SOLANUM_DEBUG__: JSON.stringify(debug),
+    __SOLANUM_AUTO_FINISH_SECONDS__: JSON.stringify(autoFinishSeconds),
     "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development"),
   },
   logLevel: "info",

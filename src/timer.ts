@@ -1,3 +1,5 @@
+import { isCropId, type CropId } from "./lib/crops/catalog";
+
 export type Phase = "focus" | "break" | "done";
 export type Status = "running" | "paused" | "waiting" | "completed" | "cancelled";
 export interface Revision {
@@ -18,7 +20,8 @@ export interface Revision {
   intervals: { start: number; end: number | null }[];
   tags: string[];
   notePath: string | null;
-  crop: "tomato";
+  crop: CropId;
+  source?: "debug" | "seed";
 }
 
 export interface SessionStore {
@@ -32,6 +35,7 @@ export interface StartOptions {
   autoBreak: boolean;
   tags: string[];
   notePath: string | null;
+  crop?: CropId;
 }
 
 interface State {
@@ -53,6 +57,7 @@ export class TimerService {
     now: () => number;
     id: () => string;
     notify?: (phase: "focus" | "break") => void;
+    debug?: boolean;
   }) {}
 
   getState = (): State => this.state;
@@ -132,10 +137,12 @@ export class TimerService {
         throw new Error("Durations must be between 1 minute and 24 hours.");
       }
       const now = this.env.now();
+      if (options.crop !== undefined && !isCropId(options.crop)) throw new Error("Unknown crop.");
       const id = this.env.id();
       await this.save({
         schema: 1, id, sessionId: id, parents: [], startedAt: now, updatedAt: now,
-        ...options, tags: normalizeTags(options.tags), crop: "tomato",
+        ...options, tags: normalizeTags(options.tags), crop: options.crop ?? "tomato",
+        ...(this.env.debug ? { source: "debug" as const } : {}),
         phase: "focus", status: "running", deadline: now + options.durationMs,
         remainingMs: options.durationMs, intervals: [{ start: now, end: null }], focusEndedAt: null,
       });
@@ -188,6 +195,26 @@ export class TimerService {
       if (s.phase !== "break" || s.status !== "waiting") throw new Error("No break is waiting to start.");
       s.status = "running";
       s.deadline = this.env.now() + s.breakMs;
+    });
+  }
+
+  debugFinish(sessionId: string) {
+    if (!this.env.debug) return Promise.reject(new Error("Debug mode is disabled."));
+    return this.transition(sessionId, (s) => {
+      if (s.source !== "debug" || !isActive(s)) throw new Error("Only simulated debug sessions can be force-finished.");
+      if (s.phase === "focus") {
+        if (s.status === "running") s.intervals[s.intervals.length - 1].end = this.env.now();
+        s.focusEndedAt = this.env.now();
+        s.phase = "break";
+        s.status = s.autoBreak ? "running" : "waiting";
+        s.remainingMs = s.breakMs;
+        s.deadline = s.autoBreak ? this.env.now() + s.breakMs : null;
+      } else {
+        s.phase = "done";
+        s.status = "completed";
+        s.remainingMs = 0;
+        s.deadline = null;
+      }
     });
   }
 

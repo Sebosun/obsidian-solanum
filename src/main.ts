@@ -1,12 +1,15 @@
 import { Notice, Plugin } from "obsidian";
 import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "./view";
 import { TimerService } from "./timer";
-import { SESSION_FOLDER, VaultSessionStore } from "./storage";
+import { DEBUG_SESSION_FOLDER, SESSION_FOLDER, VaultSessionStore } from "./storage";
 import { DEFAULT_SETTINGS, readSettings, type Settings, type SolanumHost } from "./host";
 import { CompletionAudio } from "./audio";
+import { DEBUG_CONFIG } from "./lib/debug/config";
+import { DebugTools } from "./lib/debug/DebugTools";
 
 export default class SolanumPlugin extends Plugin implements SolanumHost {
   timer!: TimerService;
+  debug?: DebugTools;
   settings: Settings = { ...DEFAULT_SETTINGS };
   private audio = new CompletionAudio();
   private heartbeat: number | null = null;
@@ -20,14 +23,17 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
   async onload(): Promise<void> {
     this.stopped = false;
     this.settings = readSettings(await this.loadData());
-    this.timer = new TimerService(new VaultSessionStore(this.app.vault.adapter), {
+    const store = new VaultSessionStore(this.app.vault.adapter, { debug: DEBUG_CONFIG.enabled });
+    this.timer = new TimerService(store, {
       now: Date.now,
+      debug: DEBUG_CONFIG.enabled,
       id: () => crypto.randomUUID(),
       notify: (phase) => {
         new Notice(phase === "focus" ? "Solanum: your crop is ready! Time for a break." : "Solanum: break finished. Ready to plant again?");
         if (this.settings.sound) this.audio.play(this.settings.volume);
       },
     });
+    if (DEBUG_CONFIG.enabled) this.debug = new DebugTools(this.timer, store, DEBUG_CONFIG);
     await this.background(() => this.timer.refresh());
     this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this, "timer"));
     this.registerView(VIEW_TYPE_HARVEST, (leaf) => new SolanumView(leaf, this, "harvest"));
@@ -48,7 +54,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
 
     const onSync = (file: { path: string }) => {
       this.invalidateSuggestions();
-      if (!file.path.startsWith(`${SESSION_FOLDER}/`) || this.stopped) return;
+      if (![SESSION_FOLDER, DEBUG_SESSION_FOLDER].some((folder) => file.path.startsWith(`${folder}/`)) || this.stopped) return;
       if (this.syncDebounce !== null) window.clearTimeout(this.syncDebounce);
       this.syncDebounce = window.setTimeout(() => { void this.background(() => this.timer.refresh()); }, 500);
     };
@@ -61,7 +67,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
     }));
     this.registerEvent(this.app.metadataCache.on("changed", this.invalidateSuggestions));
     this.registerEvent(this.app.metadataCache.on("resolved", this.invalidateSuggestions));
-    this.heartbeat = window.setInterval(() => { void this.background(() => this.timer.tick()); }, 1000);
+    this.heartbeat = window.setInterval(() => { void this.background(async () => { await this.timer.tick(); await this.debug?.tick(); }); }, 1000);
     // Adapter writes / some sync providers do not immediately emit vault events.
     this.syncPoll = window.setInterval(() => { void this.background(() => this.timer.refresh()); }, 15_000);
     this.registerInterval(this.heartbeat);

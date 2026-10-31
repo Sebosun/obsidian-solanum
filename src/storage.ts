@@ -1,6 +1,8 @@
 import type { Revision, SessionStore } from "./timer";
+import { isCropId } from "./lib/crops/catalog";
 
 export const SESSION_FOLDER = "Solanum/sessions";
+export const DEBUG_SESSION_FOLDER = "Solanum/debug-sessions";
 
 export interface FileAdapter {
   exists(path: string): Promise<boolean>;
@@ -20,7 +22,8 @@ export function isRevision(value: unknown): value is Revision {
     && Array.isArray(r.parents) && r.parents.every(safeId) && !r.parents.includes(r.id)
     && finite(r.startedAt) && finite(r.updatedAt)
     && finite(r.durationMs) && r.durationMs > 0 && finite(r.breakMs) && r.breakMs > 0
-    && typeof r.autoBreak === "boolean" && r.crop === "tomato"
+    && typeof r.autoBreak === "boolean" && isCropId(r.crop)
+    && (r.source === undefined || ["debug", "seed"].includes(r.source))
     && ["focus", "break", "done"].includes(r.phase)
     && ["running", "paused", "waiting", "completed", "cancelled"].includes(r.status)
     && (r.deadline === null || finite(r.deadline))
@@ -41,12 +44,14 @@ export function isRevision(value: unknown): value is Revision {
 
 /** Flat, immutable revision files sync without overwriting another device's edits. */
 export class VaultSessionStore implements SessionStore {
-  constructor(private adapter: FileAdapter) {}
+  constructor(private adapter: FileAdapter, private options: { debug?: boolean } = {}) {}
 
   async readAll(): Promise<Revision[]> {
-    if (!await this.adapter.exists(SESSION_FOLDER)) return [];
-    const { files } = await this.adapter.list(SESSION_FOLDER);
     const revisions: Revision[] = [];
+    const folders = this.options.debug ? [SESSION_FOLDER, DEBUG_SESSION_FOLDER] : [SESSION_FOLDER];
+    for (const folder of folders) {
+    if (!await this.adapter.exists(folder)) continue;
+    const { files } = await this.adapter.list(folder);
     for (const path of files.filter((p) => p.endsWith(".json"))) {
       let value: unknown;
       try { value = JSON.parse(await this.adapter.read(path)); }
@@ -54,18 +59,21 @@ export class VaultSessionStore implements SessionStore {
       if (!isRevision(value)) throw new Error(`Invalid or unsupported session schema in ${path}. File preserved; no changes made.`);
       revisions.push(value);
     }
+    }
     return revisions;
   }
 
   async append(revision: Revision): Promise<void> {
     if (!isRevision(revision)) throw new Error("Invalid session revision.");
-    for (const path of ["Solanum", SESSION_FOLDER]) {
+    if (revision.source && !this.options.debug) throw new Error("Debug session storage is disabled.");
+    const folder = revision.source ? DEBUG_SESSION_FOLDER : SESSION_FOLDER;
+    for (const path of ["Solanum", folder]) {
       if (!await this.adapter.exists(path)) {
         try { await this.adapter.mkdir(path); }
         catch (error) { if (!await this.adapter.exists(path)) throw error; }
       }
     }
-    const path = `${SESSION_FOLDER}/${revision.sessionId}--${revision.id}.json`;
+    const path = `${folder}/${revision.sessionId}--${revision.id}.json`;
     const text = JSON.stringify(revision, null, 2);
     if (await this.adapter.exists(path)) {
       if (await this.adapter.read(path) !== text) throw new Error(`Session revision collision: ${path}`);

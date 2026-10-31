@@ -1,4 +1,5 @@
 import type { TimerService } from "./timer";
+import type { DebugTools } from "./lib/debug/DebugTools";
 
 export interface Settings {
   defaultMinutes: number;
@@ -26,6 +27,7 @@ export function readSettings(value: unknown): Settings {
 
 export interface SolanumHost {
   timer: TimerService;
+  debug?: DebugTools;
   settings: Settings;
   saveSettings(settings: Settings): Promise<void>;
   tags(): string[];
