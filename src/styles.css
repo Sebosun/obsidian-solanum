@@ -6,65 +6,210 @@
 
 /* Scoped component recipes use Tailwind; layout utilities can also live in JSX.
    Keep these outside a CSS layer so Obsidian's unlayered styles don't override them. */
-.solanum-view { @apply sol:p-0 sol:overflow-y-auto; }
-.solanum-app { --crop-green: #87a879; --crop-soil: #aa8061; container-type: inline-size; }
-.solanum-app * { @apply sol:box-border; }
-.solanum-app button, .solanum-app input, .solanum-app select { font: inherit; }
-.solanum-app button { @apply sol:cursor-pointer; }
-.solanum-app button:disabled { @apply sol:cursor-wait sol:opacity-55; }
-.solanum-header h1 { @apply sol:mt-1 sol:mb-0 sol:text-[27px] sol:tracking-[-.8px]; }
-.solanum-header h1 span { @apply sol:text-[21px]; }
-.solanum-eyebrow { @apply sol:text-[9px] sol:font-[650] sol:tracking-[2px] sol:text-(--text-muted); }
-.solanum-tabs { @apply sol:flex sol:gap-1 sol:p-1 sol:bg-(--background-secondary) sol:rounded-[10px] sol:mb-[18px]; }
-.solanum-tabs button { @apply sol:flex-1 sol:border-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted) sol:p-[9px] sol:rounded-[7px]; }
-.solanum-tabs button[aria-current="page"] { @apply sol:bg-(--background-primary) sol:text-(--text-normal) sol:shadow-[0_1px_4px_#0001]; }
-.solanum-scene { @apply sol:relative sol:h-60 sol:rounded-[18px] sol:overflow-hidden; background: radial-gradient(ellipse at 50% 65%, #8eaf7f29, transparent 70%), var(--background-secondary); }
-.solanum-scene canvas { @apply sol:touch-pan-y; }
-.solanum-scene-caption { @apply sol:absolute sol:bottom-[13px] sol:inset-x-0 sol:text-center sol:text-[10px] sol:text-(--text-muted) sol:pointer-events-none; }
-.solanum-crop-fallback > span { @apply sol:text-[70px]; }
-.solanum-crop-fallback small { @apply sol:text-[11px]; }
-.solanum-scene.is-mature { @apply sol:shadow-[inset_0_0_0_1px_#87a87940]; animation: solanum-harvest-glow 1.1s ease-out; }
-@keyframes solanum-harvest-glow { from { box-shadow: inset 0 0 35px #87a87980; } to { box-shadow: inset 0 0 0 1px #87a87940; } }
-.solanum-clock p { @apply sol:text-[11px] sol:leading-relaxed sol:text-(--text-muted) sol:my-2 sol:mx-auto sol:max-w-60; }
-.solanum-presets button { @apply sol:text-[11px] sol:py-1.5 sol:px-[9px] sol:h-auto sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:rounded-[7px] sol:bg-transparent sol:text-(--text-muted); }
-.solanum-presets button[aria-pressed="true"] { @apply sol:bg-[#87a87920] sol:text-(--text-normal) sol:border-(--crop-green); }
-.solanum-field { @apply sol:flex sol:flex-col sol:gap-[7px] sol:mb-3 sol:text-[11px] sol:text-(--text-muted); }
-.solanum-field input, .solanum-field select { @apply sol:w-full sol:py-[9px] sol:px-2.5 sol:h-auto sol:text-xs sol:text-(--text-normal) sol:rounded-[7px]; }
-.solanum-app .solanum-subtle { @apply sol:bg-transparent sol:shadow-none sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent); }
-.solanum-app .solanum-start { @apply sol:w-full sol:mt-5 sol:p-[13px] sol:h-auto sol:rounded-[9px] sol:bg-[#69885c] sol:text-white sol:shadow-none; }
-.solanum-actions { @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-2 sol:my-3; }
-.solanum-actions button { @apply sol:h-auto sol:py-[9px] sol:px-3.5 sol:text-xs sol:rounded-lg; }
-.solanum-tag { @apply sol:inline-block sol:text-[10px] sol:rounded-[5px] sol:bg-[#87a87918] sol:text-(--text-muted) sol:py-1 sol:px-1.5 sol:m-0.5 sol:wrap-anywhere; }
-.solanum-app .solanum-note-link { @apply sol:inline sol:bg-transparent sol:shadow-none sol:border-none sol:text-[11px] sol:py-[3px] sol:px-0 sol:h-auto sol:text-(--text-accent) sol:wrap-anywhere sol:whitespace-normal; }
-.solanum-hint { @apply sol:text-(--text-muted) sol:text-[10px] sol:leading-relaxed; }
-.solanum-settings { @apply sol:mt-[25px] sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:pt-3.5 sol:text-[11px] sol:text-(--text-muted); }
-.solanum-settings summary { @apply sol:cursor-pointer; }
-.solanum-preferences small { @apply sol:text-[10px] sol:leading-relaxed; }
-.solanum-preferences input[type="checkbox"] { @apply sol:align-middle sol:mr-[5px]; }
-.solanum-error, .solanum-warning { @apply sol:block sol:p-3 sol:my-3 sol:rounded-lg sol:text-[11px] sol:leading-relaxed sol:wrap-anywhere; }
-.solanum-error { @apply sol:bg-[#c3585820] sol:border sol:border-solid sol:border-[#c3585870]; }
-.solanum-error button { @apply sol:float-right sol:bg-transparent sol:border-none sol:shadow-none; }
-.solanum-warning { @apply sol:bg-[#d6ac5720] sol:border sol:border-solid sol:border-[#d6ac5760]; }
-.solanum-warning button, .solanum-warning select { @apply sol:whitespace-normal sol:h-auto sol:w-full sol:mt-1.5 sol:text-[10px]; }
-.solanum-month-nav h2 { @apply sol:text-base sol:font-medium sol:my-3; }
-.solanum-month-nav button { @apply sol:shadow-none sol:bg-transparent sol:text-[22px]; }
-.solanum-filters select { @apply sol:min-w-0 sol:w-1/2 sol:text-[10px]; }
-.solanum-weekday { @apply sol:text-center sol:text-[9px] sol:text-(--text-faint) sol:pb-[7px]; }
-.solanum-calendar .solanum-day { @apply sol:relative sol:min-h-[59px] sol:h-auto sol:py-[5px] sol:px-[3px] sol:border sol:border-solid sol:border-transparent sol:rounded-[7px] sol:bg-(--background-secondary) sol:shadow-none sol:flex sol:flex-col sol:justify-start sol:gap-[3px] sol:items-center; }
-.solanum-day > span:first-child { @apply sol:text-[9px] sol:text-(--text-muted); }
-.solanum-calendar .solanum-day.has-harvest { @apply sol:bg-[#87a87918]; }
-.solanum-calendar .solanum-day[aria-pressed="true"] { @apply sol:border-(--crop-green); }
-.solanum-mini-plot i { @apply sol:not-italic sol:text-[8px] sol:leading-[1.15]; }
-.solanum-day-details { @apply sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:mt-5 sol:pt-2.5; }
-.solanum-day-details h3 { @apply sol:text-sm; }
-.solanum-day-details article { @apply sol:py-3 sol:border-b sol:border-solid sol:border-(--background-modifier-border) sol:text-xs; }
-@media (prefers-reduced-motion: reduce) { .solanum-app * { animation: none !important; transition: none !important; } }
-.solanum-focus-mode { @apply sol:relative sol:h-full sol:min-h-[400px] sol:p-0; }
-.solanum-focus-mode .solanum-scene.is-immersive { @apply sol:h-full sol:min-h-[400px] sol:rounded-none; background: var(--background-primary); }
-.solanum-app .solanum-reveal-controls { @apply sol:absolute sol:right-3 sol:bottom-3 sol:opacity-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted); }
-.solanum-focus-mode:hover .solanum-reveal-controls, .solanum-app .solanum-reveal-controls:focus-visible { @apply sol:opacity-100; }
-.solanum-harvest-scene { @apply sol:h-[380px] sol:rounded-2xl sol:overflow-hidden sol:bg-(--background-secondary); }
-.solanum-plot-date { @apply sol:text-[10px] sol:text-[#e7dec6] sol:whitespace-nowrap sol:select-none; text-shadow: 0 1px 3px #000; }
-.solanum-plot-date small { @apply sol:text-[8px]; }
-.solanum-day-list { @apply sol:mt-3 sol:text-[11px] sol:text-(--text-muted); }
-.solanum-day-list summary { @apply sol:cursor-pointer; }
+.solanum-view {
+  @apply sol:p-0 sol:overflow-y-auto;
+}
+.solanum-app {
+  --crop-green: #87a879;
+  --crop-soil: #aa8061;
+  container-type: inline-size;
+}
+.solanum-app * {
+  @apply sol:box-border;
+}
+.solanum-app button,
+.solanum-app input,
+.solanum-app select {
+  font: inherit;
+}
+.solanum-app button {
+  @apply sol:cursor-pointer;
+}
+.solanum-app button:disabled {
+  @apply sol:cursor-wait sol:opacity-55;
+}
+.solanum-header h1 {
+  @apply sol:mt-1 sol:mb-0 sol:text-[27px] sol:tracking-[-.8px];
+}
+.solanum-header h1 span {
+  @apply sol:text-[21px];
+}
+.solanum-eyebrow {
+  @apply sol:text-[9px] sol:font-[650] sol:tracking-[2px] sol:text-(--text-muted);
+}
+.solanum-tabs {
+  @apply sol:flex sol:gap-1 sol:p-1 sol:bg-(--background-secondary) sol:rounded-[10px] sol:mb-[18px];
+}
+.solanum-tabs button {
+  @apply sol:flex-1 sol:border-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted) sol:p-[9px] sol:rounded-[7px];
+}
+.solanum-tabs button[aria-current="page"] {
+  @apply sol:bg-(--background-primary) sol:text-(--text-normal) sol:shadow-[0_1px_4px_#0001];
+}
+.solanum-scene {
+  @apply sol:relative sol:h-60 sol:rounded-[18px] sol:overflow-hidden;
+  background:
+    radial-gradient(ellipse at 50% 65%, #8eaf7f29, transparent 70%), var(--background-secondary);
+}
+.solanum-scene canvas {
+  @apply sol:touch-pan-y;
+}
+.solanum-scene-caption {
+  @apply sol:absolute sol:bottom-[13px] sol:inset-x-0 sol:text-center sol:text-[10px] sol:text-(--text-muted) sol:pointer-events-none;
+}
+.solanum-crop-fallback > span {
+  @apply sol:text-[70px];
+}
+.solanum-crop-fallback small {
+  @apply sol:text-[11px];
+}
+.solanum-scene.is-mature {
+  @apply sol:shadow-[inset_0_0_0_1px_#87a87940];
+  animation: solanum-harvest-glow 1.1s ease-out;
+}
+@keyframes solanum-harvest-glow {
+  from {
+    box-shadow: inset 0 0 35px #87a87980;
+  }
+  to {
+    box-shadow: inset 0 0 0 1px #87a87940;
+  }
+}
+.solanum-clock p {
+  @apply sol:text-[11px] sol:leading-relaxed sol:text-(--text-muted) sol:my-2 sol:mx-auto sol:max-w-60;
+}
+.solanum-presets button {
+  @apply sol:text-[11px] sol:py-1.5 sol:px-[9px] sol:h-auto sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:rounded-[7px] sol:bg-transparent sol:text-(--text-muted);
+}
+.solanum-presets button[aria-pressed="true"] {
+  @apply sol:bg-[#87a87920] sol:text-(--text-normal) sol:border-(--crop-green);
+}
+.solanum-field {
+  @apply sol:flex sol:flex-col sol:gap-[7px] sol:mb-3 sol:text-[11px] sol:text-(--text-muted);
+}
+.solanum-field input,
+.solanum-field select {
+  @apply sol:w-full sol:py-[9px] sol:px-2.5 sol:h-auto sol:text-xs sol:text-(--text-normal) sol:rounded-[7px];
+}
+.solanum-app .solanum-subtle {
+  @apply sol:bg-transparent sol:shadow-none sol:p-0 sol:h-auto sol:text-[11px] sol:text-(--text-accent);
+}
+.solanum-app .solanum-start {
+  @apply sol:w-full sol:mt-5 sol:p-[13px] sol:h-auto sol:rounded-[9px] sol:bg-[#69885c] sol:text-white sol:shadow-none;
+}
+.solanum-actions {
+  @apply sol:flex sol:justify-center sol:flex-wrap sol:gap-2 sol:my-3;
+}
+.solanum-actions button {
+  @apply sol:h-auto sol:py-[9px] sol:px-3.5 sol:text-xs sol:rounded-lg;
+}
+.solanum-tag {
+  @apply sol:inline-block sol:text-[10px] sol:rounded-[5px] sol:bg-[#87a87918] sol:text-(--text-muted) sol:py-1 sol:px-1.5 sol:m-0.5 sol:wrap-anywhere;
+}
+.solanum-app .solanum-note-link {
+  @apply sol:inline sol:bg-transparent sol:shadow-none sol:border-none sol:text-[11px] sol:py-[3px] sol:px-0 sol:h-auto sol:text-(--text-accent) sol:wrap-anywhere sol:whitespace-normal;
+}
+.solanum-hint {
+  @apply sol:text-(--text-muted) sol:text-[10px] sol:leading-relaxed;
+}
+.solanum-settings {
+  @apply sol:mt-[25px] sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:pt-3.5 sol:text-[11px] sol:text-(--text-muted);
+}
+.solanum-settings summary {
+  @apply sol:cursor-pointer;
+}
+.solanum-preferences small {
+  @apply sol:text-[10px] sol:leading-relaxed;
+}
+.solanum-preferences input[type="checkbox"] {
+  @apply sol:align-middle sol:mr-[5px];
+}
+.solanum-error,
+.solanum-warning {
+  @apply sol:block sol:p-3 sol:my-3 sol:rounded-lg sol:text-[11px] sol:leading-relaxed sol:wrap-anywhere;
+}
+.solanum-error {
+  @apply sol:bg-[#c3585820] sol:border sol:border-solid sol:border-[#c3585870];
+}
+.solanum-error button {
+  @apply sol:float-right sol:bg-transparent sol:border-none sol:shadow-none;
+}
+.solanum-warning {
+  @apply sol:bg-[#d6ac5720] sol:border sol:border-solid sol:border-[#d6ac5760];
+}
+.solanum-warning button,
+.solanum-warning select {
+  @apply sol:whitespace-normal sol:h-auto sol:w-full sol:mt-1.5 sol:text-[10px];
+}
+.solanum-month-nav h2 {
+  @apply sol:text-base sol:font-medium sol:my-3;
+}
+.solanum-month-nav button {
+  @apply sol:shadow-none sol:bg-transparent sol:text-[22px];
+}
+.solanum-filters select {
+  @apply sol:min-w-0 sol:w-1/2 sol:text-[10px];
+}
+.solanum-weekday {
+  @apply sol:text-center sol:text-[9px] sol:text-(--text-faint) sol:pb-[7px];
+}
+.solanum-calendar .solanum-day {
+  @apply sol:relative sol:min-h-[59px] sol:h-auto sol:py-[5px] sol:px-[3px] sol:border sol:border-solid sol:border-transparent sol:rounded-[7px] sol:bg-(--background-secondary) sol:shadow-none sol:flex sol:flex-col sol:justify-start sol:gap-[3px] sol:items-center;
+}
+.solanum-day > span:first-child {
+  @apply sol:text-[9px] sol:text-(--text-muted);
+}
+.solanum-calendar .solanum-day.has-harvest {
+  @apply sol:bg-[#87a87918];
+}
+.solanum-calendar .solanum-day[aria-pressed="true"] {
+  @apply sol:border-(--crop-green);
+}
+.solanum-mini-plot i {
+  @apply sol:not-italic sol:text-[8px] sol:leading-[1.15];
+}
+.solanum-day-details {
+  @apply sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:mt-5 sol:pt-2.5;
+}
+.solanum-day-details h3 {
+  @apply sol:text-sm;
+}
+.solanum-day-details article {
+  @apply sol:py-3 sol:border-b sol:border-solid sol:border-(--background-modifier-border) sol:text-xs;
+}
+@media (prefers-reduced-motion: reduce) {
+  .solanum-app * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.solanum-focus-mode {
+  @apply sol:relative sol:h-full sol:min-h-[400px] sol:p-0;
+}
+.solanum-focus-mode .solanum-scene.is-immersive {
+  @apply sol:h-full sol:min-h-[400px] sol:rounded-none;
+  background: var(--background-primary);
+}
+.solanum-app .solanum-reveal-controls {
+  @apply sol:absolute sol:right-3 sol:bottom-3 sol:opacity-0 sol:bg-transparent sol:shadow-none sol:text-(--text-muted);
+}
+.solanum-focus-mode:hover .solanum-reveal-controls,
+.solanum-app .solanum-reveal-controls:focus-visible {
+  @apply sol:opacity-100;
+}
+.solanum-harvest-scene {
+  @apply sol:h-[380px] sol:rounded-2xl sol:overflow-hidden sol:bg-(--background-secondary);
+}
+.solanum-plot-date {
+  @apply sol:text-[10px] sol:text-[#e7dec6] sol:whitespace-nowrap sol:select-none;
+  text-shadow: 0 1px 3px #000;
+}
+.solanum-plot-date small {
+  @apply sol:text-[8px];
+}
+.solanum-day-list {
+  @apply sol:mt-3 sol:text-[11px] sol:text-(--text-muted);
+}
+.solanum-day-list summary {
+  @apply sol:cursor-pointer;
+}

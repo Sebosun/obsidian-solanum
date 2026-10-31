@@ -1,14 +1,42 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, act, within } from "@testing-library/react";
-import { App } from "../src/App";
-import { TimerService, type Revision } from "../src/timer";
-import { DEFAULT_SETTINGS, type SolanumHost } from "../src/host";
+import { App } from "../src/components/app/App";
+import { TimerService } from "../src/lib/timer/TimerService";
+import type { Revision } from "../src/lib/timer/types";
+import { DEFAULT_SETTINGS } from "../src/lib/settings";
+import type { SolanumHost } from "../src/types/host";
 
-vi.mock("../src/CropScene", () => ({ CropScene: ({ progress }: { progress: number }) => <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} /> }));
-vi.mock("../src/components/harvest/HarvestScene", () => ({ HarvestScene: ({ days, onHover, onSelect }: {
-  days: { key: string }[]; onHover: (key: string | null) => void; onSelect: (key: string) => void;
-}) => <div>{days.map((day) => <button key={day.key} aria-label={day.key} onPointerEnter={() => onHover(day.key)} onPointerLeave={() => onHover(null)} onClick={() => onSelect(day.key)}>{day.key}</button>)}</div> }));
+vi.mock("../src/components/crops/CropScene", () => ({
+  CropScene: ({ progress }: { progress: number }) => (
+    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} />
+  ),
+}));
+vi.mock("../src/components/harvest/HarvestScene", () => ({
+  HarvestScene: ({
+    days,
+    onHover,
+    onSelect,
+  }: {
+    days: { key: string }[];
+    onHover: (key: string | null) => void;
+    onSelect: (key: string) => void;
+  }) => (
+    <div>
+      {days.map((day) => (
+        <button
+          key={day.key}
+          aria-label={day.key}
+          onPointerEnter={() => onHover(day.key)}
+          onPointerLeave={() => onHover(null)}
+          onClick={() => onSelect(day.key)}
+        >
+          {day.key}
+        </button>
+      ))}
+    </div>
+  ),
+}));
 afterEach(cleanup);
 
 async function revealControls() {
@@ -21,13 +49,17 @@ function fixture() {
   const files = new Map<string, Revision>();
   const store = {
     readAll: async () => [...files.values()].map((r) => structuredClone(r)),
-    append: async (r: Revision) => { files.set(r.id, structuredClone(r)); },
+    append: async (r: Revision) => {
+      files.set(r.id, structuredClone(r));
+    },
   };
   const env = { now: () => now, id: () => `ui-${++sequence}` };
   const host: SolanumHost = {
     timer: new TimerService(store, env),
     settings: { ...DEFAULT_SETTINGS },
-    saveSettings: vi.fn(async (settings) => { host.settings = settings; }),
+    saveSettings: vi.fn(async (settings) => {
+      host.settings = settings;
+    }),
     tags: () => ["work/client", "study"],
     notes: () => ["Project.md", "Other.md"],
     activeNote: () => "Project.md",
@@ -37,7 +69,14 @@ function fixture() {
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
   };
-  return { host, store, env, advance: (ms: number) => { now += ms; } };
+  return {
+    host,
+    store,
+    env,
+    advance: (ms: number) => {
+      now += ms;
+    },
+  };
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
@@ -77,7 +116,11 @@ describe("sidebar workflows backed by the real timer service", () => {
     await screen.findByRole("button", { name: "Pause" });
     f.advance(5 * 60_000);
     await act(() => f.host.timer.tick());
-    expect(f.host.timer.getState().sessions[0]).toMatchObject({ phase: "break", status: "running", breakMs: 20 * 60_000 });
+    expect(f.host.timer.getState().sessions[0]).toMatchObject({
+      phase: "break",
+      status: "running",
+      breakMs: 20 * 60_000,
+    });
     expect(screen.getByRole("timer").textContent).toBe("20:00");
   });
 
@@ -117,7 +160,13 @@ describe("sidebar workflows backed by the real timer service", () => {
 
   it("shows real harvest details and applies tag filters", async () => {
     const f = fixture();
-    await f.host.timer.start({ durationMs: 5 * 60_000, breakMs: 5 * 60_000, autoBreak: false, tags: ["study"], notePath: "Project.md" });
+    await f.host.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: ["study"],
+      notePath: "Project.md",
+    });
     f.advance(5 * 60_000);
     await f.host.timer.tick();
     render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
@@ -130,14 +179,23 @@ describe("sidebar workflows backed by the real timer service", () => {
 
   it("previews crop details on hover and pins them on click", async () => {
     const f = fixture();
-    await f.host.timer.start({ durationMs: 5 * 60_000, breakMs: 5 * 60_000, autoBreak: false, tags: ["study"], notePath: "Project.md", crop: "carrot" });
+    await f.host.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: ["study"],
+      notePath: "Project.md",
+      crop: "carrot",
+    });
     f.advance(5 * 60_000);
     await f.host.timer.tick();
     render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
     const day = screen.getByRole("button", { name: "2026-10-31" });
     fireEvent.pointerEnter(day);
     expect(screen.getByText(/Carrot/)).toBeTruthy();
-    expect(within(screen.getByRole("region", { name: "Harvest details" })).getByText("#study")).toBeTruthy();
+    expect(
+      within(screen.getByRole("region", { name: "Harvest details" })).getByText("#study"),
+    ).toBeTruthy();
     fireEvent.click(day);
     fireEvent.pointerLeave(day);
     fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
@@ -146,7 +204,9 @@ describe("sidebar workflows backed by the real timer service", () => {
 
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {
     const f = fixture();
-    f.store.append = async () => { throw new Error("Storage unavailable"); };
+    f.store.append = async () => {
+      throw new Error("Storage unavailable");
+    };
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Storage unavailable");

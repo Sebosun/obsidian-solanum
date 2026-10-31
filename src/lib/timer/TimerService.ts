@@ -1,74 +1,36 @@
-import { isCropId, type CropId } from "./lib/crops/catalog";
-
-export type Phase = "focus" | "break" | "done";
-export type Status = "running" | "paused" | "waiting" | "completed" | "cancelled";
-export interface Revision {
-  schema: 1;
-  id: string;
-  sessionId: string;
-  parents: string[];
-  startedAt: number;
-  updatedAt: number;
-  durationMs: number;
-  breakMs: number;
-  autoBreak: boolean;
-  phase: Phase;
-  status: Status;
-  deadline: number | null;
-  remainingMs: number;
-  focusEndedAt: number | null;
-  intervals: { start: number; end: number | null }[];
-  tags: string[];
-  notePath: string | null;
-  crop: CropId;
-  source?: "debug" | "seed";
-}
-
-export interface SessionStore {
-  readAll(): Promise<Revision[]>;
-  append(revision: Revision): Promise<void>;
-}
-
-export interface StartOptions {
-  durationMs: number;
-  breakMs: number;
-  autoBreak: boolean;
-  tags: string[];
-  notePath: string | null;
-  crop?: CropId;
-}
-
-interface State {
-  sessions: Revision[];
-  conflicts: { sessionId: string; versions: Revision[] }[];
-}
-
-export const isActive = (s: Revision) => s.phase !== "done";
-export const normalizeTags = (tags: string[]) => [...new Set(tags.map((t) => t.trim().replace(/^#+/, "")).filter(Boolean))];
+import { isCropId } from "../crops/catalog";
+import { isActive, normalizeTags, selectState } from "./selectors";
+import type { Revision, SessionStore, StartOptions, TimerState } from "./types";
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
 export class TimerService {
   private revisions = new Map<string, Revision>();
-  private state: State = { sessions: [], conflicts: [] };
+  private state: TimerState = { sessions: [], conflicts: [] };
   private listeners = new Set<() => void>();
   private queue: Promise<unknown> = Promise.resolve();
 
-  constructor(private store: SessionStore, private env: {
-    now: () => number;
-    id: () => string;
-    notify?: (phase: "focus" | "break") => void;
-    debug?: boolean;
-  }) {}
+  constructor(
+    private store: SessionStore,
+    private env: {
+      now: () => number;
+      id: () => string;
+      notify?: (phase: "focus" | "break") => void;
+      debug?: boolean;
+    },
+  ) {}
 
-  getState = (): State => this.state;
+  getState = (): TimerState => this.state;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
-    return () => { this.listeners.delete(listener); };
+    return () => {
+      this.listeners.delete(listener);
+    };
   };
 
   remaining(s: Revision): number {
     return s.status === "running" && s.deadline !== null
-      ? Math.max(0, s.deadline - this.env.now()) : s.remainingMs;
+      ? Math.max(0, s.deadline - this.env.now())
+      : s.remainingMs;
   }
 
   private serial<T>(action: () => Promise<T>): Promise<T> {
@@ -78,22 +40,7 @@ export class TimerService {
   }
 
   private publish() {
-    const parents = new Set([...this.revisions.values()].flatMap((r) => r.parents));
-    const groups = new Map<string, Revision[]>();
-    for (const r of this.revisions.values()) {
-      if (parents.has(r.id)) continue;
-      const group = groups.get(r.sessionId) ?? [];
-      group.push(r);
-      groups.set(r.sessionId, group);
-    }
-    const sessions: Revision[] = [];
-    const conflicts: State["conflicts"] = [];
-    for (const [sessionId, versions] of groups) {
-      versions.sort((a, b) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id));
-      sessions.push(versions[0]);
-      if (versions.length > 1) conflicts.push({ sessionId, versions });
-    }
-    this.state = { sessions: sessions.sort((a, b) => b.startedAt - a.startedAt), conflicts };
+    this.state = selectState([...this.revisions.values()]);
     this.listeners.forEach((listener) => listener());
   }
 
@@ -110,7 +57,8 @@ export class TimerService {
   }
 
   private current(sessionId: string): Revision {
-    if (this.state.conflicts.some((c) => c.sessionId === sessionId)) throw new Error("Resolve the sync conflict first.");
+    if (this.state.conflicts.some((c) => c.sessionId === sessionId))
+      throw new Error("Resolve the sync conflict first.");
     const session = this.state.sessions.find((s) => s.sessionId === sessionId);
     if (!session) throw new Error("Session not found.");
     return session;
@@ -121,30 +69,52 @@ export class TimerService {
   }
 
   refresh() {
-    return this.serial(async () => { await this.load(); await this.reconcile(false); });
+    return this.serial(async () => {
+      await this.load();
+      await this.reconcile(false);
+    });
   }
 
   tick() {
-    return this.serial(async () => { await this.reconcile(true); this.publish(); });
+    return this.serial(async () => {
+      await this.reconcile(true);
+      this.publish();
+    });
   }
 
   start(options: StartOptions): Promise<string> {
     return this.serial(async () => {
       await this.load();
       await this.reconcile(false);
-      if (this.state.sessions.some(isActive) || this.state.conflicts.length) throw new Error("Finish the active session before planting another crop.");
-      if (![options.durationMs, options.breakMs].every((v) => Number.isFinite(v) && v >= 60_000 && v <= 24 * 60 * 60_000)) {
+      if (this.state.sessions.some(isActive) || this.state.conflicts.length)
+        throw new Error("Finish the active session before planting another crop.");
+      if (
+        ![options.durationMs, options.breakMs].every(
+          (v) => Number.isFinite(v) && v >= 60_000 && v <= 24 * 60 * 60_000,
+        )
+      ) {
         throw new Error("Durations must be between 1 minute and 24 hours.");
       }
       const now = this.env.now();
       if (options.crop !== undefined && !isCropId(options.crop)) throw new Error("Unknown crop.");
       const id = this.env.id();
       await this.save({
-        schema: 1, id, sessionId: id, parents: [], startedAt: now, updatedAt: now,
-        ...options, tags: normalizeTags(options.tags), crop: options.crop ?? "tomato",
+        schema: 1,
+        id,
+        sessionId: id,
+        parents: [],
+        startedAt: now,
+        updatedAt: now,
+        ...options,
+        tags: normalizeTags(options.tags),
+        crop: options.crop ?? "tomato",
         ...(this.env.debug ? { source: "debug" as const } : {}),
-        phase: "focus", status: "running", deadline: now + options.durationMs,
-        remainingMs: options.durationMs, intervals: [{ start: now, end: null }], focusEndedAt: null,
+        phase: "focus",
+        status: "running",
+        deadline: now + options.durationMs,
+        remainingMs: options.durationMs,
+        intervals: [{ start: now, end: null }],
+        focusEndedAt: null,
       });
       return id;
     });
@@ -182,7 +152,8 @@ export class TimerService {
   cancel(sessionId: string) {
     return this.transition(sessionId, (s) => {
       if (!isActive(s)) throw new Error("This session has already ended.");
-      if (s.phase === "focus" && s.status === "running") s.intervals[s.intervals.length - 1].end = this.env.now();
+      if (s.phase === "focus" && s.status === "running")
+        s.intervals[s.intervals.length - 1].end = this.env.now();
       s.status = s.phase === "break" ? "completed" : "cancelled";
       s.phase = "done";
       s.remainingMs = 0;
@@ -192,7 +163,8 @@ export class TimerService {
 
   startBreak(sessionId: string) {
     return this.transition(sessionId, (s) => {
-      if (s.phase !== "break" || s.status !== "waiting") throw new Error("No break is waiting to start.");
+      if (s.phase !== "break" || s.status !== "waiting")
+        throw new Error("No break is waiting to start.");
       s.status = "running";
       s.deadline = this.env.now() + s.breakMs;
     });
@@ -201,7 +173,8 @@ export class TimerService {
   debugFinish(sessionId: string) {
     if (!this.env.debug) return Promise.reject(new Error("Debug mode is disabled."));
     return this.transition(sessionId, (s) => {
-      if (s.source !== "debug" || !isActive(s)) throw new Error("Only simulated debug sessions can be force-finished.");
+      if (s.source !== "debug" || !isActive(s))
+        throw new Error("Only simulated debug sessions can be force-finished.");
       if (s.phase === "focus") {
         if (s.status === "running") s.intervals[s.intervals.length - 1].end = this.env.now();
         s.focusEndedAt = this.env.now();
@@ -236,9 +209,17 @@ export class TimerService {
       await this.load();
       for (const s of this.state.sessions) {
         if (this.state.conflicts.some((c) => c.sessionId === s.sessionId)) continue;
-        const renamed = s.notePath === oldPath ? newPath
-          : s.notePath?.startsWith(`${oldPath}/`) ? newPath + s.notePath.slice(oldPath.length) : null;
-        if (renamed) { const next = this.next(s); next.notePath = renamed; await this.save(next); }
+        const renamed =
+          s.notePath === oldPath
+            ? newPath
+            : s.notePath?.startsWith(`${oldPath}/`)
+              ? newPath + s.notePath.slice(oldPath.length)
+              : null;
+        if (renamed) {
+          const next = this.next(s);
+          next.notePath = renamed;
+          await this.save(next);
+        }
       }
     });
   }
@@ -267,7 +248,8 @@ export class TimerService {
           next.deadline = null;
         }
         await this.save(next);
-        if (notify && this.env.now() - deadline < 10_000 && phase !== "done") this.env.notify?.(phase);
+        if (notify && this.env.now() - deadline < 10_000 && phase !== "done")
+          this.env.notify?.(phase);
         s = next;
       }
     }

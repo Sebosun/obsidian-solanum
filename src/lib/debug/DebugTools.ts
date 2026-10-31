@@ -1,9 +1,15 @@
-import { TimerService, type SessionStore } from "../../timer";
+import type { TimerService } from "../timer/TimerService";
+import type { SessionStore } from "../timer/types";
 import type { DebugConfig } from "./config";
 import { seedMonth } from "./seeder";
 
 export class DebugTools {
-  constructor(private timer: TimerService, private store: SessionStore, readonly config: DebugConfig, private now = Date.now) {}
+  constructor(
+    private timer: TimerService,
+    private store: SessionStore,
+    readonly config: DebugConfig,
+    private now = Date.now,
+  ) {}
 
   async seed(month: Date, notes: string[] = []) {
     if (!this.config.enabled) throw new Error("Debug mode is disabled.");
@@ -17,8 +23,12 @@ export class DebugTools {
   async tick() {
     if (!this.config.enabled || !this.config.autoFinishSeconds) return;
     for (const s of this.timer.getState().sessions) {
-      if (s.source === "debug" && s.status === "running" && this.now() - s.updatedAt >= this.config.autoFinishSeconds * 1000
-        && !this.timer.getState().conflicts.some((c) => c.sessionId === s.sessionId)) {
+      if (
+        s.source === "debug" &&
+        s.status === "running" &&
+        this.now() - s.updatedAt >= this.config.autoFinishSeconds * 1000 &&
+        !this.timer.getState().conflicts.some((c) => c.sessionId === s.sessionId)
+      ) {
         await this.timer.debugFinish(s.sessionId);
       }
     }

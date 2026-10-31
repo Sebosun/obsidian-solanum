@@ -1,16 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { VaultSessionStore, type FileAdapter } from "../src/storage";
-import { monthDays, dailyHarvest } from "../src/harvest";
-import { TimerService, type Revision } from "../src/timer";
+import { VaultSessionStore, type FileAdapter } from "../src/lib/storage/VaultSessionStore";
+import { monthDays, dailyHarvest } from "../src/lib/harvest/aggregate";
+import { TimerService } from "../src/lib/timer/TimerService";
+import type { Revision } from "../src/lib/timer/types";
 
 class Disk implements FileAdapter {
   files = new Map<string, string>();
   folders = new Set<string>();
-  async exists(path: string) { return this.files.has(path) || this.folders.has(path); }
-  async mkdir(path: string) { this.folders.add(path); }
-  async list(path: string) { return { files: [...this.files.keys()].filter((f) => f.startsWith(`${path}/`)), folders: [] }; }
-  async read(path: string) { if (!this.files.has(path)) throw new Error("missing"); return this.files.get(path)!; }
-  async write(path: string, text: string) { this.files.set(path, text); }
+  async exists(path: string) {
+    return this.files.has(path) || this.folders.has(path);
+  }
+  async mkdir(path: string) {
+    this.folders.add(path);
+  }
+  async list(path: string) {
+    return { files: [...this.files.keys()].filter((f) => f.startsWith(`${path}/`)), folders: [] };
+  }
+  async read(path: string) {
+    if (!this.files.has(path)) throw new Error("missing");
+    return this.files.get(path)!;
+  }
+  async write(path: string, text: string) {
+    this.files.set(path, text);
+  }
 }
 
 async function fixture() {
@@ -19,8 +31,22 @@ async function fixture() {
   let now = new Date(2026, 9, 31, 23, 50).getTime();
   let id = 0;
   const service = new TimerService(store, { now: () => now, id: () => `test-${++id}` });
-  const sessionId = await service.start({ durationMs: 25 * 60_000, breakMs: 20 * 60_000, autoBreak: true, tags: ["work"], notePath: "Old.md" });
-  return { disk, store, service, sessionId, advance: (ms: number) => { now += ms; } };
+  const sessionId = await service.start({
+    durationMs: 25 * 60_000,
+    breakMs: 20 * 60_000,
+    autoBreak: true,
+    tags: ["work"],
+    notePath: "Old.md",
+  });
+  return {
+    disk,
+    store,
+    service,
+    sessionId,
+    advance: (ms: number) => {
+      now += ms;
+    },
+  };
 }
 
 describe("vault-backed integration", () => {
@@ -40,10 +66,16 @@ describe("vault-backed integration", () => {
     const valid = f.service.getState().sessions[0];
     f.disk.files.set(path, JSON.stringify({ ...valid, phase: "done", status: "running" }));
     await expect(f.store.readAll()).rejects.toThrow(/session/i);
-    f.disk.files.set(path, JSON.stringify({ ...valid, intervals: [
-      { start: valid.startedAt, end: valid.startedAt + 60_000 },
-      { start: valid.startedAt + 30_000, end: null },
-    ] }));
+    f.disk.files.set(
+      path,
+      JSON.stringify({
+        ...valid,
+        intervals: [
+          { start: valid.startedAt, end: valid.startedAt + 60_000 },
+          { start: valid.startedAt + 30_000, end: null },
+        ],
+      }),
+    );
     await expect(f.store.readAll()).rejects.toThrow(/session/i);
   });
 
@@ -57,7 +89,10 @@ describe("vault-backed integration", () => {
   it("reopens the same files, renames linked notes and preserves immutable history", async () => {
     const f = await fixture();
     await f.service.renameNote("Old.md", "Projects/New.md");
-    const recovered = new TimerService(new VaultSessionStore(f.disk), { now: Date.now, id: () => "other" });
+    const recovered = new TimerService(new VaultSessionStore(f.disk), {
+      now: Date.now,
+      id: () => "other",
+    });
     await recovered.refresh();
     expect(recovered.getState().sessions[0].notePath).toBe("Projects/New.md");
     expect(f.disk.files.size).toBeGreaterThan(1);
@@ -77,7 +112,9 @@ describe("vault-backed integration", () => {
     const f = await fixture();
     const revision = f.service.getState().sessions[0];
     await f.store.append(revision);
-    await expect(f.store.append({ ...revision, notePath: "Wrong.md" })).rejects.toThrow(/collision/i);
+    await expect(f.store.append({ ...revision, notePath: "Wrong.md" })).rejects.toThrow(
+      /collision/i,
+    );
   });
 });
 
@@ -117,7 +154,10 @@ describe("harvest aggregation", () => {
     expect(dailyHarvest(sessions, day, { tag: "work", notePath: "Old.md" }).minutes).toBe(5);
     expect(dailyHarvest(sessions, day, { tag: "other" }).minutes).toBe(0);
     expect(dailyHarvest(sessions, day, { notePath: "Missing.md" }).minutes).toBe(0);
-    const many = Array.from({ length: 100 }, (_, i) => ({ ...sessions[0], sessionId: `s-${i}` } as Revision));
+    const many = Array.from(
+      { length: 100 },
+      (_, i) => ({ ...sessions[0], sessionId: `s-${i}` }) as Revision,
+    );
     expect(dailyHarvest(many, day).crops).toBeLessThanOrEqual(9);
     expect(dailyHarvest(many, day).minutes).toBe(500);
   });

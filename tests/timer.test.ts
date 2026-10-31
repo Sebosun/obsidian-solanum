@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { TimerService, type Revision, type SessionStore } from "../src/timer";
+import { TimerService } from "../src/lib/timer/TimerService";
+import type { Revision, SessionStore } from "../src/lib/timer/types";
 
 const MIN = 60_000;
 
 class SharedStore implements SessionStore {
   files = new Map<string, Revision>();
-  async readAll() { return [...this.files.values()].map((r) => structuredClone(r)); }
-  async append(revision: Revision) { this.files.set(revision.id, structuredClone(revision)); }
+  async readAll() {
+    return [...this.files.values()].map((r) => structuredClone(r));
+  }
+  async append(revision: Revision) {
+    this.files.set(revision.id, structuredClone(revision));
+  }
 }
 
 function setup(store = new SharedStore(), device = "desktop") {
@@ -18,10 +23,23 @@ function setup(store = new SharedStore(), device = "desktop") {
     id: () => `${device}-${++sequence}`,
     notify: (phase) => signals.push(phase),
   });
-  return { service, store, signals, advance: (ms: number) => { now += ms; } };
+  return {
+    service,
+    store,
+    signals,
+    advance: (ms: number) => {
+      now += ms;
+    },
+  };
 }
 
-const options = { durationMs: 25 * MIN, breakMs: 5 * MIN, autoBreak: false, tags: ["#work/client"], notePath: "Projects/Client.md" };
+const options = {
+  durationMs: 25 * MIN,
+  breakMs: 5 * MIN,
+  autoBreak: false,
+  tags: ["#work/client"],
+  notePath: "Projects/Client.md",
+};
 
 describe("persistent focus workflows", () => {
   it("restores elapsed growth on another device without a running sidebar", async () => {
@@ -130,7 +148,9 @@ describe("persistent focus workflows", () => {
   it("does not publish unsaved transitions when storage fails", async () => {
     const a = setup();
     const id = await a.service.start(options);
-    a.store.append = async () => { throw new Error("disk full"); };
+    a.store.append = async () => {
+      throw new Error("disk full");
+    };
     await expect(a.service.pause(id)).rejects.toThrow("disk full");
     expect(a.service.getState().sessions[0].status).toBe("running");
   });

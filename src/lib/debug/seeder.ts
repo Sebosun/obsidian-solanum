@@ -1,4 +1,4 @@
-import type { Revision } from "../../timer";
+import type { Revision } from "../timer/types";
 import { CROPS, type CropId } from "../crops/catalog";
 
 /** Stable IDs make repeated seeding additive/idempotent, never destructive. */
@@ -16,9 +16,22 @@ export function seedMonth(month: Date, now: number, notes: string[] = []): Revis
       if (end > now) continue;
       const id = `seed-v1-${year}-${index + 1}-${day}-${slot}`;
       sessions.push({
-        schema: 1, id, sessionId: id, parents: [], source: "seed", startedAt: start, updatedAt: end,
-        durationMs, breakMs: 5 * 60_000, autoBreak: false, phase: "done", status: "completed",
-        deadline: null, remainingMs: 0, focusEndedAt: end, intervals: [{ start, end }],
+        schema: 1,
+        id,
+        sessionId: id,
+        parents: [],
+        source: "seed",
+        startedAt: start,
+        updatedAt: end,
+        durationMs,
+        breakMs: 5 * 60_000,
+        autoBreak: false,
+        phase: "done",
+        status: "completed",
+        deadline: null,
+        remainingMs: 0,
+        focusEndedAt: end,
+        intervals: [{ start, end }],
         tags: ["demo", ["work/client", "study", "writing"][(day + slot) % 3]],
         notePath: notes.length ? notes[(day + slot) % notes.length] : null,
         crop: crops[(day + slot) % crops.length],

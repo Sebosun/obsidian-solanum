@@ -4,6 +4,11 @@
   "private": true,
   "description": "A tomato timer for the Obsidian sidebar.",
   "scripts": {
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "check": "npm run format:check && npm run lint && npm test && npm run build",
     "pretest": "npm run build:css",
     "test": "vitest run",
     "test:watch": "npm run build:css && vitest",
@@ -20,6 +25,7 @@
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@react-three/test-renderer": "^9.1.1",
     "@tailwindcss/cli": "^4.3.3",
     "@testing-library/react": "^16.3.3",
@@ -30,10 +36,16 @@
     "@types/three": "^0.187.0",
     "dotenv": "^18.0.9",
     "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
     "jsdom": "^29.1.1",
     "obsidian": "^1.14.4",
+    "prettier": "^3.9.10",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vitest": "^4.1.12"
   }
 }

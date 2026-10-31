@@ -12,7 +12,8 @@ for (const path of [".env", ...(!production ? [".env.development"] : []), ".env.
 Object.assign(env, process.env);
 const debug = !production && env.SOLANUM_DEBUG === "true";
 const seconds = Number(env.SOLANUM_AUTO_FINISH_SECONDS ?? 0);
-const autoFinishSeconds = debug && Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600 ? seconds : 0;
+const autoFinishSeconds =
+  debug && Number.isFinite(seconds) && seconds >= 1 && seconds <= 3600 ? seconds : 0;
 
 const context = await esbuild.context({
   entryPoints: ["src/main.ts"],
@@ -38,12 +39,29 @@ if (production) {
 } else {
   const cliPackage = new URL(import.meta.resolve("@tailwindcss/cli/package.json"));
   const cliBin = JSON.parse(readFileSync(cliPackage, "utf8")).bin.tailwindcss;
-  const css = spawn(process.execPath, [fileURLToPath(new URL(cliBin, cliPackage)),
-    "-i", "src/styles.css", "-o", "styles.css", "--watch=always"], { stdio: "inherit" });
+  const css = spawn(
+    process.execPath,
+    [
+      fileURLToPath(new URL(cliBin, cliPackage)),
+      "-i",
+      "src/styles.css",
+      "-o",
+      "styles.css",
+      "--watch=always",
+    ],
+    { stdio: "inherit" },
+  );
   css.on("exit", (code) => {
-    if (code && code !== 0) { console.error(`Tailwind exited with code ${code}`); process.exit(code); }
+    if (code && code !== 0) {
+      console.error(`Tailwind exited with code ${code}`);
+      process.exit(code);
+    }
   });
-  const stop = async () => { css.kill(); await context.dispose(); process.exit(0); };
+  const stop = async () => {
+    css.kill();
+    await context.dispose();
+    process.exit(0);
+  };
   process.on("SIGINT", stop);
   process.on("SIGTERM", stop);
   process.on("exit", () => css.kill());

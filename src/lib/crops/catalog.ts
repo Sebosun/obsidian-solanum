@@ -6,4 +6,5 @@ export const CROPS = {
 } as const;
 
 export type CropId = keyof typeof CROPS;
-export const isCropId = (value: unknown): value is CropId => typeof value === "string" && Object.prototype.hasOwnProperty.call(CROPS, value);
+export const isCropId = (value: unknown): value is CropId =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(CROPS, value);

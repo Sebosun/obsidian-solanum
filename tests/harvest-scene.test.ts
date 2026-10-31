@@ -16,7 +16,9 @@ describe("3D harvest scene from persisted history", () => {
     expect(days[3].items).toEqual([]);
     const day = days.find((d) => d.items.length > 0)!;
     expect(day.items[0].session.notePath).toBe("Project.md");
-    expect(day.items[0].session.crop).toBe(sessions.find((s) => s.sessionId === day.items[0].session.sessionId)!.crop);
+    expect(day.items[0].session.crop).toBe(
+      sessions.find((s) => s.sessionId === day.items[0].session.sessionId)!.crop,
+    );
   });
 
   it("bounds render cost without dropping full details or focused totals", () => {
@@ -27,11 +29,13 @@ describe("3D harvest scene from persisted history", () => {
     expect(day.entries).toHaveLength(30);
     expect(day.overflow).toBeGreaterThan(0);
     expect(new Set(day.items.map((i) => i.key)).size).toBe(day.items.length);
-    expect(day.minutes).toBe(30 * session.durationMs / 60_000);
+    expect(day.minutes).toBe((30 * session.durationMs) / 60_000);
   });
 
   it("applies filters before building visible 3D crops and their details", () => {
     const days = buildHarvestMonth(sessions, new Date(2026, 9, 1), { tag: "missing" });
-    expect(days.every((d) => d.items.length === 0 && d.entries.length === 0 && d.minutes === 0)).toBe(true);
+    expect(
+      days.every((d) => d.items.length === 0 && d.entries.length === 0 && d.minutes === 0),
+    ).toBe(true);
   });
 });

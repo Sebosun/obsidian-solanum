@@ -6,33 +6,70 @@ vi.mock("obsidian", () => ({
   Plugin: class {
     app: unknown;
     manifest = { dir: ".obsidian/plugins/solanum" };
-    constructor(app: unknown) { this.app = app; }
-    registerView = vi.fn(); addRibbonIcon = vi.fn(); addCommand = vi.fn(); registerEvent = vi.fn(); registerInterval = vi.fn();
-    loadData = async () => null; saveData = vi.fn(async () => {});
+    constructor(app: unknown) {
+      this.app = app;
+    }
+    registerView = vi.fn();
+    addRibbonIcon = vi.fn();
+    addCommand = vi.fn();
+    registerEvent = vi.fn();
+    registerInterval = vi.fn();
+    loadData = async () => null;
+    saveData = vi.fn(async () => {});
   },
   Notice: vi.fn(),
 }));
-vi.mock("../src/view", () => ({ SolanumView: class {}, VIEW_TYPE_SOLANUM: "solanum-timer", VIEW_TYPE_HARVEST: "solanum-harvest" }));
+vi.mock("../src/views/SolanumView", () => ({
+  SolanumView: class {},
+  VIEW_TYPE_SOLANUM: "solanum-timer",
+  VIEW_TYPE_HARVEST: "solanum-harvest",
+}));
 import SolanumPlugin from "../src/main";
 
-afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
 
 function vaultFixture() {
   const files = new Map<string, string>();
   const folders = new Set<string>();
-  const handlers: Record<string, (...args: any[]) => unknown> = {};
+  const handlers: Record<string, (...args: unknown[]) => unknown> = {};
   const adapter = {
     exists: async (p: string) => files.has(p) || folders.has(p),
-    mkdir: async (p: string) => { folders.add(p); },
-    list: async (p: string) => ({ files: [...files.keys()].filter((f) => f.startsWith(`${p}/`)), folders: [] }),
+    mkdir: async (p: string) => {
+      folders.add(p);
+    },
+    list: async (p: string) => ({
+      files: [...files.keys()].filter((f) => f.startsWith(`${p}/`)),
+      folders: [],
+    }),
     read: async (p: string) => files.get(p)!,
-    write: async (p: string, text: string) => { files.set(p, text); },
+    write: async (p: string, text: string) => {
+      files.set(p, text);
+    },
     getResourcePath: (p: string) => `app://vault/${p}`,
   };
   const app = {
-    vault: { adapter, on: (name: string, cb: (...args: any[]) => unknown) => { handlers[name] = cb; return {}; }, getMarkdownFiles: vi.fn(() => [{ path: "Old.md" }]), getAbstractFileByPath: () => null },
-    workspace: { onLayoutReady: vi.fn(), getActiveFile: () => null, getLeavesOfType: () => [], getRightLeaf: () => null },
-    metadataCache: { getFileCache: vi.fn(() => ({ tags: [{ tag: "#work" }] })), on: vi.fn(() => ({})) },
+    vault: {
+      adapter,
+      on: (name: string, cb: (...args: unknown[]) => unknown) => {
+        handlers[name] = cb;
+        return {};
+      },
+      getMarkdownFiles: vi.fn(() => [{ path: "Old.md" }]),
+      getAbstractFileByPath: () => null,
+    },
+    workspace: {
+      onLayoutReady: vi.fn(),
+      getActiveFile: () => null,
+      getLeavesOfType: () => [],
+      getRightLeaf: () => null,
+    },
+    metadataCache: {
+      getFileCache: vi.fn(() => ({ tags: [{ tag: "#work" }] })),
+      on: vi.fn(() => ({})),
+    },
   } as unknown as App;
   return { app, handlers };
 }
@@ -43,7 +80,9 @@ describe("Obsidian lifecycle integration", () => {
     const { app } = vaultFixture();
     const plugin = new SolanumPlugin(app, {} as PluginManifest);
     await plugin.onload();
-    plugin.tags(); plugin.tags(); plugin.tags();
+    plugin.tags();
+    plugin.tags();
+    plugin.tags();
     expect(app.metadataCache.getFileCache).toHaveBeenCalledTimes(1);
     plugin.onunload();
   });
@@ -54,7 +93,13 @@ describe("Obsidian lifecycle integration", () => {
     const { app } = vaultFixture();
     const first = new SolanumPlugin(app, {} as PluginManifest);
     await first.onload();
-    await first.timer.start({ durationMs: 5 * 60_000, breakMs: 5 * 60_000, autoBreak: false, tags: ["work"], notePath: null });
+    await first.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: ["work"],
+      notePath: null,
+    });
     first.onunload();
     vi.setSystemTime(new Date("2026-10-31T12:03:00Z"));
     const second = new SolanumPlugin(app, {} as PluginManifest);
@@ -62,7 +107,10 @@ describe("Obsidian lifecycle integration", () => {
     const restored = second.timer.getState().sessions[0];
     expect(second.timer.remaining(restored)).toBe(2 * 60_000);
     await vi.advanceTimersByTimeAsync(2 * 60_000);
-    expect(second.timer.getState().sessions[0]).toMatchObject({ phase: "break", status: "waiting" });
+    expect(second.timer.getState().sessions[0]).toMatchObject({
+      phase: "break",
+      status: "waiting",
+    });
     second.onunload();
   });
 
@@ -71,12 +119,20 @@ describe("Obsidian lifecycle integration", () => {
     const { app, handlers } = vaultFixture();
     const plugin = new SolanumPlugin(app, {} as PluginManifest);
     await plugin.onload();
-    await plugin.timer.start({ durationMs: 5 * 60_000, breakMs: 5 * 60_000, autoBreak: false, tags: [], notePath: "Old.md" });
+    await plugin.timer.start({
+      durationMs: 5 * 60_000,
+      breakMs: 5 * 60_000,
+      autoBreak: false,
+      tags: [],
+      notePath: "Old.md",
+    });
     handlers.rename({ path: "New.md" }, "Old.md");
     await plugin.timer.refresh();
     expect(plugin.timer.getState().sessions[0].notePath).toBe("New.md");
     expect(plugin.tags()).toEqual(["work"]);
-    expect(plugin.assetUrl("Tomato_1.glb")).toContain(".obsidian/plugins/solanum/assets/crops/Tomato_1.glb");
+    expect(plugin.assetUrl("Tomato_1.glb")).toContain(
+      ".obsidian/plugins/solanum/assets/crops/Tomato_1.glb",
+    );
     plugin.onunload();
   });
 });

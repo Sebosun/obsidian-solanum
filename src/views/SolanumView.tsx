@@ -1,7 +1,7 @@
 import { ItemView, type WorkspaceLeaf } from "obsidian";
 import { createRoot, type Root } from "react-dom/client";
-import { App } from "./App";
-import type { SolanumHost } from "./host";
+import { App } from "../components/app/App";
+import type { SolanumHost } from "../types/host";
 
 export const VIEW_TYPE_SOLANUM = "solanum-timer";
 export const VIEW_TYPE_HARVEST = "solanum-harvest";
@@ -9,7 +9,11 @@ export const VIEW_TYPE_HARVEST = "solanum-harvest";
 export class SolanumView extends ItemView {
   private root: Root | null = null;
 
-  constructor(leaf: WorkspaceLeaf, private host: SolanumHost, private screen: "timer" | "harvest") {
+  constructor(
+    leaf: WorkspaceLeaf,
+    private host: SolanumHost,
+    private screen: "timer" | "harvest",
+  ) {
     super(leaf);
   }
 

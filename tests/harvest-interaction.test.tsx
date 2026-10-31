@@ -11,7 +11,15 @@ describe("3D plot pointer interaction", () => {
     const onHover = vi.fn();
     const onSelect = vi.fn();
     const stopPropagation = vi.fn();
-    const renderer = await ReactThreeTestRenderer.create(<HarvestDayPlot day={day} active={false} assetUrl={(s) => s} onHover={onHover} onSelect={onSelect} />);
+    const renderer = await ReactThreeTestRenderer.create(
+      <HarvestDayPlot
+        day={day}
+        active={false}
+        assetUrl={(s) => s}
+        onHover={onHover}
+        onSelect={onSelect}
+      />,
+    );
     try {
       const group = renderer.scene.findByProps({ name: `day-${day.key}` });
       await renderer.fireEvent(group, "pointerOver", { stopPropagation });
@@ -21,6 +29,8 @@ describe("3D plot pointer interaction", () => {
       await renderer.fireEvent(group, "pointerOut", { stopPropagation });
       expect(onHover).toHaveBeenLastCalledWith(null);
       expect(stopPropagation).toHaveBeenCalledTimes(3);
-    } finally { await renderer.unmount(); }
+    } finally {
+      await renderer.unmount();
+    }
   });
 });
