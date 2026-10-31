@@ -23,7 +23,7 @@ const SEGMENTS: Record<string, [number, number, number, number]> = {
   g: [0, 0, 0.32, 0.022],
 };
 
-interface Segment {
+export interface CountdownSegment {
   key: string;
   x: number;
   y: number;
@@ -31,12 +31,17 @@ interface Segment {
   height: number;
 }
 
+export interface CountdownLayout {
+  text: string;
+  segments: CountdownSegment[];
+}
+
 /** Thin, font-free mesh digits. Character widths keep every preset centered. */
-export function countdownSegments(remaining: number) {
+export function countdownSegments(remaining: number): CountdownLayout {
   const text = formatTime(remaining);
   const widths = [...text].map((character) => (character === ":" ? 0.04 : 0.362));
   const width = widths.reduce((sum, value) => sum + value, 0) + (widths.length - 1) * 0.12;
-  const segments: Segment[] = [];
+  const segments: CountdownSegment[] = [];
   let cursor = -width / 2;
   for (let index = 0; index < text.length; index++) {
     const character = text[index];

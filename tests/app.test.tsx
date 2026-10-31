@@ -150,9 +150,11 @@ describe("sidebar workflows backed by the real timer service", () => {
   it("persists crop choice and hides the normal interface while focusing", async () => {
     const f = fixture();
     render(<App host={f.host} screen="timer" />);
+    const scene = screen.getByRole("figure");
     fireEvent.change(screen.getByLabelText("Crop"), { target: { value: "pumpkin" } });
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await screen.findByRole("button", { name: "Show timer controls" });
+    expect(screen.getByRole("figure")).toBe(scene);
     expect(screen.queryByRole("navigation")).toBeNull();
     expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
     expect(screen.queryByText("Timer preferences")).toBeNull();
@@ -165,6 +167,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.queryByRole("navigation")).toBeNull();
     f.advance(25 * 60_000);
     await act(() => f.host.timer.tick());
+    expect(screen.getByRole("figure")).toBe(scene);
     expect(screen.getByRole("navigation")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start break" })).toBeTruthy();
   });
@@ -249,6 +252,10 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(screen.getByText("0 min this month")).toBeTruthy();
     expect(screen.getByText("No matching harvests")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+    expect(screen.getByText("No harvests yet")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
     expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
   });
 

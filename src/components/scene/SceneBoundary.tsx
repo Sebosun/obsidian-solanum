@@ -1,14 +1,20 @@
 import { Component, type ReactNode } from "react";
 
-export class SceneBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { failed: boolean }
-> {
+interface SceneBoundaryProps {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+interface SceneBoundaryState {
+  failed: boolean;
+}
+
+export class SceneBoundary extends Component<SceneBoundaryProps, SceneBoundaryState> {
   state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
   render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
+    if (this.state.failed) return this.props.fallback;
+    return this.props.children;
   }
 }

@@ -6,12 +6,17 @@ import { CropScene } from "../crops/CropScene";
 import { TimerSetup } from "./TimerSetup";
 import { SessionControls } from "./SessionControls";
 
-export function TimerPanel() {
+interface TimerPanelProps {
+  immersive: boolean;
+}
+
+export function TimerPanel({ immersive }: TimerPanelProps) {
   const services = useServices();
   const sessions = useAppStore((state) => state.sessions);
   const draft = useAppStore((state) => state.draft);
   const session = useAppStore(selectCurrentSession);
   const selectSession = useAppStore((state) => state.selectSession);
+  const revealControls = useAppStore((state) => state.revealControls);
   const active = sessions.filter(isActive);
   let remaining = draft.minutes * 60_000;
   let progress = 0;
@@ -24,6 +29,9 @@ export function TimerPanel() {
   }
   function changeSession(event: ChangeEvent<HTMLSelectElement>) {
     selectSession(event.target.value);
+  }
+  function reveal() {
+    if (session) revealControls(session.id);
   }
   let controls = <TimerSetup />;
   if (session) controls = <SessionControls />;
@@ -47,8 +55,19 @@ export function TimerPanel() {
         progress={Math.max(0, Math.min(1, progress))}
         running={session?.status === "running"}
         remaining={remaining}
+        immersive={immersive}
       />
-      {controls}
+      {!immersive && controls}
+      {immersive && (
+        <button
+          className="solanum-reveal-controls"
+          aria-label="Show timer controls"
+          title="Show controls (Escape)"
+          onClick={reveal}
+        >
+          •••
+        </button>
+      )}
     </>
   );
 }

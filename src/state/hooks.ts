@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { useStore } from "zustand";
 import { AppStoreContext } from "./context";
 import type { AppState } from "./types";
+import type { SolanumHost } from "../types/host";
 
 export function useAppStore<T>(selector: (state: AppState) => T): T {
   const store = useContext(AppStoreContext);
@@ -9,6 +10,6 @@ export function useAppStore<T>(selector: (state: AppState) => T): T {
   return useStore(store, selector);
 }
 
-export function useServices() {
+export function useServices(): SolanumHost {
   return useAppStore((state) => state.services);
 }

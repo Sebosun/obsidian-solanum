@@ -110,3 +110,7 @@ export function releaseAppStore(timer: TimerService): void {
   stores.get(timer)?.unsubscribe();
   stores.delete(timer);
 }
+
+export function updateDefaultMinutes(timer: TimerService, minutes: number): void {
+  stores.get(timer)?.store.getState().updateDraft({ minutes });
+}

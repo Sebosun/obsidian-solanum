@@ -1,7 +1,12 @@
 import { Box3, Vector3, type Object3D } from "three";
 
+export interface PreparedPlant {
+  object: Object3D;
+  factor: number;
+}
+
 /** Ground each stage, but normalize against maturity so a sprout stays smaller. */
-export function preparePlant(scene: Object3D, mature: Object3D) {
+export function preparePlant(scene: Object3D, mature: Object3D): PreparedPlant {
   const object = scene.clone(true);
   const box = new Box3().setFromObject(object);
   object.position.set(-(box.min.x + box.max.x) / 2, -box.min.y, -(box.min.z + box.max.z) / 2);

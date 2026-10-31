@@ -29,8 +29,9 @@ export function GrowingCrop({ crop, stage, moving, reduced, assetUrl }: GrowingC
   }, [crop, assetUrl]);
 
   useEffect(() => {
-    transition.retarget(stage, clock.elapsedTime, reduced);
-    retained.current = transition.sample(clock.elapsedTime).map((layer) => layer.stage);
+    const now = clock.getElapsedTime();
+    transition.retarget(stage, now, reduced);
+    retained.current = transition.sample(now).map((layer) => layer.stage);
     setStages(retained.current);
     invalidate();
   }, [stage, reduced, transition, clock, invalidate]);

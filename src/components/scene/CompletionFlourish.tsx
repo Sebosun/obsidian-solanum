@@ -3,6 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import type { Group, Mesh, MeshBasicMaterial } from "three";
 import { celebrationFrame } from "../../lib/scene/celebration";
 import { useAppStore } from "../../state/hooks";
+import { selectCurrentSession } from "../../state/selectors";
 
 interface CompletionFlourishProps {
   reduced: boolean;
@@ -12,6 +13,7 @@ interface CompletionFlourishProps {
 export function CompletionFlourish({ reduced, children }: CompletionFlourishProps) {
   const celebration = useAppStore((state) => state.celebration);
   const claim = useAppStore((state) => state.claimCelebration);
+  const session = useAppStore(selectCurrentSession);
   const invalidate = useThree((state) => state.invalidate);
   const crop = useRef<Group>(null);
   const ring = useRef<Mesh>(null);
@@ -19,18 +21,23 @@ export function CompletionFlourish({ reduced, children }: CompletionFlourishProp
   const playing = useRef(false);
   const elapsed = useRef(0);
   const id = celebration?.id;
+  const celebratedSession = celebration?.sessionId;
+  const currentSession = session?.sessionId;
 
   useEffect(() => {
     if (!id || !claim(id)) return;
-    playing.current = !reduced;
+    playing.current = !reduced && celebratedSession === currentSession;
     elapsed.current = 0;
     invalidate();
-  }, [id, claim, reduced, invalidate]);
+  }, [id, claim, reduced, invalidate, celebratedSession, currentSession]);
 
   useFrame((_state, delta) => {
     if (!crop.current || !ring.current || !material.current || !playing.current) return;
     elapsed.current += Math.min(delta, 0.05);
-    const frame = celebrationFrame(elapsed.current, reduced);
+    const frame = celebrationFrame(
+      elapsed.current,
+      reduced || celebratedSession !== currentSession,
+    );
     crop.current.position.y = frame.lift;
     crop.current.scale.setScalar(frame.scale);
     ring.current.scale.setScalar(frame.ringScale);

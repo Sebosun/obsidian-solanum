@@ -74,6 +74,7 @@ vi.mock("../src/views/SolanumView", () => ({
   VIEW_TYPE_HARVEST: "solanum-harvest",
 }));
 import SolanumPlugin from "../src/main";
+import { getAppStore } from "../src/state/appStore";
 
 afterEach(() => {
   vi.clearAllTimers();
@@ -132,6 +133,9 @@ describe("Obsidian lifecycle integration", () => {
     await plugin.onload();
     const tab = vi.mocked(plugin.addSettingTab).mock.calls[0][0];
     tab.display();
+    const ui = getAppStore(plugin);
+    await nativeSettings.get("Focus duration")!("50");
+    expect(ui.getState().draft.minutes).toBe(50);
     await nativeSettings.get("Break duration")!("20");
     await nativeSettings.get("Automatic breaks")!(true);
     await plugin.timer.start({

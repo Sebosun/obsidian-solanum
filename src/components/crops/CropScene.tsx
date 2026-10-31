@@ -11,19 +11,21 @@ import { formatTime } from "../../lib/time";
 import { useServices } from "../../state/hooks";
 import { CompletionFlourish } from "../scene/CompletionFlourish";
 
+interface CropSceneProps {
+  crop?: CropId;
+  progress: number;
+  running: boolean;
+  immersive?: boolean;
+  remaining: number;
+}
+
 export function CropScene({
   crop = "tomato",
   progress,
   running,
   immersive = false,
   remaining,
-}: {
-  crop?: CropId;
-  progress: number;
-  running: boolean;
-  immersive?: boolean;
-  remaining: number;
-}) {
+}: CropSceneProps) {
   const { assetUrl } = useServices();
   const container = useRef<HTMLDivElement>(null);
   const color = useSceneColor(container);
@@ -44,14 +46,14 @@ export function CropScene({
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
   const fallback = <CropFallback crop={crop} progress={progress} remaining={remaining} />;
+  const classes = ["solanum-scene"];
+  if (progress >= 1) classes.push("is-mature");
+  if (immersive) classes.push("is-immersive");
   function aimCamera({ camera }: RootState) {
     camera.lookAt(0, -0.05, 0);
   }
   return (
-    <div
-      ref={container}
-      className={`solanum-scene ${progress >= 1 ? "is-mature" : ""} ${immersive ? "is-immersive" : ""}`}
-    >
+    <div ref={container} className={classes.join(" ")}>
       <SceneBoundary key={crop} fallback={fallback}>
         <Suspense fallback={fallback}>
           <Canvas

@@ -9,8 +9,9 @@ export function SyncConflicts() {
   function chooseVersion(event: MouseEvent<HTMLButtonElement>) {
     const { session, revision } = event.currentTarget.dataset;
     if (!session || !revision) return;
+    const selection = { session, revision };
     async function resolveConflict() {
-      await services.timer.resolve(session!, revision!);
+      await services.timer.resolve(selection.session, selection.revision);
     }
     void run(resolveConflict);
   }

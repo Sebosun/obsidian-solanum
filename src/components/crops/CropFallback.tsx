@@ -1,15 +1,13 @@
 import { CROPS, type CropId } from "../../lib/crops/catalog";
 import { formatTime } from "../../lib/time";
 
-export function CropFallback({
-  crop,
-  progress,
-  remaining,
-}: {
+interface CropFallbackProps {
   crop: CropId;
   progress: number;
   remaining: number;
-}) {
+}
+
+export function CropFallback({ crop, progress, remaining }: CropFallbackProps) {
   let symbol = "🫘";
   if (progress >= 1) symbol = CROPS[crop].emoji;
   else if (progress > 0.2) symbol = "🌱";

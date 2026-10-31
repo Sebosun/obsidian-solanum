@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
-export function SettingsMenu({
-  onPreferences,
-  onHide,
-}: {
-  onPreferences: () => void;
+interface SettingsMenuProps {
+  onPreferences(): void;
   onHide?: () => void;
-}) {
+}
+
+export function SettingsMenu({ onPreferences, onHide }: SettingsMenuProps) {
   const [open, setOpen] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -34,6 +33,16 @@ export function SettingsMenu({
     onHide?.();
   }
   function handleKey(event: KeyboardEvent) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const items = [
+        ...(container.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []),
+      ];
+      const index = items.findIndex((item) => item === document.activeElement);
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      items[(index + direction + items.length) % items.length]?.focus();
+      return;
+    }
     if (event.key !== "Escape") return;
     event.stopPropagation();
     setOpen(false);

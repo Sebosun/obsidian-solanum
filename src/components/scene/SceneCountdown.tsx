@@ -1,7 +1,12 @@
 import { Billboard } from "@react-three/drei";
 import { countdownSegments } from "../../lib/scene/countdown";
 
-export function SceneCountdown({ remaining, color }: { remaining: number; color: string }) {
+interface SceneCountdownProps {
+  remaining: number;
+  color: string;
+}
+
+export function SceneCountdown({ remaining, color }: SceneCountdownProps) {
   const { segments } = countdownSegments(remaining);
   return (
     <Billboard position={[0, -1.2, 0.25]}>

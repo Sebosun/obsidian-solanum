@@ -1,6 +1,13 @@
 import { isCropId } from "../crops/catalog";
 import { isActive, normalizeTags, selectState } from "./selectors";
-import type { CompletionEvent, Revision, SessionStore, StartOptions, TimerState } from "./types";
+import type {
+  CompletionEvent,
+  Revision,
+  SessionStore,
+  StartOptions,
+  TimerState,
+  TimerEnvironment,
+} from "./types";
 import { completePhase } from "./transitions";
 
 /** Timestamp-based state machine. Immutable revisions make concurrent sync edits detectable. */
@@ -13,12 +20,7 @@ export class TimerService {
 
   constructor(
     private store: SessionStore,
-    private env: {
-      now: () => number;
-      id: () => string;
-      notify?: (phase: "focus" | "break") => void;
-      debug?: boolean;
-    },
+    private env: TimerEnvironment,
   ) {}
 
   getState = (): TimerState => this.state;

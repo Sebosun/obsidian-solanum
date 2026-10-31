@@ -1,4 +1,9 @@
-export function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+interface ErrorNoticeProps {
+  message: string;
+  onDismiss(): void;
+}
+
+export function ErrorNotice({ message, onDismiss }: ErrorNoticeProps) {
   return (
     <div role="alert" className="solanum-error">
       {message}

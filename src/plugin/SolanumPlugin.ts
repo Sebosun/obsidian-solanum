@@ -1,4 +1,4 @@
-import { Notice, Plugin } from "obsidian";
+import { Notice, Plugin, type App, type TAbstractFile } from "obsidian";
 import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "../views/SolanumView";
 import { TimerService } from "../lib/timer/TimerService";
 import {
@@ -13,7 +13,15 @@ import { DEBUG_CONFIG } from "../lib/debug/config";
 import { DebugTools } from "../lib/debug/DebugTools";
 import { VaultNoteIndex } from "./VaultNoteIndex";
 import { SolanumSettingsTab } from "./SolanumSettingsTab";
-import { releaseAppStore } from "../state/appStore";
+import { releaseAppStore, updateDefaultMinutes } from "../state/appStore";
+
+interface SettingsController {
+  open(): void;
+  openTabById(id: string): void;
+}
+interface SettingsApp extends App {
+  setting: SettingsController;
+}
 
 export default class SolanumPlugin extends Plugin implements SolanumHost {
   timer!: TimerService;
@@ -69,7 +77,7 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
       callback: () => this.navigate("harvest"),
     });
 
-    const onSync = (file: { path: string }) => {
+    const onSync = (file: TAbstractFile) => {
       this.noteIndex.invalidate();
       if (
         ![SESSION_FOLDER, DEBUG_SESSION_FOLDER].some((folder) =>
@@ -139,16 +147,17 @@ export default class SolanumPlugin extends Plugin implements SolanumHost {
 
   async saveSettings(settings: Settings): Promise<void> {
     const next = readSettings(settings);
+    const previousMinutes = this.settings.defaultMinutes;
     await this.saveData(next);
     this.settings = next;
+    if (next.defaultMinutes !== previousMinutes)
+      updateDefaultMinutes(this.timer, next.defaultMinutes);
   }
 
   tags = () => this.noteIndex.tags();
   openSettings = () => {
     // Obsidian exposes its settings controller at runtime, outside the public App types.
-    const app = this.app as unknown as {
-      setting: { open(): void; openTabById(id: string): void };
-    };
+    const app = this.app as SettingsApp;
     app.setting.open();
     app.setting.openTabById(this.manifest.id);
   };

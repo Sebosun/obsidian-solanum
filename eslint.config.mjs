@@ -14,6 +14,7 @@ const componentFiles = {
         messages: {
           single: "Use one React component per file.",
           name: "Component {{name}} must live in {{name}}.tsx.",
+          named: "Declare a named Props interface instead of an inline object type.",
         },
       },
       create(context) {
@@ -44,9 +45,16 @@ const componentFiles = {
               return [];
             });
             if (components.length > 1) context.report({ node: components[1], messageId: "single" });
-            for (const node of components)
+            for (const node of components) {
               if (node.name !== basename(context.filename, ".tsx"))
                 context.report({ node, messageId: "name", data: { name: node.name } });
+              const parameters = node.parent.params ?? node.parent.init?.params ?? [];
+              for (const parameter of parameters) {
+                if (parameter.typeAnnotation?.typeAnnotation.type === "TSTypeLiteral") {
+                  context.report({ node: parameter, messageId: "named" });
+                }
+              }
+            }
           },
         };
       },
@@ -68,6 +76,7 @@ export default tseslint.config(
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
       "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/consistent-type-definitions": ["error", "interface"],
     },
   },
   {

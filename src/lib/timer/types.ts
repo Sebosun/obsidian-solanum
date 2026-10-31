@@ -10,6 +10,23 @@ export interface CompletionEvent {
   at: number;
 }
 
+export interface TimerEnvironment {
+  now(): number;
+  id(): string;
+  notify?: (phase: "focus" | "break") => void;
+  debug?: boolean;
+}
+
+export interface FocusInterval {
+  start: number;
+  end: number | null;
+}
+
+export interface SessionConflict {
+  sessionId: string;
+  versions: Revision[];
+}
+
 export interface Revision {
   schema: 1;
   id: string;
@@ -25,7 +42,7 @@ export interface Revision {
   deadline: number | null;
   remainingMs: number;
   focusEndedAt: number | null;
-  intervals: { start: number; end: number | null }[];
+  intervals: FocusInterval[];
   tags: string[];
   notePath: string | null;
   crop: CropId;
@@ -48,5 +65,5 @@ export interface StartOptions {
 
 export interface TimerState {
   sessions: Revision[];
-  conflicts: { sessionId: string; versions: Revision[] }[];
+  conflicts: SessionConflict[];
 }

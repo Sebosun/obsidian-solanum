@@ -4,10 +4,18 @@ import { isRevision } from "./validation";
 export const SESSION_FOLDER = "Solanum/sessions";
 export const DEBUG_SESSION_FOLDER = "Solanum/debug-sessions";
 
+export interface DirectoryListing {
+  files: string[];
+  folders: string[];
+}
+export interface StorageOptions {
+  debug?: boolean;
+}
+
 export interface FileAdapter {
   exists(path: string): Promise<boolean>;
   mkdir(path: string): Promise<unknown>;
-  list(path: string): Promise<{ files: string[]; folders: string[] }>;
+  list(path: string): Promise<DirectoryListing>;
   read(path: string): Promise<string>;
   write(path: string, contents: string): Promise<unknown>;
 }
@@ -16,7 +24,7 @@ export interface FileAdapter {
 export class VaultSessionStore implements SessionStore {
   constructor(
     private adapter: FileAdapter,
-    private options: { debug?: boolean } = {},
+    private options: StorageOptions = {},
   ) {}
 
   async readAll(): Promise<Revision[]> {

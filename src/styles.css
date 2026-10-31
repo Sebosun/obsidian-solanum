@@ -28,15 +28,6 @@
 .solanum-app button:disabled {
   @apply sol:cursor-wait sol:opacity-55;
 }
-.solanum-header h1 {
-  @apply sol:mt-1 sol:mb-0 sol:text-[27px] sol:tracking-[-.8px];
-}
-.solanum-header h1 span {
-  @apply sol:text-[21px];
-}
-.solanum-eyebrow {
-  @apply sol:text-[9px] sol:font-[650] sol:tracking-[2px] sol:text-(--text-muted);
-}
 .solanum-tabs {
   @apply sol:flex sol:gap-1;
 }
@@ -54,20 +45,11 @@
 .solanum-scene canvas {
   @apply sol:touch-pan-y;
 }
-.solanum-scene-caption {
-  @apply sol:absolute sol:bottom-[13px] sol:inset-x-0 sol:text-center sol:text-[10px] sol:text-(--text-muted) sol:pointer-events-none;
-}
 .solanum-crop-fallback > span {
   @apply sol:text-[70px];
 }
-.solanum-crop-fallback small {
-  @apply sol:text-[11px];
-}
 .solanum-scene.is-mature {
   @apply sol:shadow-[inset_0_0_0_1px_#87a87940];
-}
-.solanum-clock p {
-  @apply sol:text-[11px] sol:leading-relaxed sol:text-(--text-muted) sol:my-2 sol:mx-auto sol:max-w-60;
 }
 .solanum-presets button {
   @apply sol:text-[11px] sol:py-1.5 sol:px-[9px] sol:h-auto sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:rounded-[7px] sol:bg-transparent sol:text-(--text-muted);
@@ -96,8 +78,8 @@
 .solanum-presets {
   @apply sol:flex sol:flex-wrap sol:justify-center sol:gap-1.5 sol:my-4;
 }
-.solanum-countdown {
-  @apply sol:text-center sol:text-4xl sol:tabular-nums sol:my-4;
+.solanum-crop-fallback > .solanum-fallback-time {
+  @apply sol:text-3xl sol:tabular-nums;
 }
 .solanum-presets button[aria-pressed="true"] {
   @apply sol:bg-[#87a87920] sol:text-(--text-normal) sol:border-(--crop-green);
@@ -129,18 +111,6 @@
 }
 .solanum-hint {
   @apply sol:text-(--text-muted) sol:text-[10px] sol:leading-relaxed;
-}
-.solanum-settings {
-  @apply sol:mt-[25px] sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:pt-3.5 sol:text-[11px] sol:text-(--text-muted);
-}
-.solanum-settings summary {
-  @apply sol:cursor-pointer;
-}
-.solanum-preferences small {
-  @apply sol:text-[10px] sol:leading-relaxed;
-}
-.solanum-preferences input[type="checkbox"] {
-  @apply sol:align-middle sol:mr-[5px];
 }
 .solanum-error,
 .solanum-warning {
@@ -182,9 +152,6 @@
 }
 .solanum-calendar .solanum-day[aria-pressed="true"] {
   @apply sol:border-(--crop-green);
-}
-.solanum-mini-plot i {
-  @apply sol:not-italic sol:text-[8px] sol:leading-[1.15];
 }
 .solanum-day-details {
   @apply sol:border-t sol:border-solid sol:border-(--background-modifier-border) sol:mt-5 sol:pt-2.5;
