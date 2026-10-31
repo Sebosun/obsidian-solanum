@@ -63,24 +63,59 @@ describe("preparing the mug for the scene", () => {
 });
 
 describe("the mug in the scene", () => {
-  it("stands where the scene says, as tall as it says, with steam over the coffee", async () => {
+  it("floats in the air at the height the scene says, over the spot it says", async () => {
     model.current = await loadMug();
-    const renderer = await ReactThreeTestRenderer.create(<CoffeeMug reduced={false} />);
+    const renderer = await ReactThreeTestRenderer.create(<CoffeeMug reduced />);
     const placed = group(renderer);
-    expect(placed.position.toArray()).toEqual([
-      BREAK_SCENE.mug.position[0],
-      BREAK_SCENE.groundY,
-      BREAK_SCENE.mug.position[1],
-    ]);
+    expect(placed.position.x).toBeCloseTo(BREAK_SCENE.mug.position[0], 6);
+    expect(placed.position.z).toBeCloseTo(BREAK_SCENE.mug.position[1], 6);
+    expect(placed.position.y).toBeCloseTo(BREAK_SCENE.groundY + BREAK_SCENE.mug.hover, 6);
+    // Its base is clear of the ground: it is in the air, not on anything.
+    expect(BREAK_SCENE.mug.hover).toBeGreaterThan(0.05);
+    await renderer.unmount();
+  });
+
+  it("is as tall as the scene says, with steam starting over the coffee", async () => {
+    model.current = await loadMug();
+    const renderer = await ReactThreeTestRenderer.create(<CoffeeMug reduced />);
+    const placed = group(renderer);
     const mugBox = new Box3().setFromObject(placed.children[0]);
     expect(mugBox.getSize(new Vector3()).y).toBeCloseTo(BREAK_SCENE.mug.height, 4);
     const steam = renderer.scene.findByProps({ name: "steam" }).instance;
     const start = new Vector3();
     steam.getWorldPosition(start);
-    expect(start.y - BREAK_SCENE.groundY).toBeCloseTo(
+    expect(start.y - placed.position.y).toBeCloseTo(
       BREAK_SCENE.mug.height * BREAK_SCENE.mug.coffeeLevel,
       4,
     );
+    await renderer.unmount();
+  });
+
+  it("bobs gently on the air, carrying its steam with it", async () => {
+    model.current = await loadMug();
+    const renderer = await ReactThreeTestRenderer.create(<CoffeeMug reduced={false} />);
+    const placed = group(renderer);
+    const heights: number[] = [];
+    for (let i = 0; i < 40; i += 1) {
+      await frames(renderer, 1);
+      heights.push(placed.position.y);
+    }
+    const spread = Math.max(...heights) - Math.min(...heights);
+    expect(spread).toBeGreaterThan(BREAK_SCENE.mug.bob * 0.8);
+    expect(spread).toBeLessThanOrEqual(BREAK_SCENE.mug.bob * 2 + 1e-6);
+    expect(Math.min(...heights)).toBeGreaterThan(
+      BREAK_SCENE.groundY + BREAK_SCENE.mug.hover - BREAK_SCENE.mug.bob - 1e-6,
+    );
+    await renderer.unmount();
+  });
+
+  it("hangs still under reduced motion", async () => {
+    model.current = await loadMug();
+    const renderer = await ReactThreeTestRenderer.create(<CoffeeMug reduced />);
+    const placed = group(renderer);
+    const before = placed.position.y;
+    await frames(renderer, 30);
+    expect(placed.position.y).toBe(before);
     await renderer.unmount();
   });
 

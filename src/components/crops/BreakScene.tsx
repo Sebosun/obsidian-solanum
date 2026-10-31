@@ -3,7 +3,6 @@ import { Canvas } from "@react-three/fiber";
 import { SrLabel } from "@/components/app/SrLabel";
 import { BreakFallback } from "@/components/crops/BreakFallback";
 import { SunClockFace } from "@/components/clock/SunClockFace";
-import { BreakPlatform } from "@/components/scene/BreakPlatform";
 import { CoffeeMug } from "@/components/scene/CoffeeMug";
 import { FuzzyPillow } from "@/components/scene/FuzzyPillow";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
@@ -71,6 +70,7 @@ export function BreakScene({
         progress={clockProgress}
         remaining={remaining}
         reduced={reduced}
+        caption="Break time"
       />
       <SceneBoundary fallback={<BreakFallback />}>
         {/* Nothing is drawn while the model loads: the placeholder is only for when WebGL fails. */}
@@ -85,7 +85,6 @@ export function BreakScene({
           >
             <TimerCamera bounds={BREAK_SCENE.bounds} />
             <SeasonLights theme={theme} daylight={sun} daylightRef={clock.sun} showGlow={false} />
-            <BreakPlatform />
             <FuzzyPillow daylightRef={clock.sun} />
             <group
               position={[pillow.position[0], BREAK_SCENE.groundY + CAT_REST, pillow.position[1]]}

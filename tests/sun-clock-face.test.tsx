@@ -11,9 +11,25 @@ afterEach(cleanup);
 
 const MINUTE = 60_000;
 
-function Face({ progress, remaining = 25 * MINUTE }: { progress: number; remaining?: number }) {
+function Face({
+  progress,
+  remaining = 25 * MINUTE,
+  caption,
+}: {
+  progress: number;
+  remaining?: number;
+  caption?: string;
+}) {
   const clock = useSunClock(progress, 0, true);
-  return <SunClockFace clock={clock} progress={progress} remaining={remaining} reduced />;
+  return (
+    <SunClockFace
+      clock={clock}
+      progress={progress}
+      remaining={remaining}
+      reduced
+      caption={caption}
+    />
+  );
 }
 
 const sun = (root: HTMLElement) => root.querySelector<SVGGElement>(".solanum-clock-sun")!;
@@ -37,6 +53,22 @@ describe("the sun clock in the page", () => {
     expect(view.container.querySelector("svg")?.getAttribute("viewBox")).toMatch(
       /^0 0 [\d.]+ [\d.]+$/,
     );
+  });
+
+  it("has no caption unless asked, and puts one above the digits when asked", () => {
+    const plain = render(<Face progress={0} />);
+    expect(plain.container.querySelector(".solanum-clock-caption")).toBeNull();
+    plain.unmount();
+    const captioned = render(<Face progress={0} caption="Break time" />);
+    const caption = captioned.container.querySelector<HTMLElement>(".solanum-clock-caption")!;
+    expect(caption.textContent).toBe("Break time");
+    // Sized from the same board as the digits, so it scales with the ring like them.
+    expect(caption.style.getPropertyValue("--digit-em")).not.toBe("");
+    expect(caption.getAttribute("style")).not.toMatch(/\bpx\b/);
+    const readout = captioned.container.querySelector(".solanum-clock-readout")!;
+    expect(
+      caption.compareDocumentPosition(readout) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("traces the arc with dots", () => {

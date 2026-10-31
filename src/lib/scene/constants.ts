@@ -150,17 +150,17 @@ export const YEAR_STACKS = {
 } as const;
 
 /**
- * The break: a cat asleep on a fuzzy pillow beside a steaming mug, on a small wooden platform.
- * Lengths are world units in the same space as the timer's plot, so the same camera frames it.
+ * The break: a cat asleep on a pillow, with a mug of coffee hovering beside it. There is no floor:
+ * the pillow is what everything rests on. Lengths are world units in the same space as the timer's
+ * plot, so the same camera frames it.
  */
 export const BREAK_SCENE = {
   /** The cat model, which lives with the crop models because the plugin reads its models there. */
   catModel: "Cat_sleeping.glb",
-  /** Height of the platform's top, the same as the plot's. */
+  /** Height of the pillow's base, which is as low as anything in the scene goes. */
   groundY: -0.54,
-  platform: { radius: 1.2, rim: "#5c4130", top: "#a9794d", sides: 8 },
   /** What the camera must keep in view, in place of the plot's bounds. */
-  bounds: { min: [-1.1, -0.85, -1.1], max: [1.1, 0.95, 1.1] } as const,
+  bounds: { min: [-1.1, -0.6, -1.1], max: [1.1, 0.95, 1.1] } as const,
   pillow: {
     width: 1.7,
     depth: 1.35,
@@ -171,11 +171,16 @@ export const BREAK_SCENE = {
   },
   /** The cat sits in the middle of the pillow, sunk a little into it. */
   cat: { scale: 1.1, sink: 0.07, turn: -0.15 },
-  /** The mug model, which stands as tall as `height` in the scene and has its steam over the coffee. */
+  /** The mug model, which hangs in the air beside the pillow and sways a little. */
   mug: {
     model: "mug.glb",
-    position: [-0.78, 0.5] as [number, number],
+    position: [-0.8, 0.45] as [number, number],
+    /** How tall it stands, and the height of its base above the ground (in the air, not on it). */
     height: 0.24,
+    hover: 0.1,
+    /** How far it rises and falls, and how long a full sway takes. */
+    bob: 0.025,
+    bobSeconds: 4.5,
     /** Where the coffee stands, as a share of the mug's height, so the steam starts there. */
     coffeeLevel: 0.88,
     turn: 0.6,

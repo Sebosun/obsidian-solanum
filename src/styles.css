@@ -82,6 +82,17 @@
   opacity: var(--digit-opacity);
   transition: opacity 1.1s linear;
 }
+/* A few words above the digits, in the same units, so they scale with the ring. */
+.solanum-clock-caption {
+  @apply sol:absolute sol:left-1/2 sol:m-0 sol:whitespace-nowrap sol:uppercase sol:leading-none sol:text-(--text-muted);
+  top: calc(var(--digit-center) * 100% - var(--digit-em) * 0.78cqw);
+  transform: translate(-50%, -50%);
+  font-size: calc(var(--digit-em) * 0.25cqw);
+  letter-spacing: 0.32em;
+  /* The tracking adds space after the last letter, so shift back to stay centred. */
+  margin-left: 0.16em;
+  opacity: calc(var(--digit-opacity) * 1.9);
+}
 .solanum-clock-cell {
   @apply sol:relative sol:inline-block sol:h-[1em] sol:text-center;
 }

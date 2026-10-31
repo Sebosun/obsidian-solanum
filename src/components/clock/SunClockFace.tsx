@@ -16,6 +16,8 @@ interface SunClockFaceProps {
   /** Milliseconds left, shown as the large faint digits. */
   remaining: number;
   reduced: boolean;
+  /** A few words in small type above the digits, such as the name of the phase. */
+  caption?: string;
 }
 
 /** Custom properties the stylesheet turns into sizes relative to the scene. */
@@ -52,7 +54,7 @@ function boardStyle(stretch: number): BoardStyle {
  * the scene, such as particles, can ever cross it. Everything is sized from the scene, so the
  * ring and the digits scale with its resolution.
  */
-export function SunClockFace({ clock, progress, remaining, reduced }: SunClockFaceProps) {
+export function SunClockFace({ clock, progress, remaining, reduced, caption }: SunClockFaceProps) {
   const sky = useRef<HTMLDivElement>(null);
   const size = useElementSize(sky);
   // The ring fills the scene's width and takes its height from the scene's shape.
@@ -70,6 +72,11 @@ export function SunClockFace({ clock, progress, remaining, reduced }: SunClockFa
       <style>{FONT_FACE}</style>
       <div className="solanum-sky-board" style={style}>
         <ClockArc clock={clock} progress={progress} stretch={stretch} />
+        {caption && (
+          <p className="solanum-clock-caption" style={readoutStyle}>
+            {caption}
+          </p>
+        )}
         <ClockReadout text={formatTime(remaining)} reduced={reduced} style={readoutStyle} />
       </div>
     </div>

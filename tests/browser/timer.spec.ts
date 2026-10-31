@@ -125,6 +125,7 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   const scene = page.getByRole("img", { name: "A cat sleeping beside a cup of coffee" });
   await expect(scene).toBeVisible();
   await expect(page.getByRole("timer")).toHaveText(/0[34]:\d\d/);
+  await expect(page.getByText("Break time", { exact: true })).toBeVisible();
   // Nothing is shown in place of the scene while the cat's model loads.
   expect(
     await page.evaluate(() =>
