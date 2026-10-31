@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dailyHarvest } from "@/lib/harvest/aggregate";
-import { buildHarvestMonth } from "@/lib/harvest/model";
+import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
 import { buildHarvestYear } from "@/lib/harvest/year";
 import { buildDayNote } from "@/lib/notes/dayNote";
 import { focusSession } from "./helpers/sessions";
@@ -34,15 +34,13 @@ describe("a crop stopped before it finished earns nothing", () => {
     expect(entries.map((entry) => entry.session.id)).toEqual(["done"]);
   });
 
-  it("leaves a day with only stopped crops empty in the calendar", () => {
-    const days = buildHarvestMonth(
-      [stopped("a", 20), stopped("b", 3)],
-      new Date(2026, 9, 1),
-      {},
-      NOW,
-    );
-    const day = days.find((item) => item.key === "2026-10-31")!;
-    expect(day).toMatchObject({ minutes: 0, entries: [], items: [], overflow: 0 });
+  it("draws no block for a stopped crop and adds nothing to the month's numbers", () => {
+    const month = new Date(2026, 9, 1);
+    const sessions = [stopped("a", 20), stopped("b", 3)];
+    expect(layoutHarvestBlocks(sessions, month, {}, NOW).blocks).toEqual([]);
+    expect(summarizeMonth(sessions, month, {}, NOW)).toMatchObject({ minutes: 0, harvests: 0 });
+    const withHarvest = layoutHarvestBlocks([...sessions, harvested], month, {}, NOW);
+    expect(withHarvest.blocks.map((block) => block.sessionId)).toEqual(["done"]);
   });
 
   it("does not count towards the year overview", () => {

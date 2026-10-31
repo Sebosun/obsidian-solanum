@@ -31,7 +31,6 @@ const host: SolanumHost = {
   activeNote: () => "Projects/Alpha.md",
   assetUrl: (name) => `${location.origin}/assets/crops/${name}`,
   openNote() {},
-  async openDayNote() {},
   openSettings() {},
   unlockAudio() {},
   previewSound() {},

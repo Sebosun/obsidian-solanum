@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { useAppStore, useServices } from "@/state/hooks";
-import { buildHarvestMonth } from "@/lib/harvest/model";
+import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
 import { buildHarvestYear } from "@/lib/harvest/year";
 import { resolveSeason } from "@/lib/scene/seasons";
-import { HarvestScene } from "@/components/harvest/HarvestScene";
-import { HarvestDetails } from "@/components/harvest/HarvestDetails";
 import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
 import { HarvestFilters } from "@/components/harvest/HarvestFilters";
+import { HarvestMonthScene } from "@/components/harvest/HarvestMonthScene";
+import { HarvestMonthSummary } from "@/components/harvest/HarvestMonthSummary";
 import { HarvestPeriodNav } from "@/components/harvest/HarvestPeriodNav";
 import { HarvestViewToggle, type HarvestView } from "@/components/harvest/HarvestViewToggle";
 import { HarvestYear } from "@/components/harvest/HarvestYear";
@@ -31,21 +31,22 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   );
   const [view, setView] = useState<HarvestView>("month");
   const [month, setMonth] = useState(initialMonth ?? new Date());
-  const [selectedKey, setSelected] = useState<string | null>(null);
-  const [hoverKey, setHover] = useState<string | null>(null);
   const [tag, setTag] = useState("");
   const [notePath, setNotePath] = useState("");
-  const days = buildHarvestMonth(sessions, month, { tag, notePath });
+  const filter = useMemo(() => ({ tag, notePath }), [tag, notePath]);
   const year = month.getFullYear();
-  const yearMonths = useMemo(
-    () => (view === "year" ? buildHarvestYear(sessions, year, { tag, notePath }) : []),
-    [view, sessions, year, tag, notePath],
+
+  const layout = useMemo(
+    () => (view === "month" ? layoutHarvestBlocks(sessions, month, filter) : null),
+    [view, sessions, month, filter],
   );
-  // Hover only highlights a plot; the details always follow the clicked day.
-  const details = days.find((day) => day.key === selectedKey);
-  const monthTotal = days.reduce((sum, day) => sum + day.minutes, 0);
+  const summary = useMemo(() => summarizeMonth(sessions, month, filter), [sessions, month, filter]);
+  const yearMonths = useMemo(
+    () => (view === "year" ? buildHarvestYear(sessions, year, filter) : []),
+    [view, sessions, year, filter],
+  );
   const yearTotal = yearMonths.reduce((sum, item) => sum + item.minutes, 0);
-  const total = view === "year" ? yearTotal : monthTotal;
+  const total = view === "year" ? yearTotal : summary.minutes;
   const tags = [
     ...new Set([...services.tags(), ...sessions.flatMap((session) => session.tags)]),
   ].sort();
@@ -54,12 +55,8 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   ].sort();
 
   function step(direction: number) {
-    changeMonth(view === "year" ? direction * MONTHS_PER_YEAR : direction);
-  }
-  function changeMonth(delta: number) {
+    const delta = view === "year" ? direction * MONTHS_PER_YEAR : direction;
     setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1));
-    setSelected(null);
-    setHover(null);
   }
   function previous() {
     step(-1);
@@ -69,33 +66,22 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   }
   function openMonth(index: number) {
     setMonth(new Date(year, index, 1));
-    setSelected(null);
-    setHover(null);
     setView("month");
-  }
-  function clearSelection() {
-    setSelected(null);
   }
   function clearFilters() {
     setTag("");
     setNotePath("");
   }
 
-  const empty = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
-  let content = empty;
+  let content = <HarvestEmpty filtered={!!tag || !!notePath} onClearFilters={clearFilters} />;
   if (total > 0 && view === "year") {
     content = <HarvestYear months={yearMonths} onOpenMonth={openMonth} />;
-  } else if (total > 0) {
+  } else if (total > 0 && layout) {
     content = (
-      <HarvestScene
-        days={days}
-        selectedKey={selectedKey}
-        hoverKey={hoverKey}
-        season={resolveSeason(seasonChoice, month)}
-        onHover={setHover}
-        onSelect={setSelected}
-        onClear={clearSelection}
-      />
+      <>
+        <HarvestMonthScene layout={layout} season={resolveSeason(seasonChoice, month)} />
+        <HarvestMonthSummary summary={summary} shown={layout.blocks.length} total={layout.total} />
+      </>
     );
   }
   const title =
@@ -122,7 +108,6 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         onNote={setNotePath}
       />
       {content}
-      {view === "month" && details && <HarvestDetails key={details.key} day={details} />}
     </section>
   );
 }

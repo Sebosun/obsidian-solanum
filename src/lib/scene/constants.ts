@@ -19,25 +19,32 @@ export const CLOCK_TYPOGRAPHY = {
   cameraPosition: [0, 0, 100] as [number, number, number],
 } as const;
 
-/** Layout of the month calendar in world units (one unit ≈ one plot width). */
-export const HARVEST_GRID = {
-  columns: 7,
-  cellSpacing: 1.3,
-  plotSize: 1.2,
-  cropSpacing: 0.3,
-  cropBaseHeight: 0.1,
-  maxCropsPerPlot: 9,
+export const HARVEST_SCENE = {
+  // Isometric-style view: orthographic, turned a little off-axis and tilted down. Direction only;
+  // the camera is pulled back or in to fit the blocks.
+  cameraPosition: [8, 10, 11] as [number, number, number],
+  initialZoom: 30,
+  fitMargin: 1.03,
+  /** Width ÷ height of the scene box. */
+  aspectRatio: 1.1,
 } as const;
 
-export const HARVEST_SCENE = {
-  // Mostly top-down with no yaw, so columns line up with the weekday header.
-  cameraPosition: [0, 14, 5] as [number, number, number],
-  initialZoom: 30,
-  fitMargin: 1.05,
-  // Distance from the first plot row to the weekday header, in cell widths.
-  weekdayRowOffsetCells: 0.82,
-  // Spare room above the header and below the last row, in cell widths.
-  verticalPaddingCells: 0.06,
+/** The month as a grid of raised blocks, one per harvest. World units unless noted. */
+export const HARVEST_BLOCKS = {
+  pitch: 1.14,
+  size: 1,
+  minHeight: 0.22,
+  /** Extra height a block gains between zero and `fullHeightMinutes`. */
+  heightRange: 1.1,
+  fullHeightMinutes: 90,
+  /** More than this and the month is thinned evenly, so the scene stays light. */
+  maxBlocks: 144,
+  minColumns: 6,
+  maxColumns: 12,
+  /** Columns follow √(blocks × this), which keeps the grid a little wider than deep. */
+  columnSpread: 1.6,
+  topThickness: 0.07,
+  maxTags: 3,
 } as const;
 
 export const GROWTH_MOTION = {

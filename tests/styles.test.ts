@@ -6,7 +6,7 @@ describe("Obsidian-safe Tailwind bundle", () => {
     const css = readFileSync("styles.css", "utf8");
     expect(css).toContain("tailwindcss");
     expect(css).toContain(".sol\\:flex");
-    expect(css).toContain(".sol\\:grid");
+    expect(css).toContain(".sol\\:items-center");
     expect(css).toContain("--sol-spacing");
     expect(css).not.toMatch(/(?:^|\})\s*\.(?:flex|grid|hidden)\s*\{/);
   });

@@ -1,54 +1,45 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-test("a populated harvest finishes loading real GLBs in the real renderer", async ({ page }) => {
+async function expectBlocksLoaded(page: Page) {
+  await expect(page.getByRole("status", { name: "Loading harvest" })).toBeHidden({
+    timeout: 20_000,
+  });
+  await expect(page.locator(".solanum-harvest-scene canvas")).toBeVisible();
+  await expect(page.getByText("Farm unavailable")).toBeHidden();
+}
+
+test("a populated month finishes loading real GLBs in the real renderer", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
-  await expect(page.getByText("Farm unavailable")).toBeHidden();
+  await expectBlocksLoaded(page);
+  await expect(page.getByRole("region", { name: "Month summary" })).toBeVisible();
+  await page.waitForTimeout(1500);
   expect(errors).toEqual([]);
 });
 
-test("harvest loads through the vault binary adapter when resource URLs are unavailable", async ({
+test("the month loads through the vault binary adapter when resource URLs are unavailable", async ({
   page,
 }) => {
   await page.route("**/assets/crops/**", (route) => route.abort());
   await page.goto("/");
-  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
-  await expect(page.getByText("Farm unavailable")).toBeHidden();
+  await expectBlocksLoaded(page);
 });
 
-test("hovering another plot keeps the clicked day's details and no second grid is shown", async ({
-  page,
-}) => {
+test("the month is blocks and numbers, with no calendar days to pick", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
-  // R3F keeps the canvas fallback in the DOM, but it is never displayed while WebGL works.
-  await expect(page.locator(".solanum-calendar")).toBeHidden();
-  const plotCorner = async (day: string) => {
-    const box = await page
-      .locator(".solanum-plot-date", { hasText: new RegExp(`^${day}`) })
-      .boundingBox();
-    if (!box) throw new Error(`Plot ${day} has no label`);
-    // The label sits in a plot's top-left corner; step into the plot body.
-    return { x: box.x + 14, y: box.y + 14 };
-  };
-  const selected = await plotCorner("19");
-  await page.mouse.click(selected.x, selected.y);
-  const details = page.getByRole("region", { name: "Harvest details" });
-  await expect(details.getByRole("heading")).toContainText("October 19");
-  const other = await plotCorner("12");
-  await page.mouse.move(other.x, other.y);
-  await page.waitForTimeout(300);
-  await expect(details.getByRole("heading")).toContainText("October 19");
+  await expectBlocksLoaded(page);
+  await expect(page.locator(".solanum-calendar")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^2026-10-\d\d/ })).toHaveCount(0);
+  await expect(page.getByText(/One block per harvest/)).toBeVisible();
 });
 
-test("the year overview opens a month back into the 3D calendar", async ({ page }) => {
+test("the year overview opens a month back into the blocks", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
+  await expectBlocksLoaded(page);
   await page.getByRole("button", { name: "Year" }).click();
   await expect(page.locator(".solanum-year-month")).toHaveCount(12);
   await page.getByRole("button", { name: /^October 2026, \d+ focused minutes$/ }).click();
   await expect(page.getByRole("heading", { name: "October 2026" })).toBeVisible();
-  await expect(page.locator(".solanum-plot-date")).toHaveCount(31, { timeout: 15_000 });
+  await expectBlocksLoaded(page);
 });

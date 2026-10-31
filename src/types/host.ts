@@ -18,8 +18,6 @@ export interface SolanumHost {
   notes(): string[];
   activeNote(): string | null;
   openNote(path: string): void;
-  /** Writes (if needed) and opens the markdown note summarising one day. */
-  openDayNote(day: Date): Promise<void>;
   assetUrl(name: string): string;
   readAsset?(name: string): Promise<ArrayBuffer>;
   navigate(screen: Screen): void;

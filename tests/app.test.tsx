@@ -26,29 +26,21 @@ vi.mock("@/components/crops/CropScene", () => ({
     </figure>
   ),
 }));
-vi.mock("@/components/harvest/HarvestScene", () => ({
-  HarvestScene: ({
-    days,
-    onHover,
-    onSelect,
+vi.mock("@/components/harvest/HarvestMonthScene", () => ({
+  HarvestMonthScene: ({
+    layout,
+    season,
   }: {
-    days: { key: string }[];
-    onHover: (key: string | null) => void;
-    onSelect: (key: string) => void;
+    layout: { blocks: { crop: string; minutes: number }[] };
+    season: string;
   }) => (
-    <div>
-      {days.map((day) => (
-        <button
-          key={day.key}
-          aria-label={day.key}
-          onPointerEnter={() => onHover(day.key)}
-          onPointerLeave={() => onHover(null)}
-          onClick={() => onSelect(day.key)}
-        >
-          {day.key}
-        </button>
-      ))}
-    </div>
+    <div
+      role="img"
+      aria-label="Month blocks"
+      data-blocks={layout.blocks.length}
+      data-crops={layout.blocks.map((block) => block.crop).join(",")}
+      data-season={season}
+    />
   ),
 }));
 afterEach(cleanup);
@@ -78,7 +70,6 @@ function fixture(debug = false) {
     notes: () => ["Project.md", "Other.md"],
     activeNote: () => "Project.md",
     openNote: vi.fn(),
-    openDayNote: vi.fn(async () => {}),
     assetUrl: (name) => name,
     navigate: vi.fn(),
     unlockAudio: vi.fn(),
@@ -425,33 +416,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     expect(f.host.timer.getState().sessions).toHaveLength(1);
   });
 
-  it("shows real harvest details and applies tag filters", async () => {
-    const f = fixture();
-    await f.host.timer.start({
-      durationMs: 5 * 60_000,
-      breakMs: 5 * 60_000,
-      autoBreak: false,
-      tags: ["study"],
-      notePath: "Project.md",
-    });
-    f.advance(5 * 60_000);
-    await f.host.timer.tick();
-    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
-    expect(screen.getByRole("button", { name: "Project.md" })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Filter by tag"), { target: { value: "work/client" } });
-    expect(screen.queryByRole("button", { name: "Project.md" })).toBeNull();
-    expect(screen.getByText("0 min this month")).toBeTruthy();
-    expect(screen.getByText("No matching harvests")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-    expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Next month" }));
-    expect(screen.getByText("No harvests yet")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
-    expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
-  });
-
-  it("keeps the clicked day's details while hovering other days", async () => {
+  async function harvestedFixture() {
     const f = fixture();
     await f.host.timer.start({
       durationMs: 5 * 60_000,
@@ -463,28 +428,73 @@ describe("sidebar workflows backed by the real timer service", () => {
     });
     f.advance(5 * 60_000);
     await f.host.timer.tick();
-    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    const day = screen.getByRole("button", { name: "2026-10-31" });
-    const other = screen.getByRole("button", { name: "2026-10-30" });
+    return f;
+  }
 
-    fireEvent.pointerEnter(day);
-    expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+  describe("month view", () => {
+    it("draws one block per harvest and summarises the month, with no days to pick", async () => {
+      const f = await harvestedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      const blocks = screen.getByRole("img", { name: "Month blocks" });
+      expect(blocks.getAttribute("data-blocks")).toBe("1");
+      expect(blocks.getAttribute("data-crops")).toBe("carrot");
+      const summary = screen.getByRole("region", { name: "Month summary" });
+      expect(within(summary).getByText("5 min")).toBeTruthy();
+      expect(within(summary).getByText("Harvests").nextSibling?.textContent).toBe("1");
+      expect(within(summary).getByRole("list", { name: "Crops grown" }).textContent).toContain(
+        "Carrot",
+      );
+      expect(within(summary).getByRole("list", { name: "Most used tags" }).textContent).toContain(
+        "study",
+      );
+      expect(within(summary).getByText(/One block per harvest/)).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /^2026-10-\d\d/ })).toBeNull();
+      expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+    });
 
-    fireEvent.click(day);
-    fireEvent.pointerLeave(day);
-    fireEvent.pointerEnter(other);
-    const details = screen.getByRole("region", { name: "Harvest details" });
-    expect(within(details).getByText(/October 31/)).toBeTruthy();
-    expect(within(details).getByText("study")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Project.md" }));
-    expect(f.host.openNote).toHaveBeenCalledWith("Project.md");
-  });
+    it("applies the tag filter to the blocks and the numbers, and recovers with Clear filters", async () => {
+      const f = await harvestedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      fireEvent.change(screen.getByLabelText("Filter by tag"), {
+        target: { value: "work/client" },
+      });
+      expect(screen.getByText("0 min this month")).toBeTruthy();
+      expect(screen.getByText("No matching harvests")).toBeTruthy();
+      expect(screen.queryByRole("img", { name: "Month blocks" })).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
+      expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Next month" }));
+      expect(screen.getByText("No harvests yet")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
+      expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
+    });
 
-  it("presents a single month grid instead of a second expandable day list", async () => {
-    const f = fixture();
-    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    expect(screen.queryByText("Days")).toBeNull();
-    expect(screen.queryByLabelText("Monthly harvest day list")).toBeNull();
+    it("themes the blocks by the month's season, unless a season is chosen", async () => {
+      const f = await harvestedFixture();
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      expect(screen.getByRole("img", { name: "Month blocks" }).getAttribute("data-season")).toBe(
+        "autumn",
+      );
+      act(() => updateSeason(f.host.timer, "winter"));
+      expect(screen.getByRole("img", { name: "Month blocks" }).getAttribute("data-season")).toBe(
+        "winter",
+      );
+    });
+
+    it("does not show a crop that was stopped early", async () => {
+      const f = fixture();
+      const id = await f.host.timer.start({
+        durationMs: 25 * 60_000,
+        breakMs: 5 * 60_000,
+        autoBreak: false,
+        tags: [],
+        notePath: null,
+      });
+      f.advance(5 * 60_000);
+      await f.host.timer.cancel(id);
+      render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
+      expect(screen.getByText("No harvests yet")).toBeTruthy();
+    });
   });
 
   describe("year overview", () => {
@@ -524,7 +534,7 @@ describe("sidebar workflows backed by the real timer service", () => {
       fireEvent.click(screen.getByRole("button", { name: "Year" }));
       fireEvent.click(screen.getByRole("button", { name: "October 2026, 5 focused minutes" }));
       expect(screen.getByRole("heading", { name: "October 2026" })).toBeTruthy();
-      expect(screen.getByRole("button", { name: "2026-10-31" })).toBeTruthy();
+      expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Year" }));
       expect(screen.getByRole("heading", { name: "2026" })).toBeTruthy();
     });
@@ -544,45 +554,6 @@ describe("sidebar workflows backed by the real timer service", () => {
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
       expect(monthButtons()).toHaveLength(12);
     });
-  });
-
-  it("opens the day's note from its harvest details", async () => {
-    const f = fixture();
-    await f.host.timer.start({
-      durationMs: 5 * 60_000,
-      breakMs: 5 * 60_000,
-      autoBreak: false,
-      tags: [],
-      notePath: null,
-    });
-    f.advance(5 * 60_000);
-    await f.host.timer.tick();
-    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    expect(screen.queryByRole("button", { name: "Open day note" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open day note" }));
-    expect(f.host.openDayNote).toHaveBeenCalledOnce();
-    const [day] = vi.mocked(f.host.openDayNote).mock.calls[0];
-    expect(day.getFullYear()).toBe(2026);
-    expect(day.getMonth()).toBe(9);
-    expect(day.getDate()).toBe(31);
-  });
-
-  it("offers no day note for days that only hold simulated crops", async () => {
-    const f = fixture(true);
-    await f.host.timer.start({
-      durationMs: 5 * 60_000,
-      breakMs: 5 * 60_000,
-      autoBreak: false,
-      tags: [],
-      notePath: null,
-    });
-    f.advance(5 * 60_000);
-    await f.host.timer.tick();
-    render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    fireEvent.click(screen.getByRole("button", { name: "2026-10-31" }));
-    expect(screen.getByRole("region", { name: "Harvest details" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Open day note" })).toBeNull();
   });
 
   it("surfaces persistence errors instead of showing an unsaved planted crop", async () => {

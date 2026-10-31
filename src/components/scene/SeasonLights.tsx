@@ -3,9 +3,11 @@ import { SunHalo } from "@/components/scene/SunHalo";
 
 interface SeasonLightsProps {
   theme: SeasonTheme;
+  /** The summer sun and its halo are sized for the timer scene; larger scenes switch them off. */
+  showGlow?: boolean;
 }
 
-export function SeasonLights({ theme }: SeasonLightsProps) {
+export function SeasonLights({ theme, showGlow = true }: SeasonLightsProps) {
   const { ambient, sun, glow } = theme;
   return (
     <>
@@ -16,7 +18,7 @@ export function SeasonLights({ theme }: SeasonLightsProps) {
         intensity={sun.intensity}
         position={sun.position}
       />
-      {glow && (
+      {glow && showGlow && (
         <>
           <pointLight
             name="season-glow-light"

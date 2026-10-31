@@ -24,7 +24,6 @@ function fixture() {
     notes: () => [],
     activeNote: () => null,
     openNote: vi.fn(),
-    openDayNote: vi.fn(async () => {}),
     navigate: vi.fn(),
     assetUrl: (file) => file,
     unlockAudio: vi.fn(),
