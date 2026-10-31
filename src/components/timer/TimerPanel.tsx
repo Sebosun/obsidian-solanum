@@ -4,7 +4,6 @@ import type { Revision } from "../../lib/timer/types";
 import type { TimerDraft } from "../../types/timer-ui";
 import type { Action, SolanumHost } from "../../types/host";
 import { CropScene } from "../crops/CropScene";
-import { TimerClock } from "./TimerClock";
 import { TimerSetup } from "./TimerSetup";
 import { SessionControls } from "./SessionControls";
 
@@ -59,8 +58,8 @@ export function TimerPanel({
         progress={Math.max(0, Math.min(1, progress))}
         running={session?.status === "running"}
         assetUrl={host.assetUrl}
+        remaining={remaining}
       />
-      <TimerClock remaining={remaining} />
       {session ? (
         <SessionControls
           session={session}

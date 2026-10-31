@@ -1,10 +1,13 @@
 import { Suspense, useEffect, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, type RootState } from "@react-three/fiber";
 import { cropStage } from "../../lib/crops/growth";
 import type { CropId } from "../../lib/crops/catalog";
 import { Plant } from "../scene/Plant";
 import { SceneBoundary } from "../scene/SceneBoundary";
 import { CropFallback } from "./CropFallback";
+import { SceneCountdown } from "../scene/SceneCountdown";
+import { useSceneColor } from "../../hooks/useSceneColor";
+import { formatTime } from "../../lib/time";
 
 export function CropScene({
   crop = "tomato",
@@ -12,14 +15,17 @@ export function CropScene({
   running,
   assetUrl,
   immersive = false,
+  remaining,
 }: {
   crop?: CropId;
   progress: number;
   running: boolean;
   assetUrl: (name: string) => string;
   immersive?: boolean;
+  remaining: number;
 }) {
   const container = useRef<HTMLDivElement>(null);
+  const color = useSceneColor(container);
   const [visible, setVisible] = useState(true);
   const [reduced, setReduced] = useState(false);
   useEffect(() => {
@@ -36,7 +42,10 @@ export function CropScene({
   }, []);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
-  const fallback = <CropFallback crop={crop} progress={progress} />;
+  const fallback = <CropFallback crop={crop} progress={progress} remaining={remaining} />;
+  function aimCamera({ camera }: RootState) {
+    camera.lookAt(0, -0.05, 0);
+  }
   return (
     <div
       ref={container}
@@ -49,11 +58,12 @@ export function CropScene({
             dpr={[1, 1.5]}
             frameloop={moving ? "always" : "demand"}
             fallback={fallback}
-            onCreated={({ camera }) => camera.lookAt(0, 0.15, 0)}
+            onCreated={aimCamera}
             aria-label="Growing crop"
           >
             <ambientLight intensity={1.8} />
             <directionalLight position={[3, 5, 2]} intensity={3} color="#fff0ce" />
+            <SceneCountdown remaining={remaining} color={color} />
             <mesh position={[0, -0.68, 0]}>
               <cylinderGeometry args={[0.95, 0.8, 0.25, 8]} />
               <meshStandardMaterial color="#77513a" roughness={1} />
@@ -81,15 +91,9 @@ export function CropScene({
           </Canvas>
         </Suspense>
       </SceneBoundary>
-      {!immersive && (
-        <span className="solanum-scene-caption">
-          {progress >= 1
-            ? "A little focus. A lovely harvest."
-            : stage === 0
-              ? "Plant your next good intention."
-              : "Your focus is taking root."}
-        </span>
-      )}
+      <span role="timer" aria-label="Remaining time" className="sol:sr-only">
+        {formatTime(remaining)}
+      </span>
     </div>
   );
 }

@@ -11,14 +11,16 @@ export function FocusMode({
   host: SolanumHost;
   onReveal: () => void;
 }) {
+  const remaining = host.timer.remaining(session);
   return (
     <main className="solanum-app solanum-focus-mode" aria-label="Focus mode">
       <CropScene
         crop={session.crop}
-        progress={1 - host.timer.remaining(session) / session.durationMs}
+        progress={1 - remaining / session.durationMs}
         running
         assetUrl={host.assetUrl}
         immersive
+        remaining={remaining}
       />
       <button
         className="solanum-reveal-controls"

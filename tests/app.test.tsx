@@ -7,10 +7,13 @@ import type { Revision } from "../src/lib/timer/types";
 import { DEFAULT_SETTINGS } from "../src/lib/settings";
 import type { SolanumHost } from "../src/types/host";
 import { DebugTools } from "../src/lib/debug/DebugTools";
+import { formatTime } from "../src/lib/time";
 
 vi.mock("../src/components/crops/CropScene", () => ({
-  CropScene: ({ progress }: { progress: number }) => (
-    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`} />
+  CropScene: ({ progress, remaining }: { progress: number; remaining: number }) => (
+    <figure aria-label={`Crop growth ${Math.round(progress * 100)}%`}>
+      <span role="timer">{formatTime(remaining)}</span>
+    </figure>
   ),
 }));
 vi.mock("../src/components/harvest/HarvestScene", () => ({

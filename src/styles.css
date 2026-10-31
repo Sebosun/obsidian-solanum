@@ -47,7 +47,7 @@
   @apply sol:bg-(--background-secondary) sol:text-(--text-normal);
 }
 .solanum-scene {
-  @apply sol:relative sol:h-60 sol:rounded-[18px] sol:overflow-hidden;
+  @apply sol:relative sol:h-[300px] sol:rounded-xl sol:overflow-hidden;
   background:
     radial-gradient(ellipse at 50% 65%, #8eaf7f29, transparent 70%), var(--background-secondary);
 }

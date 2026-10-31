@@ -1,16 +1,28 @@
 import { CROPS, type CropId } from "../../lib/crops/catalog";
+import { formatTime } from "../../lib/time";
 
-export function CropFallback({ crop, progress }: { crop: CropId; progress: number }) {
+export function CropFallback({
+  crop,
+  progress,
+  remaining,
+}: {
+  crop: CropId;
+  progress: number;
+  remaining: number;
+}) {
+  let symbol = "🫘";
+  if (progress >= 1) symbol = CROPS[crop].emoji;
+  else if (progress > 0.2) symbol = "🌱";
   return (
     <div
       className="solanum-crop-fallback sol:h-full sol:flex sol:flex-col sol:gap-3.5 sol:justify-center sol:items-center sol:text-(--text-muted)"
       role="img"
       aria-label={`${CROPS[crop].name} crop ${Math.round(progress * 100)}% grown`}
     >
-      <span aria-hidden="true">
-        {progress >= 1 ? CROPS[crop].emoji : progress > 0.2 ? "🌱" : "🫘"}
+      <span aria-hidden="true">{symbol}</span>
+      <span aria-hidden="true" className="solanum-fallback-time">
+        {formatTime(remaining)}
       </span>
-      <small>{progress >= 1 ? "Ready to harvest" : "Good things take focus"}</small>
     </div>
   );
 }
