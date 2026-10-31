@@ -54,3 +54,35 @@ test("changing the crop animates inside the same canvas without errors", async (
   await expect(page.getByRole("radio", { name: "Tomato" })).toHaveAttribute("aria-checked", "true");
   expect(errors).toEqual([]);
 });
+
+test("loading a crop for the first time never flashes a placeholder icon", async ({ page }) => {
+  // Slow models down so a placeholder would have time to show, if there were one.
+  await page.route("**/assets/crops/*.glb", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await route.continue();
+  });
+  // The canvas keeps its fallback markup for browsers without WebGL; it is never displayed.
+  const placeholderShown = () =>
+    page.evaluate(() =>
+      [...document.querySelectorAll(".solanum-crop-fallback")].some(
+        (element) => element.getBoundingClientRect().width > 0,
+      ),
+    );
+  await page.goto("/?view=timer");
+  await expect(page.locator(".solanum-scene canvas")).toBeVisible();
+  const watch = async (ms: number) => {
+    const until = Date.now() + ms;
+    while (Date.now() < until) {
+      expect(await placeholderShown()).toBe(false);
+      await page.waitForTimeout(50);
+    }
+  };
+  await watch(1200);
+  // Choosing a crop whose models are not loaded yet.
+  await page.getByRole("radio", { name: "Coconut" }).click();
+  await watch(2500);
+  // Starting, which needs the first growth stage.
+  await page.getByRole("button", { name: "Start focus" }).click();
+  await watch(2500);
+  await expect(page.getByRole("timer")).toBeVisible();
+});

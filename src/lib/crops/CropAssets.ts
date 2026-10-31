@@ -42,6 +42,13 @@ export class CropAssets {
     return entry.promise;
   }
 
+  /** Resolves once every model the crop can show is loaded, so it can appear without a gap. */
+  async ready(crop: CropId): Promise<void> {
+    const loads: Promise<unknown>[] = [1, 2, 3, 4].map((stage) => this.load(crop, stage));
+    if (produceModel(crop) !== null) loads.push(this.loadProduce(crop));
+    await Promise.all(loads);
+  }
+
   preload(crop: CropId): void {
     for (let stage = 1; stage <= 4; stage++) void this.load(crop, stage).catch(() => {});
     if (produceModel(crop) !== null) void this.loadProduce(crop).catch(() => {});

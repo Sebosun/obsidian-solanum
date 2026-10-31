@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Group } from "three";
 import type { CropId } from "@/lib/crops/catalog";
@@ -56,7 +56,9 @@ export function GrowingCrop({ crop, stage, moving, reduced }: GrowingCropProps) 
         value === 0 ? (
           <GrowthSeed key={value} transition={transition} />
         ) : (
-          <GrowthLayer key={value} stage={value} crop={crop} transition={transition} />
+          <Suspense key={value} fallback={null}>
+            <GrowthLayer stage={value} crop={crop} transition={transition} />
+          </Suspense>
         ),
       )}
     </group>

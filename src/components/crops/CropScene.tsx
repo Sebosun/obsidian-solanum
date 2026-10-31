@@ -12,6 +12,7 @@ import { CropFallback } from "@/components/crops/CropFallback";
 import { SeasonScenery } from "@/components/scene/SeasonScenery";
 import { SrLabel } from "@/components/app/SrLabel";
 import { SunClockFace } from "@/components/clock/SunClockFace";
+import { useReadyCrop } from "@/hooks/useReadyCrop";
 import { useSunClock } from "@/hooks/useSunClock";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { formatTime } from "@/lib/time";
@@ -60,6 +61,7 @@ export function CropScene({
   }, []);
   const labelId = useId();
   const timerLabelId = useId();
+  const shownCrop = useReadyCrop(crop);
   const clock = useSunClock(clockProgress, clockRate, reduced, visible);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
@@ -85,7 +87,8 @@ export function CropScene({
         reduced={reduced}
       />
       <SceneBoundary resetKey={crop} fallback={fallback}>
-        <Suspense fallback={fallback}>
+        {/* Nothing is drawn while models load: the placeholder is only for when WebGL fails. */}
+        <Suspense fallback={null}>
           <Canvas
             orthographic
             dpr={[1, 1.5]}
@@ -102,20 +105,16 @@ export function CropScene({
               daylightRef={clock.sun}
             />
             <CompletionFlourish reduced={reduced}>
-              <CropSwap crop={crop} reduced={reduced}>
-                {(planted) =>
-                  preview ? (
-                    <CropPreview key={planted} crop={planted} />
-                  ) : (
-                    <GrowingCrop
-                      key={planted}
-                      crop={planted}
-                      stage={stage}
-                      moving={moving}
-                      reduced={reduced}
-                    />
-                  )
-                }
+              <CropSwap crop={shownCrop} reduced={reduced}>
+                {(planted) => (
+                  <Suspense key={planted} fallback={null}>
+                    {preview ? (
+                      <CropPreview crop={planted} />
+                    ) : (
+                      <GrowingCrop crop={planted} stage={stage} moving={moving} reduced={reduced} />
+                    )}
+                  </Suspense>
+                )}
               </CropSwap>
             </CompletionFlourish>
           </Canvas>
