@@ -90,10 +90,6 @@
   @apply sol:h-full sol:w-full;
   transform-origin: left center;
 }
-/* Debug builds only: a way to force-finish a phase that fills the whole view. */
-.solanum-debug-shortcut {
-  @apply sol:fixed sol:bottom-2 sol:left-2 sol:z-10 sol:px-2 sol:py-1 sol:text-[11px] sol:opacity-60 sol:hover:opacity-100;
-}
 .solanum-clock-cell {
   @apply sol:relative sol:inline-block sol:h-[1em] sol:text-center;
 }
@@ -377,9 +373,9 @@
 .solanum-toolbar-actions {
   @apply sol:flex sol:items-center sol:gap-0.5;
 }
-/* Over the canvas, bottom left, clear of the progress bar along the very bottom. */
+/* Over the canvas, bottom right, clear of the progress bar along the very bottom. */
 .solanum-scene-controls {
-  @apply sol:absolute sol:left-3 sol:bottom-4 sol:z-10 sol:flex sol:items-center sol:gap-2;
+  @apply sol:absolute sol:right-3 sol:bottom-4 sol:z-10 sol:flex sol:items-center sol:gap-2;
 }
 .solanum-app .solanum-scene-controls .solanum-control {
   @apply sol:flex sol:items-center sol:justify-center sol:w-10 sol:h-10 sol:p-0 sol:rounded-full sol:shadow-none sol:border sol:border-solid sol:border-(--background-modifier-border) sol:bg-(--background-primary)/60 sol:text-(--text-muted) sol:opacity-70 sol:transition-[opacity,background-color];

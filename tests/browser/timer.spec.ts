@@ -77,6 +77,54 @@ test("the clock stays readable in a narrow immersive scene", async ({ page }, te
   await page.screenshot({ path: testInfo.outputPath("timer.png") });
 });
 
+for (const viewport of [
+  { width: 240, height: 800 },
+  { width: 320, height: 720 },
+  { width: 640, height: 420 },
+]) {
+  test(`running and paused use one full-view canvas with bottom-right actions at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/?view=timer");
+    const canvas = await page.locator(".solanum-scene canvas").elementHandle();
+    await page.getByRole("button", { name: "Start focus" }).click();
+    await settle(page);
+    for (const action of ["Pause", "Resume"]) {
+      await expect(page.getByRole("navigation")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Show timer controls" })).toHaveCount(0);
+      const frame = await page.locator(".solanum-scene").boundingBox();
+      const controls = await page.locator(".solanum-scene-controls").boundingBox();
+      expect(frame && controls).toBeTruthy();
+      expect(frame!.width).toBeGreaterThanOrEqual(viewport.width - 2);
+      expect(frame!.height).toBeGreaterThanOrEqual(viewport.height - 2);
+      expect(controls!.x + controls!.width / 2).toBeGreaterThan(frame!.x + frame!.width / 2);
+      expect(controls!.y).toBeGreaterThan(frame!.y + frame!.height / 2);
+      expect(controls!.x + controls!.width).toBeLessThan(frame!.x + frame!.width);
+      expect(await canvas?.evaluate((element) => element.isConnected)).toBe(true);
+      await expect(page.getByRole("button", { name: "End focus" })).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath(`${action.toLowerCase()}.png`) });
+      await page.getByRole("button", { name: action, exact: true }).click();
+    }
+    await page.getByRole("button", { name: "End focus" }).click();
+    await expect(page.getByRole("button", { name: "Start focus" })).toBeVisible();
+  });
+}
+
+test.describe("touch controls", () => {
+  test.use({ hasTouch: true });
+
+  test("pauses and stops without leaving the full-view scene", async ({ page }) => {
+    await page.goto("/?view=timer");
+    await page.getByRole("button", { name: "Start focus" }).tap();
+    await page.getByRole("button", { name: "Pause", exact: true }).tap();
+    await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
+    await expect(page.getByRole("navigation")).toHaveCount(0);
+    await page.getByRole("button", { name: "End focus" }).tap();
+    await expect(page.getByRole("button", { name: "Start focus" })).toBeVisible();
+  });
+});
+
 test("a light, reduced-motion sidebar keeps keyboard controls accessible", async ({
   page,
 }, testInfo) => {
@@ -90,7 +138,8 @@ test("a light, reduced-motion sidebar keeps keyboard controls accessible", async
   await page.getByRole("button", { name: "Start focus" }).click();
   await expect(page.getByRole("timer")).toHaveText("25:00");
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
-  await page.getByRole("button", { name: "Pause" }).click();
+  await page.getByRole("button", { name: "Pause" }).focus();
+  await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("timer-light.png") });
 });
@@ -178,12 +227,12 @@ test("the break is a cat asleep beside a steaming mug, and it moves", async ({ p
   await expect
     .poll(async () => changedPixels(page, first, await scene.screenshot(), 12), { timeout: 10_000 })
     .toBeGreaterThan(20);
-  // The break fills the view, like the focus, with its controls (pause, skip) in the scene's bottom left.
+  // The break fills the view, like the focus, with its controls (pause, skip) in the scene's bottom right.
   const skip = page.getByRole("button", { name: "Skip break" });
   await expect(skip).toBeVisible();
   const frame = await page.locator(".solanum-scene").boundingBox();
   const button = await skip.boundingBox();
-  expect(frame && button && button.x < frame.x + frame.width / 2).toBe(true);
+  expect(frame && button && button.x > frame.x + frame.width / 2).toBe(true);
   expect(frame && button && button.y > frame.y + frame.height / 2).toBe(true);
   expect(errors).toEqual([]);
 });

@@ -2,7 +2,6 @@ import type { Screen } from "@/types/host";
 import { useFocusMode } from "@/hooks/useFocusMode";
 import { useAppStore, useServices } from "@/state/hooks";
 import { DebugPanel } from "@/components/debug/DebugPanel";
-import { DebugShortcut } from "@/components/debug/DebugShortcut";
 import { TimerPanel } from "@/components/timer/TimerPanel";
 import { HarvestPanel } from "@/components/harvest/HarvestPanel";
 import { SettingsMenu } from "@/components/app/SettingsMenu";
@@ -42,7 +41,7 @@ export function AppContent({ screen, initialMonth }: AppContentProps) {
       {chrome && error && <ErrorNotice message={error} onDismiss={clearError} />}
       {chrome && <SyncConflicts />}
       {content}
-      {debugEnabled && (immersive ? <DebugShortcut /> : <DebugPanel />)}
+      {debugEnabled && chrome && <DebugPanel />}
     </main>
   );
 }

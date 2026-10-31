@@ -155,7 +155,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     expect(f.host.navigate).toHaveBeenCalledWith("timer");
   });
-  it("seeds demo history and finishes an active simulated crop from the debug panel", async () => {
+  it("seeds demo history and handles simulated completion without a timer shortcut", async () => {
     const f = fixture(true);
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByText("Debug tools · simulated data"));
@@ -164,28 +164,30 @@ describe("sidebar workflows backed by the real timer service", () => {
     await waitFor(() => expect(f.host.timer.getState().sessions.length).toBeGreaterThan(10));
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await sessionRunning();
-    // The full view keeps only the debug shortcut, which is enough to finish the focus.
-    fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
+    const current = f.host.timer.getState().sessions.find((s) => s.source === "debug")!;
+    await act(() => f.host.timer.debugFinish(current.sessionId));
     await screen.findByRole("button", { name: "Start break" });
     expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe("break");
   });
 
-  it("keeps the debug shortcut within reach while a phase fills the view, so a simulated break can be finished", async () => {
+  it("keeps only scene actions while running and paused, even in debug builds", async () => {
     const f = fixture(true);
     render(<App host={f.host} screen="timer" />);
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     await sessionRunning();
-    // The focus fills the view, yet force-finishing it needs no digging for the controls.
     expect(screen.queryByText("Debug tools · simulated data")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Finish focus now" }));
-    await screen.findByRole("button", { name: "Start break" });
-    fireEvent.click(screen.getByRole("button", { name: "Start break" }));
+    expect(screen.queryByRole("button", { name: /Finish .* now/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await screen.findByRole("button", { name: "Resume" });
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show timer controls" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Finish .* now/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
     await sessionRunning();
-    expect(screen.queryByRole("navigation")).toBeNull(); // the break fills the view
-    fireEvent.click(screen.getByRole("button", { name: "Finish break now" }));
+    fireEvent.click(screen.getByRole("button", { name: "End focus" }));
     await waitFor(() =>
-      expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.phase).toBe(
-        "done",
+      expect(f.host.timer.getState().sessions.find((s) => s.source === "debug")?.status).toBe(
+        "cancelled",
       ),
     );
   });
