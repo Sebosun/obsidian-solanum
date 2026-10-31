@@ -30,6 +30,7 @@ const context = await esbuild.context({
     __SOLANUM_AUTO_FINISH_SECONDS__: JSON.stringify(autoFinishSeconds),
     "process.env.NODE_ENV": JSON.stringify(production ? "production" : "development"),
   },
+  loader: { ".woff2": "dataurl" },
   logLevel: "info",
 });
 

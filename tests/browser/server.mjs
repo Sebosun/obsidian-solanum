@@ -13,6 +13,7 @@ const context = await esbuild.context({
   platform: "browser",
   format: "esm",
   outfile: `${directory}/bundle.js`,
+  loader: { ".woff2": "dataurl" },
   define: { "process.env.NODE_ENV": '"development"' },
 });
 await context.serve({ servedir: directory, host: "127.0.0.1", port: 45173 });

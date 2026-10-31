@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { Vector3 } from "three";
-import { sunClockPlacement, sunState } from "@/lib/scene/sunClock";
-import { SUN_CLOCK, TIMER_SCENE } from "@/lib/scene/constants";
+import { sunState } from "@/lib/scene/sunClock";
+import { SUN_CLOCK } from "@/lib/scene/constants";
 
 const channel = (hex: number) => ({ r: (hex >> 16) & 255, g: (hex >> 8) & 255, b: hex & 255 });
 const samples = Array.from({ length: 21 }, (_, i) => i / 20);
@@ -67,25 +66,5 @@ describe("where the sun is as the session runs", () => {
   it("lights the scene from where the sun is, and from higher when it is high", () => {
     expect(sunState(0.5).lightPosition[1]).toBeGreaterThan(sunState(0).lightPosition[1]);
     expect(sunState(0).lightPosition[0]).toBeLessThan(sunState(1).lightPosition[0]);
-  });
-});
-
-describe("where the clock hangs behind the crop", () => {
-  const direction = new Vector3(...TIMER_SCENE.direction).normalize();
-  const placement = sunClockPlacement();
-  const position = new Vector3(...placement.position);
-
-  it("sits behind the plot, along the line of sight", () => {
-    const centre = new Vector3(...TIMER_SCENE.target);
-    expect(position.clone().sub(centre).dot(direction)).toBeLessThan(-1);
-  });
-
-  it("faces the camera and stays upright, so the arc and digits read flat on screen", () => {
-    const quaternion = placement.quaternion;
-    const facing = new Vector3(0, 0, 1).applyQuaternion(quaternion);
-    expect(facing.dot(direction)).toBeCloseTo(1, 6);
-    const up = new Vector3(0, 1, 0).applyQuaternion(quaternion);
-    expect(up.y).toBeGreaterThan(0.8);
-    expect(Math.abs(up.dot(direction))).toBeLessThan(1e-6);
   });
 });

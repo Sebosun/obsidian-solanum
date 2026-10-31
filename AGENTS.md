@@ -26,7 +26,7 @@
 ## UI and Three.js
 
 - Keep the sidebar minimal: no branding block, motivational copy, instructional paragraphs, or duplicate countdown. Preferences live in Obsidian settings, reached from the top-right icon menu.
-- Render the countdown in the Three.js layer using bundled typography. Frame crops and text for narrow, tall, and short sidebars, not just one viewport.
+- Render the countdown in the page, in a layer behind the transparent Three.js canvas so no scene effect can cross it, using bundled typography. Frame crops and text for narrow, tall, and short sidebars, not just one viewport.
 - Keep pause/end controls accessible through a discreet reveal affordance and Escape. Respect reduced motion and provide a readable non-WebGL fallback.
 - Empty, loading, failed, and filtered-empty harvests are distinct states. A loading indicator must have a bounded wait and a recovery path.
 - Clone materials before instance-specific animation; dispose owned resources without disposing shared GLTF data. Growth transitions stay grounded; completion effects play once for a new live harvest, not restored history.

@@ -1,44 +1,51 @@
 export const TIMER_SCENE = {
   direction: [3, 2.4, 4],
-  /** Centre of the plot and crop, which the camera looks at before the clock is added to the frame. */
+  /** Centre of the plot and crop, which the camera looks at. */
   target: [0, 0.25, 0],
   bounds: { min: [-1.05, -0.85, -1.05], max: [1.05, 1.35, 1.05] },
   padding: 1.08,
+  /**
+   * Where the middle of the plot sits on screen, as a fraction of the scene's height from the top.
+   * The sky with the clock hangs above it, so the plot sits low and the sky gets the upper part.
+   */
+  plotCenter: 0.6,
   cameraDistance: 10,
   near: 0.1,
   far: 100,
 } as const;
 
-/** Countdown text: size is in world units, set by the sun clock. */
-export const CLOCK_TYPOGRAPHY = {
-  depth: 0,
-  curveSegments: 8,
-} as const;
-
 /**
- * The clock that hangs behind the crop: a sun crossing an arc, with the time as large faint digits.
- * Lengths are world units; the board is measured in the camera's own screen plane.
+ * The clock drawn in the page behind the 3D scene: a sun crossing an arc, with the time as large
+ * faint digits. Lengths are clock units, with y pointing up from the arc's base line; the board
+ * is scaled to the scene's size, so it keeps its proportions at any resolution.
  */
 export const SUN_CLOCK = {
   arcRadiusX: 3.8,
   arcRadiusY: 3.6,
-  /** Where the arc's base line sits, above the plot's centre. */
-  baseY: 0.5,
-  /** How far behind the plot, along the line of sight. Only the order in front matters. */
-  depth: 3.5,
-  /** Everything the clock draws, relative to the plot's centre on screen, for framing the camera. */
-  boardHalfWidth: 4.3,
-  boardBottom: -0.5,
-  boardTop: 4.8,
+  arcDots: 40,
+  /** What the board shows: half its width, and its top and bottom relative to the base line. */
+  board: { halfWidth: 4.8, top: 4.8, bottom: -1 },
+  /** Where the arc's base line sits, as a fraction of the scene's height from the top. */
+  baselineFraction: 0.56,
+  /** Space kept free above the board, as a fraction of the scene's height. */
+  topMargin: 0.03,
+  /** Size of the digits (their em) and the height of their base line above the arc's. */
   digitSize: 1.1,
   digitY: 1.7,
-  arcDots: 40,
+  /** Each character has a cell of fixed width, in ems, so changing digits never shift the row. */
+  digitCell: { digit: 0.66, colon: 0.3 },
   /** Layers of the sun disc: radius and opacity at full brightness. */
   sunLayers: [
     { radius: 0.34, opacity: 0.95 },
     { radius: 0.62, opacity: 0.22 },
     { radius: 0.95, opacity: 0.09 },
   ],
+  /** Arc dots: radius and opacity, for every tenth and for the rest. */
+  arcDot: {
+    major: { radius: 0.08, opacity: 0.4 },
+    minor: { radius: 0.04, opacity: 0.22 },
+    majorEvery: 10,
+  },
   /** What is left of the sun's strength as time runs out. */
   endBrightness: 0.08,
   endScale: 0.72,
@@ -49,7 +56,7 @@ export const SUN_CLOCK = {
   digitOpacity: { start: 0.34, end: 0.22 },
   /** How quickly the drawn sun catches up with where the clock says it should be, per second. */
   smoothing: 6,
-  /** A digit that changes rolls out downwards and the new one drops in from above. */
+  /** A digit that changes rolls out downwards and the new one drops in from above, in ems. */
   digitRoll: { seconds: 0.45, travel: 0.55 },
 } as const;
 

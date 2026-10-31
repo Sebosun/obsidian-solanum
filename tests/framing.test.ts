@@ -1,14 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { OrthographicCamera, Vector3 } from "three";
+import { Box3, OrthographicCamera, Vector3 } from "three";
 import { fitTimerCamera } from "@/lib/scene/framing";
-import { SUN_CLOCK, TIMER_SCENE } from "@/lib/scene/constants";
-
-/** A point on the clock's board, which hangs at a fixed place in the world, in the camera's screen plane. */
-function boardPoint(camera: OrthographicCamera, x: number, y: number): Vector3 {
-  const right = new Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-  const up = new Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-  return new Vector3(...TIMER_SCENE.target).addScaledVector(right, x).addScaledVector(up, y);
-}
+import { TIMER_SCENE } from "@/lib/scene/constants";
 
 const SIZES: [number, number][] = [
   [160, 900],
@@ -18,57 +11,55 @@ const SIZES: [number, number][] = [
   [900, 900],
 ];
 
+/** The plot as it appears on screen, in normalised device coordinates. */
+function plotOnScreen(camera: OrthographicCamera): Box3 {
+  const box = new Box3();
+  for (const x of [TIMER_SCENE.bounds.min[0], TIMER_SCENE.bounds.max[0]])
+    for (const y of [TIMER_SCENE.bounds.min[1], TIMER_SCENE.bounds.max[1]])
+      for (const z of [TIMER_SCENE.bounds.min[2], TIMER_SCENE.bounds.max[2]])
+        box.expandByPoint(new Vector3(x, y, z).project(camera));
+  return box;
+}
+
 describe("sidebar camera framing", () => {
-  it.each(SIZES)(
-    "keeps the plot, the crop and the whole sun clock in view at %ix%i",
-    (width, height) => {
-      const camera = new OrthographicCamera();
-      fitTimerCamera(camera, { width, height });
-      const visible = (point: Vector3) => {
-        const projected = point.project(camera);
-        expect(Math.abs(projected.x)).toBeLessThanOrEqual(1);
-        expect(Math.abs(projected.y)).toBeLessThanOrEqual(1);
-      };
-      for (const x of [TIMER_SCENE.bounds.min[0], TIMER_SCENE.bounds.max[0]])
-        for (const y of [TIMER_SCENE.bounds.min[1], TIMER_SCENE.bounds.max[1]])
-          for (const z of [TIMER_SCENE.bounds.min[2], TIMER_SCENE.bounds.max[2]])
-            visible(new Vector3(x, y, z));
-      for (const x of [-SUN_CLOCK.boardHalfWidth, SUN_CLOCK.boardHalfWidth])
-        for (const y of [SUN_CLOCK.boardBottom, SUN_CLOCK.boardTop])
-          visible(boardPoint(camera, x, y));
-    },
-  );
+  it.each(SIZES)("keeps the whole plot and crop in view at %ix%i", (width, height) => {
+    const camera = new OrthographicCamera();
+    fitTimerCamera(camera, { width, height });
+    const box = plotOnScreen(camera);
+    for (const value of [box.min.x, box.max.x, box.min.y, box.max.y])
+      expect(Math.abs(value)).toBeLessThanOrEqual(1);
+  });
+
+  it.each(SIZES)("holds the plot low and centred, under the sky, at %ix%i", (width, height) => {
+    const camera = new OrthographicCamera();
+    fitTimerCamera(camera, { width, height });
+    const centre = plotOnScreen(camera).getCenter(new Vector3());
+    expect(centre.x).toBeCloseTo(0, 6);
+    // NDC y runs up, the plot's centre is this fraction of the height down from the top.
+    expect(centre.y).toBeCloseTo(1 - 2 * TIMER_SCENE.plotCenter, 6);
+  });
 
   it.each(SIZES)(
-    "fills the scene rather than leaving it mostly empty at %ix%i",
+    "fills the room it has rather than leaving it mostly empty at %ix%i",
     (width, height) => {
       const camera = new OrthographicCamera();
       fitTimerCamera(camera, { width, height });
-      const left = camera
-        .localToWorld(new Vector3(-SUN_CLOCK.boardHalfWidth, 0, -TIMER_SCENE.cameraDistance))
-        .project(camera);
-      const top = camera
-        .localToWorld(new Vector3(0, SUN_CLOCK.boardTop, -TIMER_SCENE.cameraDistance))
-        .project(camera);
-      const bottom = camera
-        .localToWorld(new Vector3(0, SUN_CLOCK.boardBottom, -TIMER_SCENE.cameraDistance))
-        .project(camera);
-      // The limiting dimension uses most of the scene.
-      const usedWidth = Math.abs(left.x);
-      const usedHeight = Math.max(Math.abs(top.y), Math.abs(bottom.y));
+      const box = plotOnScreen(camera);
+      const usedWidth = (box.max.x - box.min.x) / 2;
+      const room = 2 * Math.min(TIMER_SCENE.plotCenter, 1 - TIMER_SCENE.plotCenter);
+      const usedHeight = (box.max.y - box.min.y) / 2 / room;
       expect(Math.max(usedWidth, usedHeight)).toBeGreaterThan(0.85);
     },
   );
 
-  it("centres the framed area on screen", () => {
-    const camera = new OrthographicCamera();
-    fitTimerCamera(camera, { width: 320, height: 720 });
-    const leftEdge = camera
-      .localToWorld(new Vector3(-SUN_CLOCK.boardHalfWidth, 0, -TIMER_SCENE.cameraDistance))
-      .project(camera);
-    const rightEdge = camera
-      .localToWorld(new Vector3(SUN_CLOCK.boardHalfWidth, 0, -TIMER_SCENE.cameraDistance))
-      .project(camera);
-    expect(leftEdge.x + rightEdge.x).toBeCloseTo(0, 6);
+  it("frames the plot the same way whatever the scene's resolution, only scaled", () => {
+    const small = new OrthographicCamera();
+    const large = new OrthographicCamera();
+    fitTimerCamera(small, { width: 300, height: 600 });
+    fitTimerCamera(large, { width: 600, height: 1200 });
+    const a = plotOnScreen(small);
+    const b = plotOnScreen(large);
+    expect(b.min.x).toBeCloseTo(a.min.x, 6);
+    expect(b.max.y).toBeCloseTo(a.max.y, 6);
   });
 });

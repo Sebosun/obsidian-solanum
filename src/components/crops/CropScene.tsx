@@ -8,9 +8,10 @@ import { CropSwap } from "@/components/scene/CropSwap";
 import { GrowingCrop } from "@/components/scene/GrowingCrop";
 import { SceneBoundary } from "@/components/scene/SceneBoundary";
 import { CropFallback } from "@/components/crops/CropFallback";
-import { TimerSky } from "@/components/scene/TimerSky";
+import { SeasonScenery } from "@/components/scene/SeasonScenery";
+import { SunClockFace } from "@/components/clock/SunClockFace";
+import { useSunClock } from "@/hooks/useSunClock";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useSceneColor } from "@/hooks/useSceneColor";
 import { formatTime } from "@/lib/time";
 import { CompletionFlourish } from "@/components/scene/CompletionFlourish";
 import { TimerCamera } from "@/components/scene/TimerCamera";
@@ -45,7 +46,6 @@ export function CropScene({
   season,
 }: CropSceneProps) {
   const container = useRef<HTMLDivElement>(null);
-  const color = useSceneColor(container);
   const [visible, setVisible] = useState(true);
   const reduced = useReducedMotion();
   useEffect(() => {
@@ -53,6 +53,7 @@ export function CropScene({
     if (container.current) observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
+  const clock = useSunClock(clockProgress, clockRate, reduced, visible);
   const stage = cropStage(progress);
   const moving = running && visible && !reduced;
   // Weather keeps drifting while the scene is on screen, even before a crop is planted.
@@ -64,12 +65,18 @@ export function CropScene({
     "--season-sun": theme.css.sun,
     "--dusk": sun.dusk,
   };
-  const fallback = <CropFallback crop={crop} progress={progress} remaining={remaining} />;
+  const fallback = <CropFallback crop={crop} progress={progress} />;
   const classes = ["solanum-scene", `is-${season}`];
   if (progress >= 1) classes.push("is-mature");
   if (immersive) classes.push("is-immersive");
   return (
     <div ref={container} className={classes.join(" ")} style={seasonStyle}>
+      <SunClockFace
+        clock={clock}
+        progress={clockProgress}
+        remaining={remaining}
+        reduced={reduced}
+      />
       <SceneBoundary resetKey={crop} fallback={fallback}>
         <Suspense fallback={fallback}>
           <Canvas
@@ -80,14 +87,11 @@ export function CropScene({
             aria-label="Growing crop"
           >
             <TimerCamera />
-            <TimerSky
+            <SeasonScenery
               season={season}
               animate={animate}
-              reduced={reduced}
-              progress={clockProgress}
-              rate={clockRate}
-              remaining={remaining}
-              color={color}
+              daylight={sun}
+              daylightRef={clock.sun}
             />
             <CompletionFlourish reduced={reduced}>
               <CropSwap crop={crop} reduced={reduced}>

@@ -1,6 +1,4 @@
-import type { Quaternion } from "three";
-import { Object3D, Vector3 } from "three";
-import { SUN_CLOCK, TIMER_SCENE } from "@/lib/scene/constants";
+import { SUN_CLOCK } from "@/lib/scene/constants";
 
 export interface SunState {
   /** How far through the phase this state is, clamped to 0 to 1. */
@@ -63,19 +61,4 @@ export function sunState(progress: number): SunState {
     lightPosition: [x * LIGHT_REACH.x, LIGHT_REACH.base + y * LIGHT_REACH.height, LIGHT_REACH.z],
     dusk: p ** DUSK_CURVE,
   };
-}
-
-/** Where the clock hangs: behind the plot, turned to face the camera, base line above the plot. */
-export function sunClockPlacement(): {
-  position: [number, number, number];
-  quaternion: Quaternion;
-} {
-  const direction = new Vector3(...TIMER_SCENE.direction).normalize();
-  const facing = new Object3D();
-  facing.lookAt(direction);
-  const up = new Vector3(0, 1, 0).applyQuaternion(facing.quaternion);
-  const position = new Vector3(...TIMER_SCENE.target)
-    .addScaledVector(up, SUN_CLOCK.baseY)
-    .addScaledVector(direction, -SUN_CLOCK.depth);
-  return { position: [position.x, position.y, position.z], quaternion: facing.quaternion.clone() };
 }
