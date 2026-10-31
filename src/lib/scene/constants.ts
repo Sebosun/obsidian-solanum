@@ -65,6 +65,8 @@ export const HARVEST_BLOCKS = {
   maxBlocks: 144,
   minColumns: 6,
   maxColumns: 12,
+  /** A month with nothing in it still shows a plinth this many blocks deep. */
+  emptyRows: 3,
   /** Columns follow √(blocks × this), which keeps the grid a little wider than deep. */
   columnSpread: 1.6,
   topThickness: 0.07,

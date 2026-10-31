@@ -101,3 +101,27 @@ test("hovering the 3D views never pops up a label", async ({ page }) => {
   // The scenes keep their names for assistive technology.
   await expect(page.getByRole("img", { name: "Growing crop" })).toBeVisible();
 });
+
+test("an empty month and an empty year still show the 3D view, with nothing on it", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/");
+  await expectBlocksLoaded(page);
+  // The history in the harness ends in October 2026: November is empty.
+  await page.getByRole("button", { name: "Next month" }).click();
+  await expect(page.getByText("No harvests in November 2026 yet.")).toBeVisible();
+  await expectBlocksLoaded(page);
+  await expect(page.locator(".solanum-harvest-scene canvas")).toBeVisible();
+  // It is not the flat message of old.
+  await expect(page.getByText("No harvests yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Month summary" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start focus" })).toBeVisible();
+  // And an empty year shows its crates, as before.
+  await page.getByRole("button", { name: "Year" }).click();
+  await page.getByRole("button", { name: "Next year" }).click();
+  await expect(page.getByText("No harvests in 2027 yet.")).toBeVisible();
+  await expectBlocksLoaded(page);
+  expect(errors).toEqual([]);
+});

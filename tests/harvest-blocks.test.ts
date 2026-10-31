@@ -55,7 +55,9 @@ describe("one block per harvest", () => {
 
   it("is an empty layout for a month with nothing finished", () => {
     const layout = layoutHarvestBlocks([stopped("a", at(5), 20)], OCTOBER, {}, NOW);
-    expect(layout).toMatchObject({ blocks: [], total: 0, rows: 0 });
+    // Nothing to put on it, but the plinth is a real one: a few rows deep, not a sliver.
+    expect(layout).toMatchObject({ blocks: [], total: 0 });
+    expect(layout.rows).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -168,5 +170,33 @@ describe("the month in numbers", () => {
       crops: { tomato: 0, carrot: 0, corn: 0, pumpkin: 0, coconut: 0 },
       tags: [],
     });
+  });
+});
+
+describe("an empty month", () => {
+  it("still has a plinth to show: a real grid with nothing on it, not a sliver", () => {
+    const empty = layoutHarvestBlocks([], OCTOBER, {}, NOW);
+    expect(empty.blocks).toEqual([]);
+    expect(empty.total).toBe(0);
+    expect(empty.columns).toBeGreaterThanOrEqual(6);
+    expect(empty.rows).toBeGreaterThanOrEqual(3);
+  });
+
+  it("looks the same whether no session exists or none finished that month", () => {
+    const none = layoutHarvestBlocks([], OCTOBER, {}, NOW);
+    const stoppedOnly = layoutHarvestBlocks([stopped("s", at(3), 25)], OCTOBER, {}, NOW);
+    const filteredOut = layoutHarvestBlocks(
+      [focusSession("a", at(3), 25, { tags: ["x"] })],
+      OCTOBER,
+      { tag: "other" },
+      NOW,
+    );
+    expect(stoppedOnly).toEqual(none);
+    expect(filteredOut).toEqual(none);
+  });
+
+  it("does not change the size of a month that has harvests", () => {
+    const one = layoutHarvestBlocks([focusSession("a", at(3), 25)], OCTOBER, {}, NOW);
+    expect(one.rows).toBe(1);
   });
 });

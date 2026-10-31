@@ -10,6 +10,7 @@ import { useServices } from "@/state/hooks";
 import { SrLabel } from "@/components/app/SrLabel";
 import { SceneBoundary } from "@/components/stage/SceneBoundary";
 import { SeasonLights } from "@/components/stage/SeasonLights";
+import { EmptyPlots } from "@/components/models/EmptyPlots";
 import { HarvestBlockMesh } from "@/components/models/HarvestBlockMesh";
 import { HarvestLoading } from "@/components/harvest/HarvestLoading";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
@@ -75,6 +76,9 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
                   <boxGeometry args={[width, PLINTH_HEIGHT, depth]} />
                   <meshStandardMaterial color={PLINTH} roughness={1} />
                 </mesh>
+                {layout.total === 0 && (
+                  <EmptyPlots columns={layout.columns} rows={layout.rows} season={season} />
+                )}
                 {layout.blocks.map((block, index) => (
                   <HarvestBlockMesh key={block.key} block={block} index={index} reduced={reduced} />
                 ))}

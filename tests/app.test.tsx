@@ -159,11 +159,13 @@ function fixture(debug = false) {
 }
 
 describe("sidebar workflows backed by the real timer service", () => {
-  it("shows an actionable empty month instead of mounting a loading farm", () => {
+  it("shows an empty month as the 3D view with nothing on it, and a way to start focusing", () => {
     const f = fixture();
     render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-    expect(screen.getByText("No harvests yet")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "2026-10-31" })).toBeNull();
+    const scene = screen.getByRole("img", { name: "Month blocks" });
+    expect(scene.getAttribute("data-blocks")).toBe("0");
+    expect(screen.getByText("No harvests in October 2026 yet.")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Month summary" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Start focus" }));
     expect(f.host.navigate).toHaveBeenCalledWith("timer");
   });
@@ -686,12 +688,20 @@ describe("sidebar workflows backed by the real timer service", () => {
         target: { value: "work/client" },
       });
       expect(screen.getByText("0 min this month")).toBeTruthy();
-      expect(screen.getByText("No matching harvests")).toBeTruthy();
-      expect(screen.queryByRole("img", { name: "Month blocks" })).toBeNull();
+      expect(screen.getByText(/No matching harvests this month/)).toBeTruthy();
+      // The 3D view stays, with nothing on it, rather than giving way to a message.
+      expect(screen.getByRole("img", { name: "Month blocks" }).getAttribute("data-blocks")).toBe(
+        "0",
+      );
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-      expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
+      expect(
+        Number(screen.getByRole("img", { name: "Month blocks" }).getAttribute("data-blocks")),
+      ).toBeGreaterThan(0);
       fireEvent.click(screen.getByRole("button", { name: "Next month" }));
-      expect(screen.getByText("No harvests yet")).toBeTruthy();
+      expect(screen.getByText("No harvests in November 2026 yet.")).toBeTruthy();
+      expect(screen.getByRole("img", { name: "Month blocks" }).getAttribute("data-blocks")).toBe(
+        "0",
+      );
       fireEvent.click(screen.getByRole("button", { name: "Previous month" }));
       expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
     });
@@ -733,7 +743,8 @@ describe("sidebar workflows backed by the real timer service", () => {
       f.advance(5 * 60_000);
       await f.host.timer.cancel(id);
       render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
-      expect(screen.getByText("No harvests yet")).toBeTruthy();
+      expect(screen.getByText("No harvests in October 2026 yet.")).toBeTruthy();
+      expect(screen.getByRole("img", { name: "Month blocks" })).toBeTruthy();
     });
   });
 
@@ -774,7 +785,6 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByRole("heading", { name: "2027" })).toBeTruthy();
       expect(monthButtons()).toHaveLength(12);
       expect(screen.getByText("No harvests in 2027 yet.")).toBeTruthy();
-      expect(screen.queryByText("No harvests yet")).toBeNull();
       fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
       expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
     });
@@ -789,7 +799,7 @@ describe("sidebar workflows backed by the real timer service", () => {
         expect(back()).toBeNull(); // already on the current month
         fireEvent.click(screen.getByRole("button", { name: "Next month" }));
         fireEvent.click(screen.getByRole("button", { name: "Next month" }));
-        expect(screen.getByText("No harvests yet")).toBeTruthy();
+        expect(screen.getByText("No harvests in December 2026 yet.")).toBeTruthy();
         fireEvent.click(back()!);
         expect(screen.getByRole("heading", { name: /October 2026/ })).toBeTruthy();
         expect(back()).toBeNull();

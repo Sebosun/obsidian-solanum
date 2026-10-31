@@ -1,11 +1,11 @@
-import { useMemo, useState } from "react";
-import { useAppStore } from "@/state/hooks";
+import { useMemo, useState, type ReactNode } from "react";
+import { useAppStore, useServices } from "@/state/hooks";
 import { harvestFilterOptions } from "@/lib/harvest/filters";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
 import { layoutYearStacks, summarizeYear } from "@/lib/harvest/year";
 import { resolveSeason } from "@/lib/scene/seasons";
 import { formatFocus } from "@/lib/time";
-import { HarvestEmpty } from "@/components/harvest/HarvestEmpty";
+import { HarvestCaption, type HarvestCaptionAction } from "@/components/harvest/HarvestCaption";
 import { HarvestFilters } from "@/components/harvest/HarvestFilters";
 import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
 import { HarvestMonthSummary } from "@/components/harvest/HarvestMonthSummary";
@@ -20,6 +20,7 @@ interface HarvestPanelProps {
 const MONTHS_PER_YEAR = 12;
 
 export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
+  const services = useServices();
   const history = useAppStore((state) => state.sessions);
   const conflicts = useAppStore((state) => state.conflicts);
   const seasonChoice = useAppStore((state) => state.season);
@@ -69,22 +70,29 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
     setMonth(new Date(year, index, 1));
     setView("month");
   }
+  function openTimer() {
+    services.navigate("timer");
+  }
   function clearFilters() {
     setTag("");
     setNotePath("");
   }
 
   const filtered = !!tag || !!notePath;
-  let content = <HarvestEmpty filtered={filtered} onClearFilters={clearFilters} />;
+  const clearAction = { label: "Clear filters", run: clearFilters };
+  const startAction = { label: "Start focus", run: openTimer };
+  let content: ReactNode;
   if (view === "year") {
     // An empty year still shows its twelve crates, just empty ones.
     const busiest = yearLayout.stacks.find((stack) => stack.busiest);
     let caption = `Each crate stands for ${formatFocus(yearLayout.crateMinutes)} of focus.`;
+    let action: HarvestCaptionAction | undefined;
     if (busiest) {
       const name = yearMonths[busiest.index].date.toLocaleDateString(undefined, { month: "long" });
       caption += ` Busiest: ${name}, ${formatFocus(busiest.minutes)}.`;
     } else {
       caption = filtered ? "No matching harvests this year." : `No harvests in ${year} yet.`;
+      if (filtered) action = clearAction;
     }
     content = (
       <>
@@ -94,24 +102,30 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           layout={yearLayout}
           onOpenMonth={openMonth}
         />
-        <p className="solanum-hint solanum-scene-caption">
-          {caption}
-          {!busiest && filtered && (
-            <>
-              {" "}
-              <button className="solanum-subtle" onClick={clearFilters}>
-                Clear filters
-              </button>
-            </>
-          )}
-        </p>
+        <HarvestCaption text={caption} action={action} />
       </>
     );
-  } else if (total > 0 && layout) {
+  } else if (layout) {
+    // An empty month still shows its plinth, with nothing on it, rather than giving way to a message.
+    const empty = total === 0;
+    const monthName = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
     content = (
       <>
         <HarvestMonthScene layout={layout} season={resolveSeason(seasonChoice, month)} />
-        <HarvestMonthSummary summary={summary} shown={layout.blocks.length} total={layout.total} />
+        {empty ? (
+          <HarvestCaption
+            text={
+              filtered ? "No matching harvests this month." : `No harvests in ${monthName} yet.`
+            }
+            action={filtered ? clearAction : startAction}
+          />
+        ) : (
+          <HarvestMonthSummary
+            summary={summary}
+            shown={layout.blocks.length}
+            total={layout.total}
+          />
+        )}
       </>
     );
   }

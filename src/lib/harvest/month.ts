@@ -106,7 +106,7 @@ export function layoutHarvestBlocks(
       Math.ceil(Math.sqrt(kept.length * HARVEST_BLOCKS.columnSpread)),
     ),
   );
-  const rows = Math.ceil(kept.length / columns);
+  const rows = kept.length === 0 ? HARVEST_BLOCKS.emptyRows : Math.ceil(kept.length / columns);
   const blocks = kept.map(({ session, minutes }, index): HarvestBlock => {
     const column = index % columns;
     const row = Math.floor(index / columns);
