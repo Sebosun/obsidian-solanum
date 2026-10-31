@@ -18,9 +18,13 @@ export class SolanumView extends ItemView {
   constructor(
     leaf: WorkspaceLeaf,
     private host: SolanumHost,
-    private screen: Screen,
   ) {
     super(leaf);
+  }
+
+  // ItemView reads metadata during super(), before instance fields exist.
+  protected get screen(): Screen {
+    return "timer";
   }
 
   getViewType(): string {
@@ -45,5 +49,11 @@ export class SolanumView extends ItemView {
   async onClose(): Promise<void> {
     this.root?.unmount();
     this.root = null;
+  }
+}
+
+export class HarvestView extends SolanumView {
+  protected override get screen(): Screen {
+    return "harvest";
   }
 }

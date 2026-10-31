@@ -1,5 +1,10 @@
 import { Notice, Plugin, TFile, type App, type TAbstractFile } from "obsidian";
-import { SolanumView, VIEW_TYPE_SOLANUM, VIEW_TYPE_HARVEST } from "@/views/SolanumView";
+import {
+  HarvestView,
+  SolanumView,
+  VIEW_TYPE_SOLANUM,
+  VIEW_TYPE_HARVEST,
+} from "@/views/SolanumView";
 import { TimerService } from "@/lib/timer/TimerService";
 import { VaultSessionStore } from "@/lib/storage/VaultSessionStore";
 import { parseSessionFolder } from "@/lib/storage/folder";
@@ -130,8 +135,8 @@ export default class SolanumPlugin extends Plugin implements SolanumHost, Settin
       write: (days) => this.writeLiveDayNotes(days),
     });
     this.liveDayNotes.start();
-    this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this, "timer"));
-    this.registerView(VIEW_TYPE_HARVEST, (leaf) => new SolanumView(leaf, this, "harvest"));
+    this.registerView(VIEW_TYPE_SOLANUM, (leaf) => new SolanumView(leaf, this));
+    this.registerView(VIEW_TYPE_HARVEST, (leaf) => new HarvestView(leaf, this));
     this.registerCommands();
     this.watchVault();
     this.app.workspace.onLayoutReady(() => {

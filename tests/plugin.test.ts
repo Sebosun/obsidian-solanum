@@ -174,6 +174,7 @@ vi.mock("obsidian", () => ({
 }));
 vi.mock("@/views/SolanumView", () => ({
   SolanumView: class {},
+  HarvestView: class {},
   VIEW_TYPE_SOLANUM: "solanum-timer",
   VIEW_TYPE_HARVEST: "solanum-harvest",
 }));
