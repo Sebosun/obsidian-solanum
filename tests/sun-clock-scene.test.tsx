@@ -1,9 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import type { Vector3 } from "three";
 import { SeasonScenery } from "@/components/stage/SeasonScenery";
 import { SEASON_THEMES } from "@/lib/scene/seasons";
 import { sunState } from "@/lib/scene/sunClock";
+
+// These tests isolate the moving lights; the real model and its lifecycle are covered in scenery.
+vi.mock("@/components/models/FarmPlatform", () => ({ FarmPlatform: () => null }));
 
 type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;
 const named = (renderer: Renderer, name: string) => renderer.scene.findByProps({ name }).instance;

@@ -25,7 +25,7 @@ export function SeasonScenery({ season, animate, daylight, daylightRef }: Season
         daylightRef={daylightRef}
         showGlow={!daylight}
       />
-      <SeasonPlatform theme={theme} />
+      <SeasonPlatform theme={theme} daylightRef={daylightRef} />
       <SeasonParticles theme={theme} animate={animate} />
     </>
   );

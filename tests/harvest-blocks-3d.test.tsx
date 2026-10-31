@@ -1,11 +1,27 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
-import { BoxGeometry, Mesh, MeshStandardMaterial, type Object3D } from "three";
+import { Box3, Mesh, MeshBasicMaterial, type Object3D } from "three";
 import { HarvestBlockMesh, plantSize } from "@/components/models/HarvestBlockMesh";
 import { blockHeight, layoutHarvestBlocks } from "@/lib/harvest/month";
-import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
 import { focusSession } from "./helpers/sessions";
 import type { Revision } from "@/lib/timer/types";
+
+const platform = vi.hoisted(() => ({ model: null as GLTF | null }));
+vi.mock("@/hooks/useModel", () => ({
+  useModel: (path: string) => {
+    if (path !== "stage/Farm_platform.glb" || !platform.model) throw new Error("Unexpected model");
+    return platform.model;
+  },
+}));
+beforeAll(async () => {
+  const bytes = readFileSync("assets/stage/Farm_platform.glb");
+  platform.model = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    "",
+  );
+});
 
 vi.mock("@/components/models/Plant", () => ({
   Plant: ({ crop, scale }: { crop: string; scale: number }) => (
@@ -18,18 +34,12 @@ const OCTOBER = new Date(2026, 9, 1);
 const NOW = new Date(2026, 10, 1).getTime();
 const at = (day: number, hour = 9) => new Date(2026, 9, day, hour);
 
-function mount(sessions: Revision[], season: SeasonId = "autumn", reduced = true, now = NOW) {
+function mount(sessions: Revision[], reduced = true, now = NOW) {
   const layout = layoutHarvestBlocks(sessions, OCTOBER, {}, now);
   const element = (
     <>
       {layout.blocks.map((block, index) => (
-        <HarvestBlockMesh
-          key={block.key}
-          block={block}
-          index={index}
-          season={season}
-          reduced={reduced}
-        />
+        <HarvestBlockMesh key={block.key} block={block} index={index} reduced={reduced} />
       ))}
     </>
   );
@@ -37,9 +47,9 @@ function mount(sessions: Revision[], season: SeasonId = "autumn", reduced = true
 }
 const named = (renderer: Renderer, name: string): Object3D =>
   renderer.scene.findByProps({ name }).instance;
-const meshOf = (group: Object3D, name: string): Mesh => {
-  const found = group.getObjectByName(name);
-  if (!(found instanceof Mesh)) throw new Error(`${name} is not a mesh`);
+const meshOf = (group: Object3D): Mesh => {
+  const found = group.getObjectByProperty("type", "Mesh");
+  if (!(found instanceof Mesh)) throw new Error("Platform is not a mesh");
   return found;
 };
 const frames = (renderer: Renderer, count: number) =>
@@ -54,17 +64,18 @@ describe("a block for each harvest", () => {
     focusSession("carrots", at(4), 50, { crop: "carrot" }),
   ];
 
-  it("stands each block as tall as its session, with the crop growing on top", async () => {
+  it("uses the same farm platform, with earth as tall as the session and produce on its soil", async () => {
     const { layout, element } = mount(sessions);
     const renderer = await ReactThreeTestRenderer.create(element);
     for (const block of layout.blocks) {
       const group = named(renderer, `block-${block.sessionId}`);
-      const body = meshOf(group, "block-body");
-      expect(body.geometry).toBeInstanceOf(BoxGeometry);
-      expect((body.geometry as BoxGeometry).parameters.height).toBeCloseTo(
-        blockHeight(block.minutes),
-        6,
-      );
+      const plot = group.getObjectByName("farm-platform");
+      if (!plot) throw new Error("Shared farm platform is missing");
+      plot.updateWorldMatrix(true, true);
+      expect(plot.position.y).toBeCloseTo(blockHeight(block.minutes) + 0.07, 6);
+      expect(new Box3().setFromObject(plot).min.y).toBeCloseTo(0, 6);
+      expect(group.getObjectByName("block-body")).toBeUndefined();
+      expect(group.getObjectByName("block-top")).toBeUndefined();
       expect([group.position.x, group.position.z]).toEqual([block.position[0], block.position[2]]);
       expect(group.getObjectByName(`plant-${block.crop}`)).toBeDefined();
     }
@@ -83,7 +94,7 @@ describe("a block for each harvest", () => {
       deadline: start + 40 * 60_000,
       intervals: [{ start, end: null }],
     });
-    const { element } = mount([...sessions, growing], "autumn", true, start + 10 * 60_000);
+    const { element } = mount([...sessions, growing], true, start + 10 * 60_000);
     const renderer = await ReactThreeTestRenderer.create(element);
     const size = (id: string) =>
       named(renderer, `block-${id}`).getObjectByName("plant-tomato")!.scale.x;
@@ -93,32 +104,38 @@ describe("a block for each harvest", () => {
     await renderer.unmount();
   });
 
-  it("dusts the blocks with snow in winter and warms them in summer", async () => {
-    async function colours(season: SeasonId) {
-      const { element } = mount([sessions[0]], season);
-      const renderer = await ReactThreeTestRenderer.create(element);
-      const group = named(renderer, "block-short");
-      const material = (name: string) => {
-        const m = meshOf(group, name).material;
-        if (!(m instanceof MeshStandardMaterial)) throw new Error("unexpected material");
-        return m.color;
-      };
-      const body = material("block-body");
-      const top = `#${material("block-top").getHexString()}`;
-      await renderer.unmount();
-      return { brightness: (body.r + body.g + body.b) / 3, blue: body.b > body.r, top };
+  it("preserves the baked colours and rim proportions, and never edits shared model geometry", async () => {
+    if (!platform.model) throw new Error("Missing source model");
+    const source = meshOf(platform.model.scene);
+    const originalPositions = Array.from(source.geometry.getAttribute("position").array);
+    const sharedDispose = vi.spyOn(source.geometry, "dispose");
+    const { layout, element } = mount(sessions);
+    const renderer = await ReactThreeTestRenderer.create(element);
+    const rimHeights: number[] = [];
+    const dispose = [];
+    for (const block of layout.blocks) {
+      const plot = named(renderer, `block-${block.sessionId}`).getObjectByName("farm-platform");
+      if (!plot) throw new Error("Missing plot");
+      const mesh = meshOf(plot);
+      expect(mesh.geometry).not.toBe(source.geometry);
+      if (!(mesh.material instanceof MeshBasicMaterial))
+        throw new Error("Platform must stay unlit");
+      expect(mesh.material.toneMapped).toBe(false);
+      expect(mesh.material.vertexColors).toBe(true);
+      plot.updateWorldMatrix(true, true);
+      rimHeights.push(new Box3().setFromObject(plot).max.y - plot.position.y);
+      dispose.push(vi.spyOn(mesh.geometry, "dispose"));
     }
-    const winter = await colours("winter");
-    const summer = await colours("summer");
-    expect(winter.brightness).toBeGreaterThan(summer.brightness + 0.1);
-    expect(winter.blue).toBe(true);
-    expect(winter.top).toBe(SEASON_THEMES.winter.platform.top);
-    expect(summer.top).toBe(SEASON_THEMES.summer.platform.top);
+    expect(Math.max(...rimHeights) - Math.min(...rimHeights)).toBeLessThan(0.00001);
+    await renderer.unmount();
+    expect(Array.from(source.geometry.getAttribute("position").array)).toEqual(originalPositions);
+    expect(sharedDispose).not.toHaveBeenCalled();
+    for (const owned of dispose) expect(owned).toHaveBeenCalledOnce();
   });
 
   it("rises one after another, then stands still", async () => {
     const many = Array.from({ length: 12 }, (_, i) => focusSession(`m${i}`, at(1 + i, 9), 25));
-    const { element } = mount(many, "autumn", false);
+    const { element } = mount(many, false);
     const renderer = await ReactThreeTestRenderer.create(element);
     const heightOf = (id: string) => named(renderer, `block-${id}`).children[0].scale.y;
     expect(heightOf("m0")).toBeLessThan(0.01);

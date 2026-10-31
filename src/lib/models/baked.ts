@@ -19,6 +19,8 @@ export interface BakedOptions {
   size: BakedSize;
   /** Centre the model over the origin; otherwise it keeps its own axis (a mug with a handle). */
   centered?: boolean;
+  /** Leave an authored planting surface at its own origin instead of grounding the underside. */
+  grounded?: boolean;
 }
 
 export interface PreparedBaked {
@@ -30,20 +32,20 @@ export interface PreparedBaked {
 }
 
 /**
- * Gets a model whose lighting was baked into its texture ready for the scene: sized as asked,
+ * Gets a model whose lighting was baked into its colours or texture ready for the scene: sized as asked,
  * standing on the ground, with materials of its own. The colours are already final, so they must
  * not go through the renderer's tone mapping, which would shift and wash them out.
  */
 export function prepareBaked(
   scene: Object3D,
-  { size, centered = false }: BakedOptions,
+  { size, centered = false, grounded = true }: BakedOptions,
 ): PreparedBaked {
   const object = scene.clone(true);
   const box = new Box3().setFromObject(object);
   const extent = box.getSize(new Vector3());
   object.position.set(
     centered ? -(box.min.x + box.max.x) / 2 : 0,
-    -box.min.y,
+    grounded ? -box.min.y : 0,
     centered ? -(box.min.z + box.max.z) / 2 : 0,
   );
   const copies = new Map<Material, MeshBasicMaterial>();

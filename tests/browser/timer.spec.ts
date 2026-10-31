@@ -48,6 +48,23 @@ async function expectFrame(page: Page, progressName: string) {
   expect(bar!.height).toBeLessThan(10);
 }
 
+test("the new baked platform loads through the vault binary adapter, without resource URLs", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/assets/stage/**", (route) => route.abort());
+  const platform = page.waitForResponse((response) =>
+    response.url().endsWith("/native-assets/stage/Farm_platform.glb"),
+  );
+  await page.goto("/?view=timer&season=summer");
+  expect((await platform).ok()).toBe(true);
+  await expect(page.locator(".solanum-scene canvas")).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: "/tmp/opencode/solanum-farm-platform.png" });
+});
+
 test("the clock stays readable in a narrow immersive scene", async ({ page }) => {
   await page.setViewportSize({ width: 240, height: 800 });
   await page.goto("/?view=timer");

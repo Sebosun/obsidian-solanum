@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import type { Group } from "three";
 import { useBakedDimming } from "@/hooks/useBakedDimming";
-import { useBreakModel } from "@/hooks/useBreakModel";
+import { useModel } from "@/hooks/useModel";
 import { BREAK_SCENE } from "@/lib/scene/constants";
 import { prepareBaked } from "@/lib/models/baked";
 import type { SunState } from "@/lib/scene/sunClock";
@@ -19,7 +19,7 @@ const MAX_STEP_SECONDS = 0.1;
 
 /** The mug of coffee, with steam rising from it. */
 export function CoffeeMug({ reduced, daylightRef }: CoffeeMugProps) {
-  const { scene } = useBreakModel(BREAK_SCENE.mug.model);
+  const { scene } = useModel(BREAK_SCENE.mug.model);
   const { position, height, coffeeLevel, turn, hover, bob, bobSeconds } = BREAK_SCENE.mug;
   const floating = useRef<Group>(null);
   const elapsed = useRef(0);

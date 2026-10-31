@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type MutableRefObject, type ReactNode } from "react";
 import { useBakedDimming } from "@/hooks/useBakedDimming";
-import { useBreakModel } from "@/hooks/useBreakModel";
+import { useModel } from "@/hooks/useModel";
 import { floorAtCentre, prepareBaked } from "@/lib/models/baked";
 import { BREAK_SCENE } from "@/lib/scene/constants";
 import type { SunState } from "@/lib/scene/sunClock";
@@ -14,7 +14,7 @@ interface PillowProps {
 
 /** The pillow the cat sleeps on, with whatever lies on it standing on its floor. */
 export function Pillow({ daylightRef, children }: PillowProps) {
-  const { scene } = useBreakModel(BREAK_SCENE.pillow.model);
+  const { scene } = useModel(BREAK_SCENE.pillow.model);
   const { width, turn, position } = BREAK_SCENE.pillow;
   const pillow = useMemo(() => {
     const prepared = prepareBaked(scene, { size: { width }, centered: true });

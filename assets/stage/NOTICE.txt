@@ -1,0 +1,20 @@
+Farm_platform.glb
+Original work made for Solanum in Blender. No external models, textures, or source art.
+Shared by the crop scene and monthly harvest, loaded through the vault binary adapter.
+
+Rebuild with Blender 5.2:
+  blender --background --python scripts/build-farm-platform.py
+The script rebuilds the GLB byte for byte. It can also be run through Blender MCP
+to create a separate review scene without replacing the user's existing scenes.
+
+A chamfered rectangular farm plot: 132 triangles, one mesh, one unlit material.
+Warm key lighting, a soft fill, and ray-cast contact shading are baked into vertex colours.
+The matching light sources are included in the Blender review scene, not in the GLB.
+There are no runtime lights, textures, cameras, or external dependencies in the GLB.
+
+glTF coordinates: Y up; the flat planting surface is at local Y=0.
+Footprint: 1.90 x 1.56 world units; earth extends down to Y=-0.245.
+For a future replacement of the existing platform, place it at [0, -0.54, 0].
+Keep the baked material unlit and disable tone mapping when integrating it.
+Monthly harvests extend only the lower earth geometry to encode session length;
+the turf rim, planting plane, baked colours and shared source GLB remain unchanged.

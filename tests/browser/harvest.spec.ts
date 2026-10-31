@@ -18,6 +18,26 @@ test("a populated month finishes loading real GLBs in the real renderer", async 
   expect(errors).toEqual([]);
 });
 
+test("the month reuses one baked platform asset for the entire harvest grid", async ({ page }) => {
+  let platformReads = 0;
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (request.url().endsWith("/native-assets/stage/Farm_platform.glb")) platformReads += 1;
+  });
+  await page.goto("/");
+  await expectBlocksLoaded(page);
+  await page.waitForTimeout(1500);
+  expect(platformReads).toBe(1);
+  await page.screenshot({ path: "/tmp/opencode/solanum-month-platforms.png" });
+  await page.getByRole("button", { name: "Year", exact: true }).click();
+  await expectBlocksLoaded(page);
+  await page.getByRole("button", { name: "Month", exact: true }).click();
+  await expectBlocksLoaded(page);
+  expect(platformReads).toBe(1);
+  expect(errors).toEqual([]);
+});
+
 test("the month loads through the vault binary adapter when resource URLs are unavailable", async ({
   page,
 }) => {

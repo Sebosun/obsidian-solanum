@@ -8,7 +8,7 @@ import { sunState } from "@/lib/scene/sunClock";
 import { loadPillow } from "./helpers/catModel";
 
 const model = vi.hoisted(() => ({ current: null as unknown }));
-vi.mock("@/hooks/useBreakModel", () => ({ useBreakModel: () => model.current }));
+vi.mock("@/hooks/useModel", () => ({ useModel: () => model.current }));
 
 type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;
 const find = (renderer: Renderer, name: string): Object3D =>

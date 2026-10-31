@@ -8,7 +8,7 @@ import { sunState } from "@/lib/scene/sunClock";
 import { MUG_FILE, loadMug } from "./helpers/catModel";
 
 const model = vi.hoisted(() => ({ current: null as unknown }));
-vi.mock("@/hooks/useBreakModel", () => ({ useBreakModel: () => model.current }));
+vi.mock("@/hooks/useModel", () => ({ useModel: () => model.current }));
 
 type Renderer = Awaited<ReturnType<typeof ReactThreeTestRenderer.create>>;
 const group = (renderer: Renderer): Object3D =>

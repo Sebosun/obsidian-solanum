@@ -1,15 +1,37 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import ReactThreeTestRenderer from "@react-three/test-renderer";
 import {
   AmbientLight,
   DirectionalLight,
   Mesh,
-  MeshStandardMaterial,
+  MeshBasicMaterial,
   Points,
   type Object3D,
 } from "three";
 import { SeasonScenery } from "@/components/stage/SeasonScenery";
 import { SEASON_THEMES, type SeasonId } from "@/lib/scene/seasons";
+import { floorAtCentre, prepareBaked } from "@/lib/models/baked";
+import { CropAssets } from "@/lib/crops/CropAssets";
+import { sunState } from "@/lib/scene/sunClock";
+
+const platform = vi.hoisted(() => ({ model: null as GLTF | null }));
+vi.mock("@/hooks/useModel", () => ({
+  useModel: (path: string) => {
+    if (path !== "stage/Farm_platform.glb" || !platform.model)
+      throw new Error(`Unexpected platform asset: ${path}`);
+    return platform.model;
+  },
+}));
+
+beforeAll(async () => {
+  const bytes = readFileSync("assets/stage/Farm_platform.glb");
+  platform.model = await new GLTFLoader().parseAsync(
+    bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength),
+    "",
+  );
+});
 
 async function mount(season: SeasonId, animate = true) {
   return ReactThreeTestRenderer.create(<SeasonScenery season={season} animate={animate} />);
@@ -61,10 +83,79 @@ describe("seasonal scenery in the real scene graph", () => {
     await winter.unmount();
     const summer = await mount("summer");
     expect(names(summer)).not.toContain("snow-cover");
-    const top = expectInstance(node(summer, "platform-top"), Mesh);
-    const material = expectInstance(top.material, MeshStandardMaterial);
-    expect(`#${material.color.getHexString()}`).toBe(SEASON_THEMES.summer.platform.top);
+    const model = node(summer, "farm-platform").getObjectByProperty("type", "Mesh");
+    const top = expectInstance<Mesh>(model, Mesh);
+    const material = expectInstance(top.material, MeshBasicMaterial);
+    expect(material.toneMapped).toBe(false);
+    expect(material.vertexColors).toBe(true);
+    expect(names(summer)).not.toContain("platform-rim");
+    expect(names(summer)).not.toContain("platform-top");
     await summer.unmount();
+  });
+
+  it("keeps the authored planting surface at zero instead of grounding the underside", () => {
+    if (!platform.model) throw new Error("Platform was not loaded");
+    const prepared = prepareBaked(platform.model.scene, { size: { width: 1.9 }, grounded: false });
+    expect(floorAtCentre(prepared.object)).toBeCloseTo(0, 6);
+  });
+
+  it("lands the planted crop on the new surface, and disposes only its cloned materials", async () => {
+    if (!platform.model) throw new Error("Platform was not loaded");
+    const source = expectInstance<Mesh>(
+      platform.model.scene.getObjectByProperty("type", "Mesh"),
+      Mesh,
+    );
+    const original = expectInstance(source.material, MeshBasicMaterial);
+    const sharedDispose = vi.spyOn(original, "dispose");
+    const geometryDispose = vi.spyOn(source.geometry, "dispose");
+    const renderer = await mount("summer");
+    const group = node(renderer, "farm-platform");
+    const copy = expectInstance<Mesh>(group.getObjectByProperty("type", "Mesh"), Mesh);
+    const owned = expectInstance(copy.material, MeshBasicMaterial);
+    const ownedDispose = vi.spyOn(owned, "dispose");
+    expect(floorAtCentre(group)).toBeCloseTo(-0.54, 6);
+    expect(owned).not.toBe(original);
+    expect(copy.geometry).toBe(source.geometry);
+    await renderer.unmount();
+    expect(ownedDispose).toHaveBeenCalledOnce();
+    expect(sharedDispose).not.toHaveBeenCalled();
+    expect(geometryDispose).not.toHaveBeenCalled();
+  });
+
+  it("reads the shipped GLB once through the shared vault-binary repository", async () => {
+    const read = vi.fn(async (path: string) => {
+      const bytes = readFileSync(`assets/${path}`);
+      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    });
+    const repository = new CropAssets(read);
+    const first = repository.loadModel("stage/Farm_platform.glb");
+    expect(repository.loadModel("stage/Farm_platform.glb")).toBe(first);
+    const model = await first;
+    const mesh = expectInstance<Mesh>(model.scene.getObjectByProperty("type", "Mesh"), Mesh);
+    expect(mesh.geometry.getAttribute("position").count / 3).toBeLessThan(200);
+    expect(mesh.geometry.getAttribute("color")).toBeDefined();
+    expect(model.cameras).toHaveLength(0);
+    expect(model.scene.children).toHaveLength(1);
+    expect(read).toHaveBeenCalledExactlyOnceWith("stage/Farm_platform.glb");
+  });
+
+  it("dims only the platform's private baked materials as the sun fades", async () => {
+    const daylight = { current: sunState(0) };
+    const renderer = await ReactThreeTestRenderer.create(
+      <SeasonScenery season="summer" animate={false} daylightRef={daylight} />,
+    );
+    const copy = expectInstance<Mesh>(
+      node(renderer, "farm-platform").getObjectByProperty("type", "Mesh"),
+      Mesh,
+    );
+    const material = expectInstance(copy.material, MeshBasicMaterial);
+    await renderer.advanceFrames(1, 0.05);
+    expect(material.color.r).toBeCloseTo(1, 6);
+    daylight.current = sunState(1);
+    await renderer.advanceFrames(1, 0.05);
+    expect(material.color.r).toBeLessThan(0.6);
+    expect(material.toneMapped).toBe(false);
+    await renderer.unmount();
   });
 
   it("animates falling snow frame by frame and keeps it in the volume", async () => {

@@ -76,13 +76,7 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
                   <meshStandardMaterial color={PLINTH} roughness={1} />
                 </mesh>
                 {layout.blocks.map((block, index) => (
-                  <HarvestBlockMesh
-                    key={block.key}
-                    block={block}
-                    index={index}
-                    season={season}
-                    reduced={reduced}
-                  />
+                  <HarvestBlockMesh key={block.key} block={block} index={index} reduced={reduced} />
                 ))}
               </group>
             </Bounds>
