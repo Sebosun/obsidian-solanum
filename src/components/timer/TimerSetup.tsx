@@ -30,7 +30,6 @@ export function TimerSetup() {
         <button
           className="solanum-start"
           aria-label="Start focus"
-          title="Start focus"
           disabled={busy || conflicts.length > 0}
           onClick={handleStart}
         >

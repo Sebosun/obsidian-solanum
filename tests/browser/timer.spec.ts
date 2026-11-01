@@ -87,6 +87,7 @@ for (const viewport of [
   }, testInfo) => {
     await page.setViewportSize(viewport);
     await page.goto("/?view=timer");
+    await expect(page.locator("button[title]")).toHaveCount(0);
     const canvas = await page.locator(".solanum-scene canvas").elementHandle();
     await page.getByRole("button", { name: "Start focus" }).click();
     await settle(page);
@@ -108,6 +109,7 @@ for (const viewport of [
       expect(controls!.x + controls!.width).toBeLessThan(frame!.x + frame!.width);
       expect(await canvas?.evaluate((element) => element.isConnected)).toBe(true);
       await expect(page.getByRole("button", { name: "End focus" })).toBeVisible();
+      await expect(page.locator("button[title]")).toHaveCount(0);
       await page.screenshot({ path: testInfo.outputPath(`${action.toLowerCase()}.png`) });
       await page.getByRole("button", { name: action, exact: true }).click();
     }

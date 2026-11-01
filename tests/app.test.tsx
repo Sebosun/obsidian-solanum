@@ -283,7 +283,7 @@ describe("sidebar workflows backed by the real timer service", () => {
       const button = controls.getByRole("button", { name });
       expect(button.textContent).toBe("");
       expect(button.querySelector("svg")).not.toBeNull();
-      expect(button.getAttribute("title")).toBe(name);
+      expect(button.getAttribute("title")).toBeNull();
       expect(button.classList.contains("mod-cta")).toBe(false);
     }
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
@@ -335,7 +335,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const start = screen.getByRole("button", { name: "Start focus" });
     expect(start.textContent).toBe("");
     expect(start.querySelector("svg")).not.toBeNull();
-    expect(start.getAttribute("title")).toBe("Start focus");
+    expect(start.getAttribute("title")).toBeNull();
     const presets = screen.getByLabelText("Focus duration");
     const tags = screen.getByRole("combobox", { name: "Tags" });
     expect(start.compareDocumentPosition(presets) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

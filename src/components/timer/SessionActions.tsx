@@ -50,7 +50,6 @@ export function SessionActions() {
       <button
         className="solanum-control"
         aria-label={primaryLabel}
-        title={primaryLabel}
         disabled={blocked}
         onClick={handlePrimary}
       >
@@ -59,7 +58,6 @@ export function SessionActions() {
       <button
         className="solanum-control"
         aria-label={endLabel}
-        title={endLabel}
         disabled={blocked}
         onClick={handleEnd}
       >
