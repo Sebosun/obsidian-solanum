@@ -9,6 +9,8 @@ import { layoutHarvestBlocks } from "@/lib/harvest/month";
 import { emptyTimer } from "./helpers/timerEnvironment";
 import { canvasStub, resetCanvasStub } from "./helpers/fiberStub";
 import type { SolanumHost } from "@/types/host";
+import type { Revision } from "@/lib/timer/types";
+import { focusSession } from "./helpers/sessions";
 
 vi.mock("@react-three/fiber", async () => (await import("./helpers/fiberStub")).fiberStub());
 
@@ -18,7 +20,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function mount() {
+function mount(sessions: Revision[] = []) {
   const timer = emptyTimer();
   const host: SolanumHost = {
     timer,
@@ -36,7 +38,12 @@ function mount() {
     unlockAudio: vi.fn(),
     previewSound: vi.fn(),
   };
-  const layout = layoutHarvestBlocks([], new Date(2026, 9, 1));
+  const layout = layoutHarvestBlocks(
+    sessions,
+    new Date(2026, 9, 1),
+    {},
+    new Date(2026, 10, 1).getTime(),
+  );
   render(
     <AppStoreProvider store={getAppStore(host)}>
       <HarvestMonthScene layout={layout} season="summer" />
@@ -57,4 +64,37 @@ describe("month scene recovery", () => {
     expect(screen.getByRole("img", { name: "Loaded blocks" })).toBeTruthy();
     release();
   });
+});
+
+it("shows session details with arrow keys and dismisses them with Escape or when focus leaves", () => {
+  resetCanvasStub("ready");
+  const release = mount([
+    focusSession("tomato", new Date(2026, 9, 3, 9), 25, {
+      tags: ["study"],
+      notePath: "Project.md",
+    }),
+    focusSession("carrot", new Date(2026, 9, 4, 10), 40, { crop: "carrot" }),
+  ]);
+  const scene = screen.getByRole("group", { name: "Harvest by session" });
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  fireEvent.keyDown(scene, { key: "ArrowRight" });
+  let detail = screen.getByRole("tooltip");
+  expect(detail.textContent).toContain("Tomato");
+  expect(detail.textContent).toContain("25 min");
+  expect(detail.textContent).toContain("study");
+  expect(detail.textContent).toContain("Project.md");
+  expect(detail.querySelector("time")?.getAttribute("dateTime")).toBe(
+    new Date(2026, 9, 3, 9).toISOString(),
+  );
+  fireEvent.keyDown(scene, { key: "ArrowRight" });
+  detail = screen.getByRole("tooltip");
+  expect(detail.textContent).toContain("Carrot");
+  expect(detail.textContent).toContain("40 min");
+  expect(detail.textContent).not.toContain("Project.md");
+  fireEvent.keyDown(scene, { key: "Escape" });
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  fireEvent.keyDown(scene, { key: "ArrowRight" });
+  fireEvent.blur(scene);
+  expect(screen.queryByRole("tooltip")).toBeNull();
+  release();
 });

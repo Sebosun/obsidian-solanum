@@ -60,6 +60,24 @@ describe("a block for each harvest", () => {
     focusSession("carrots", at(4), 50, { crop: "carrot" }),
   ];
 
+  it("identifies the pointed or tapped harvest and clears it on pointer out", async () => {
+    const { layout } = mount(sessions);
+    const onInspect = vi.fn();
+    const renderer = await ReactThreeTestRenderer.create(
+      <HarvestBlockMesh block={layout.blocks[0]} index={0} reduced onInspect={onInspect} />,
+    );
+    const group = renderer.scene.findByProps({ name: "block-short" });
+    const stopPropagation = vi.fn();
+    await renderer.fireEvent(group, "pointerOver", { stopPropagation });
+    expect(onInspect).toHaveBeenLastCalledWith("short");
+    await renderer.fireEvent(group, "pointerOut", { stopPropagation });
+    expect(onInspect).toHaveBeenLastCalledWith(null);
+    await renderer.fireEvent(group, "click", { stopPropagation });
+    expect(onInspect).toHaveBeenLastCalledWith("short");
+    expect(stopPropagation).toHaveBeenCalledTimes(3);
+    await renderer.unmount();
+  });
+
   it("uses the same farm platform, with earth as tall as the session and produce on its soil", async () => {
     const { layout, element } = mount(sessions);
     const renderer = await ReactThreeTestRenderer.create(element);

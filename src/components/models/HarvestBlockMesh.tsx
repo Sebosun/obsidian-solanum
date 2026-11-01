@@ -10,6 +10,7 @@ interface HarvestBlockMeshProps {
   /** Position in the grid; later blocks start rising a beat after earlier ones. */
   index: number;
   reduced: boolean;
+  onInspect?(sessionId: string | null): void;
 }
 
 /** Plant size grows from the smallest to the largest session, and a growing crop is smaller. */
@@ -26,12 +27,26 @@ export function plantSize(minutes: number, progress: number): number {
 }
 
 /** One harvest: a block as tall as the session was long, with the crop growing on top. */
-export function HarvestBlockMesh({ block, index, reduced }: HarvestBlockMeshProps) {
+export function HarvestBlockMesh({ block, index, reduced, onInspect }: HarvestBlockMeshProps) {
   const [x, , z] = block.position;
   const { size, topThickness } = HARVEST_BLOCKS;
   const plantingSurfaceY = block.height + topThickness;
+  function inspect(event: ThreeEvent<PointerEvent | MouseEvent>) {
+    event.stopPropagation();
+    onInspect?.(block.sessionId);
+  }
+  function leave(event: ThreeEvent<PointerEvent>) {
+    event.stopPropagation();
+    onInspect?.(null);
+  }
   return (
-    <group name={`block-${block.sessionId}`} position={[x, 0, z]}>
+    <group
+      name={`block-${block.sessionId}`}
+      position={[x, 0, z]}
+      onPointerOver={inspect}
+      onPointerOut={leave}
+      onClick={inspect}
+    >
       <RiseGroup index={Math.min(index, MAX_STAGGER_INDEX)} reduced={reduced}>
         <FarmPlatform
           width={size}
@@ -50,3 +65,4 @@ export function HarvestBlockMesh({ block, index, reduced }: HarvestBlockMeshProp
     </group>
   );
 }
+import type { ThreeEvent } from "@react-three/fiber";
