@@ -405,9 +405,6 @@
   container-type: inline-size;
   @apply sol:mt-5 sol:p-5 sol:rounded-xl sol:bg-(--background-secondary);
 }
-.solanum-summary-label {
-  @apply sol:text-[10px] sol:text-(--text-muted) sol:mt-2 sol:mb-1;
-}
 .solanum-summary-stats {
   @apply sol:flex sol:justify-around sol:gap-0 sol:m-0 sol:py-3 sol:mb-5;
 }
@@ -419,20 +416,6 @@
 }
 .solanum-summary-stats dd {
   @apply sol:m-0 sol:text-base sol:font-semibold sol:tabular-nums sol:text-(--text-normal);
-}
-.solanum-summary-crops,
-.solanum-summary-tags {
-  @apply sol:flex sol:flex-wrap sol:gap-1.5 sol:list-none sol:p-0 sol:m-0 sol:mb-2;
-}
-.solanum-summary-crops li {
-  @apply sol:flex sol:items-center sol:gap-1 sol:py-[3px] sol:px-2 sol:rounded-full sol:bg-(--background-primary) sol:text-[11px] sol:text-(--text-muted);
-}
-.solanum-summary-crops b,
-.solanum-summary-tags b {
-  @apply sol:ml-1 sol:font-semibold sol:text-(--text-normal) sol:tabular-nums;
-}
-.solanum-summary-tags li {
-  @apply sol:m-0;
 }
 .solanum-year-scene canvas {
   @apply sol:cursor-pointer;
@@ -507,7 +490,7 @@
 }
 
 /* Month analysis keeps charts and reading space inside the sidebar's own width. */
-.solanum-month-insights {
+.solanum-period-insights {
   container-type: inline-size;
   @apply sol:flex sol:flex-col sol:gap-7 sol:min-w-0;
 }
@@ -621,8 +604,4 @@
 }
 .solanum-app .solanum-comparison thead th {
   @apply sol:text-(--text-muted) sol:pb-3;
-}
-
-.solanum-year-comparison {
-  @apply sol:mt-7;
 }

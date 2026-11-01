@@ -152,9 +152,13 @@ describe("period details", () => {
     expectStats("Month", "25 min", "1", "1");
     fireEvent.click(within(header).getByRole("button", { name: "Year" }));
     const year = expectStats("Year", "1 h 25 min", "3", "3");
-    expect(within(year).getByRole("list", { name: "Most used tags" }).textContent).toBe(
-      "study2work1",
-    );
+    expect(within(year).queryByRole("list", { name: "Most used tags" })).toBeNull();
+    expect(within(year).queryByRole("list", { name: "Crops grown" })).toBeNull();
+    expect(within(year).getByRole("img", { name: "Monthly focus" })).toBeTruthy();
+    expect(within(year).getByRole("heading", { name: "Most focused weekdays" })).toBeTruthy();
+    expect(within(year).getByRole("heading", { name: "Most focused time of day" })).toBeTruthy();
+    expect(within(year).getByRole("list", { name: "Tags" }).textContent).toContain("study45 min");
+    expect(within(year).getByRole("list", { name: "Notes" }).textContent).toContain("B.md40 min");
     fireEvent.change(within(header).getByLabelText("Filter by tag"), {
       target: { value: "study" },
     });

@@ -1,3 +1,4 @@
+import { MONTHS_PER_YEAR } from "@/lib/scene/constants";
 import { dailyHarvest, monthDays, type HarvestFilter } from "@/lib/harvest/aggregate";
 import { summarizeMonths, type MonthSummary } from "@/lib/harvest/month";
 import { intervalEnd } from "@/lib/timer/selectors";
@@ -14,12 +15,15 @@ export interface DailyFocus {
   minutes: number;
 }
 
-export interface MonthInsights {
-  days: DailyFocus[];
+export interface FocusBreakdown {
   weekdays: FocusAmount[];
   periods: FocusAmount[];
   tags: FocusAmount[];
   notes: FocusAmount[];
+}
+
+export interface MonthInsights extends FocusBreakdown {
+  days: DailyFocus[];
   previous: MonthSummary;
 }
 
@@ -39,17 +43,17 @@ function ranked(amounts: Map<string, number>): FocusAmount[] {
 }
 
 /** Uses credited focus intervals, never the session's planned duration or its start hour alone. */
-export function monthInsights(
+function focusBreakdown(
   sessions: Revision[],
-  month: Date,
-  filter: HarvestFilter = {},
-  now = Date.now(),
-): MonthInsights {
+  dates: Date[],
+  filter: HarvestFilter,
+  now: number,
+): FocusBreakdown & { days: DailyFocus[] } {
   const weekdays = WEEKDAYS.map((name) => ({ name, minutes: 0 }));
   const periods = DAY_PERIODS.map(({ name }) => ({ name, minutes: 0 }));
   const tags = new Map<string, number>();
   const notes = new Map<string, number>();
-  const days = monthDays(month.getFullYear(), month.getMonth()).map((date) => {
+  const days = dates.map((date) => {
     const daily = dailyHarvest(sessions, date, filter, now);
     weekdays[(date.getDay() + 6) % 7].minutes += daily.minutes;
     for (const { session, minutes } of daily.entries) {
@@ -81,13 +85,30 @@ export function monthInsights(
     }
     return { date, minutes: daily.minutes };
   });
+  return { days, weekdays, periods, tags: ranked(tags), notes: ranked(notes) };
+}
+
+export function monthInsights(
+  sessions: Revision[],
+  month: Date,
+  filter: HarvestFilter = {},
+  now = Date.now(),
+): MonthInsights {
   const previousMonth = new Date(month.getFullYear(), month.getMonth() - 1, 1);
   return {
-    days,
-    weekdays,
-    periods,
-    tags: ranked(tags),
-    notes: ranked(notes),
+    ...focusBreakdown(sessions, monthDays(month.getFullYear(), month.getMonth()), filter, now),
     previous: summarizeMonths(sessions, [previousMonth], filter, now),
   };
+}
+
+export function yearInsights(
+  sessions: Revision[],
+  year: number,
+  filter: HarvestFilter = {},
+  now = Date.now(),
+): FocusBreakdown {
+  const dates = Array.from({ length: MONTHS_PER_YEAR }, (_, month) =>
+    monthDays(year, month),
+  ).flat();
+  return focusBreakdown(sessions, dates, filter, now);
 }

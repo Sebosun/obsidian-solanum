@@ -895,12 +895,6 @@
   background-color: var(--background-secondary);
   padding: calc(var(--sol-spacing) * 5);
 }
-.solanum-summary-label {
-  margin-top: calc(var(--sol-spacing) * 2);
-  margin-bottom: var(--sol-spacing);
-  font-size: 10px;
-  color: var(--text-muted);
-}
 .solanum-summary-stats {
   margin: 0px;
   margin-bottom: calc(var(--sol-spacing) * 5);
@@ -938,37 +932,6 @@
   color: var(--text-normal);
   --tw-numeric-spacing: tabular-nums;
   font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
-}
-.solanum-summary-crops, .solanum-summary-tags {
-  margin: 0px;
-  margin-bottom: calc(var(--sol-spacing) * 2);
-  display: flex;
-  list-style-type: none;
-  flex-wrap: wrap;
-  gap: calc(var(--sol-spacing) * 1.5);
-  padding: 0px;
-}
-.solanum-summary-crops li {
-  display: flex;
-  align-items: center;
-  gap: var(--sol-spacing);
-  border-radius: calc(infinity * 1px);
-  background-color: var(--background-primary);
-  padding-inline: calc(var(--sol-spacing) * 2);
-  padding-block: 3px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.solanum-summary-crops b, .solanum-summary-tags b {
-  margin-left: var(--sol-spacing);
-  --tw-font-weight: var(--sol-font-weight-semibold);
-  font-weight: var(--sol-font-weight-semibold);
-  color: var(--text-normal);
-  --tw-numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
-}
-.solanum-summary-tags li {
-  margin: 0px;
 }
 .solanum-year-scene canvas {
   cursor: pointer;
@@ -1126,7 +1089,7 @@
     transform: rotate(360deg);
   }
 }
-.solanum-month-insights {
+.solanum-period-insights {
   container-type: inline-size;
   display: flex;
   min-width: 0px;
@@ -1307,9 +1270,6 @@
 .solanum-app .solanum-comparison thead th {
   padding-bottom: calc(var(--sol-spacing) * 3);
   color: var(--text-muted);
-}
-.solanum-year-comparison {
-  margin-top: calc(var(--sol-spacing) * 7);
 }
 @property --tw-ordinal {
   syntax: "*";

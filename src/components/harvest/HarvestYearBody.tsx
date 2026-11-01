@@ -1,3 +1,6 @@
+import type { FocusBreakdown } from "@/lib/harvest/insights";
+import { HarvestFocusBreakdown } from "@/components/harvest/HarvestFocusBreakdown";
+import { FocusActivityChart } from "@/components/harvest/FocusActivityChart";
 import { HarvestComparison } from "@/components/harvest/HarvestComparison";
 import type { YearMonth, YearStacks } from "@/lib/harvest/year";
 import { HarvestCaption, type HarvestCaptionAction } from "@/components/harvest/HarvestCaption";
@@ -10,6 +13,7 @@ interface HarvestYearBodyProps {
   months: YearMonth[];
   summary: MonthSummary;
   previous: MonthSummary;
+  insights: FocusBreakdown;
   layout: YearStacks;
   /** A tag or note filter is narrowing what shows. */
   filtered: boolean;
@@ -23,6 +27,7 @@ export function HarvestYearBody({
   months,
   summary,
   previous,
+  insights,
   layout,
   filtered,
   onClearFilters,
@@ -40,12 +45,19 @@ export function HarvestYearBody({
       <HarvestYearScene year={year} months={months} layout={layout} onOpenMonth={onOpenMonth} />
       {summary.harvests > 0 ? (
         <HarvestSummary summary={summary} period="year">
-          <HarvestComparison
-            date={new Date(year, 0, 1)}
-            period="year"
-            current={summary}
-            previous={previous}
-          />
+          <div className="solanum-period-insights">
+            <FocusActivityChart
+              entries={months.map(({ date, minutes }) => ({ date, minutes }))}
+              period="year"
+            />
+            <HarvestFocusBreakdown insights={insights} minutes={summary.minutes} />
+            <HarvestComparison
+              date={new Date(year, 0, 1)}
+              period="year"
+              current={summary}
+              previous={previous}
+            />
+          </div>
         </HarvestSummary>
       ) : (
         <HarvestCaption text={caption} action={action} />

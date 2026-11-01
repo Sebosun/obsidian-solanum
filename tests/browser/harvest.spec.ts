@@ -37,6 +37,23 @@ for (const width of [240, 560]) {
       await expect(summary.getByRole("term").filter({ hasText: /^Harvests$/ })).toBeVisible();
       await expect(summary.getByRole("term").filter({ hasText: /^Active days$/ })).toBeVisible();
       await expect(summary.getByRole("heading").last()).toHaveText(`${period} comparison`);
+      await expect(summary.getByRole("heading", { name: "Most focused weekdays" })).toBeVisible();
+      await expect(
+        summary.getByRole("heading", { name: "Most focused time of day" }),
+      ).toBeVisible();
+      await expect(summary.getByRole("list", { name: "Tags", exact: true })).toBeVisible();
+      await expect(summary.getByRole("list", { name: "Notes", exact: true })).toBeVisible();
+      await expect(summary.getByRole("list", { name: "Crops grown" })).toHaveCount(0);
+      await expect(summary.getByText("Most used tags", { exact: true })).toHaveCount(0);
+      if (period === "Year") {
+        const chart = summary.getByRole("img", { name: "Monthly focus" });
+        await expect(chart.locator("rect")).toHaveCount(12);
+        await summary.getByText("Monthly totals", { exact: true }).focus();
+        await page.keyboard.press("Enter");
+        await expect(summary.locator(".solanum-daily-totals li")).toHaveCount(12);
+        await expect(summary.locator(".solanum-daily-totals li").first()).toBeVisible();
+        await page.keyboard.press("Enter");
+      }
       const summaryBox = await summary.boundingBox();
       const stats = summary.locator(".solanum-summary-stats");
       const statsBox = await stats.boundingBox();
@@ -65,6 +82,14 @@ for (const width of [240, 560]) {
         path: testInfo.outputPath(`${period.toLowerCase()}-details.png`),
         fullPage: true,
       });
+      if (period === "Year") {
+        await summary
+          .getByRole("heading", { name: "Most focused weekdays" })
+          .scrollIntoViewIfNeeded();
+        await page.screenshot({ path: testInfo.outputPath("year-patterns.png") });
+        await summary.getByRole("heading", { name: "Tags", exact: true }).scrollIntoViewIfNeeded();
+        await page.screenshot({ path: testInfo.outputPath("year-distributions.png") });
+      }
       const comparison = summary.locator(".solanum-comparison");
       await comparison.scrollIntoViewIfNeeded();
       await expect(comparison).toBeVisible();
@@ -147,6 +172,10 @@ test.describe("touch month analysis", () => {
     await page.getByText("Daily totals", { exact: true }).tap();
     await expect(page.locator(".solanum-daily-totals li").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Next harvest" })).toHaveCount(0);
+    await page.getByRole("button", { name: "Year", exact: true }).tap();
+    await page.getByText("Monthly totals", { exact: true }).tap();
+    await expect(page.locator(".solanum-daily-totals li")).toHaveCount(12);
+    await expect(page.locator(".solanum-daily-totals li").first()).toBeVisible();
   });
 });
 
