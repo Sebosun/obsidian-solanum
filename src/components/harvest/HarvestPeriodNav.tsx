@@ -29,7 +29,9 @@ export function HarvestPeriodNav({
         </button>
       </div>
       <p className="solanum-month-total sol:text-center sol:text-[11px] sol:text-(--text-muted) sol:mt-0 sol:mb-3.5 sol:tabular-nums">
-        {Math.round(minutes)} min this {unit}
+        <span>
+          {Math.round(minutes)} min this {unit}
+        </span>
         {onCurrent && (
           <>
             {" · "}

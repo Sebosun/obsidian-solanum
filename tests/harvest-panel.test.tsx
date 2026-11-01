@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { HarvestPanel } from "@/components/harvest/HarvestPanel";
 import { AppStoreProvider } from "@/components/app/AppStoreProvider";
 import { getAppStore, releaseAppStore } from "@/state/appStore";
@@ -120,6 +120,47 @@ describe("working out only the view on show", () => {
     fireEvent.click(screen.getByRole("button", { name: "Month" }));
     expect(screen.getByText("25 min this month")).toBeTruthy();
     expect(screen.getByTestId("month-scene").getAttribute("data-blocks")).toBe("1");
+    release();
+  });
+});
+
+describe("period details", () => {
+  it("keeps filters in the range header and shows filtered month and year totals before the crops", async () => {
+    const release = await mount([
+      focusSession("october", new Date(2026, 9, 3, 9), 25, { tags: ["study"] }),
+      focusSession("march", new Date(2026, 2, 3, 9), 40, { tags: ["work"] }),
+      focusSession("march-study", new Date(2026, 2, 4, 9), 20, { tags: ["study"] }),
+    ]);
+    const header = screen.getByRole("group", { name: "Harvest controls" });
+    expect(within(header).getByLabelText("Filter by tag")).toBeTruthy();
+    expect(within(header).getByLabelText("Filter by note")).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Year" })).toBeTruthy();
+
+    function expectStats(period: string, focused: string, harvests: string, days: string) {
+      const summary = screen.getByRole("region", { name: `${period} summary` });
+      const values = within(summary)
+        .getAllByRole("definition")
+        .map((item) => item.textContent);
+      expect(values).toEqual([focused, harvests, days]);
+      const scene = screen.getByTestId(`${period.toLowerCase()}-scene`);
+      expect(
+        summary.compareDocumentPosition(scene) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      return summary;
+    }
+
+    expectStats("Month", "25 min", "1", "1");
+    fireEvent.click(within(header).getByRole("button", { name: "Year" }));
+    const year = expectStats("Year", "1 h 25 min", "3", "3");
+    expect(within(year).getByRole("list", { name: "Most used tags" }).textContent).toBe(
+      "study2work1",
+    );
+    fireEvent.change(within(header).getByLabelText("Filter by tag"), {
+      target: { value: "study" },
+    });
+    expectStats("Year", "45 min", "2", "2");
+    fireEvent.click(within(header).getByRole("button", { name: "Month" }));
+    expectStats("Month", "25 min", "1", "1");
     release();
   });
 });

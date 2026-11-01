@@ -17,7 +17,7 @@ export function HarvestFilters({ tags, notes, tag, notePath, onTag, onNote }: Ha
     onNote(event.target.value);
   }
   return (
-    <div className="solanum-filters sol:flex sol:gap-2 sol:mb-3">
+    <div className="solanum-filters">
       <select aria-label="Filter by tag" value={tag} onChange={changeTag}>
         <option value="">All tags</option>
         {tags.map((value) => (

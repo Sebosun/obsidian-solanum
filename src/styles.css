@@ -304,8 +304,15 @@
 .solanum-warning select {
   @apply sol:whitespace-normal sol:h-auto sol:w-full sol:mt-1.5 sol:text-[10px];
 }
+.solanum-harvest-controls {
+  @apply sol:flex sol:flex-wrap sol:items-center sol:justify-between sol:gap-2 sol:mb-3;
+}
+.solanum-harvest-controls .solanum-filters {
+  @apply sol:flex sol:flex-wrap sol:gap-2 sol:min-w-0 sol:flex-1;
+  flex-basis: 180px;
+}
 .solanum-view-toggle {
-  @apply sol:flex sol:w-fit sol:mx-auto sol:mb-1 sol:p-0.5 sol:rounded-lg sol:bg-(--background-secondary);
+  @apply sol:flex sol:w-fit sol:shrink-0 sol:ml-auto sol:p-0.5 sol:rounded-lg sol:bg-(--background-secondary);
 }
 .solanum-app .solanum-view-toggle button {
   @apply sol:h-auto sol:py-1 sol:px-3 sol:text-[11px] sol:rounded-md sol:bg-transparent sol:shadow-none sol:border-0 sol:text-(--text-muted);
@@ -395,8 +402,11 @@
     radial-gradient(ellipse at 50% 55%, var(--season-glow, #8eaf7f24), transparent 75%),
     var(--background-secondary);
 }
-.solanum-month-summary {
-  @apply sol:mt-3 sol:p-3.5 sol:rounded-xl sol:bg-(--background-secondary);
+.solanum-harvest-summary {
+  @apply sol:mb-3 sol:p-3.5 sol:rounded-xl sol:bg-(--background-secondary);
+}
+.solanum-summary-label {
+  @apply sol:text-[10px] sol:text-(--text-muted) sol:mt-2 sol:mb-1;
 }
 .solanum-summary-stats {
   @apply sol:grid sol:grid-cols-3 sol:gap-2 sol:m-0 sol:mb-3;

@@ -48,9 +48,9 @@ function monthCredits(
   now: number,
 ): Credit[] {
   const credits: Credit[] = [];
-  monthDays(month.getFullYear(), month.getMonth()).forEach((date, day) => {
+  monthDays(month.getFullYear(), month.getMonth()).forEach((date) => {
     for (const { session, minutes } of dailyHarvest(sessions, date, filter, now).entries)
-      credits.push({ session, minutes, day });
+      credits.push({ session, minutes, day: date.getTime() });
   });
   return credits;
 }
@@ -133,7 +133,17 @@ export function summarizeMonth(
   filter: HarvestFilter = {},
   now = Date.now(),
 ): MonthSummary {
-  const credits = monthCredits(sessions, month, filter, now);
+  return summarizeMonths(sessions, [month], filter, now);
+}
+
+/** Summarise a period without counting cross-month sessions or their tags twice. */
+export function summarizeMonths(
+  sessions: Revision[],
+  months: Date[],
+  filter: HarvestFilter = {},
+  now = Date.now(),
+): MonthSummary {
+  const credits = months.flatMap((month) => monthCredits(sessions, month, filter, now));
   const crops = Object.fromEntries(CROP_IDS.map((id) => [id, 0])) as Record<CropId, number>;
   const seen = new Set<string>();
   const tagCounts = new Map<string, number>();

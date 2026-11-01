@@ -4,21 +4,19 @@ import { CROPS, CROP_IDS } from "@/lib/crops/catalog";
 import type { MonthSummary } from "@/lib/harvest/month";
 import { formatFocus } from "@/lib/time";
 
-interface HarvestMonthSummaryProps {
+interface HarvestSummaryProps {
   summary: MonthSummary;
-  /** Blocks drawn and harvests in the month; fewer are drawn only when the month is very busy. */
-  shown: number;
-  total: number;
+  period: "month" | "year";
 }
 
-export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSummaryProps) {
+export function HarvestSummary({ summary, period }: HarvestSummaryProps) {
   const summaryId = useId();
   const cropsId = useId();
   const tagsId = useId();
   const grown = CROP_IDS.filter((id) => summary.crops[id] > 0);
   return (
-    <section className="solanum-month-summary" aria-labelledby={summaryId}>
-      <SrLabel id={summaryId}>Month summary</SrLabel>
+    <section className="solanum-harvest-summary" aria-labelledby={summaryId}>
+      <SrLabel id={summaryId}>{period === "month" ? "Month summary" : "Year summary"}</SrLabel>
       <dl className="solanum-summary-stats">
         <div>
           <dt>Focused</dt>
@@ -48,7 +46,9 @@ export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSumma
       )}
       {summary.tags.length > 0 && (
         <>
-          <SrLabel id={tagsId}>Most used tags</SrLabel>
+          <p id={tagsId} className="solanum-summary-label">
+            Most used tags
+          </p>
           <ul className="solanum-summary-tags" aria-labelledby={tagsId}>
             {summary.tags.map(({ tag, count }) => (
               <li className="solanum-tag" key={tag}>
@@ -59,10 +59,6 @@ export function HarvestMonthSummary({ summary, shown, total }: HarvestMonthSumma
           </ul>
         </>
       )}
-      <p className="solanum-hint">
-        One block per harvest; longer sessions are taller.
-        {shown < total && ` Showing ${shown} of ${total}, spread evenly across the month.`}
-      </p>
     </section>
   );
 }

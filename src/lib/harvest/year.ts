@@ -1,5 +1,5 @@
 import type { HarvestFilter } from "@/lib/harvest/aggregate";
-import { summarizeMonth, type MonthSummary } from "@/lib/harvest/month";
+import { summarizeMonth, summarizeMonths, type MonthSummary } from "@/lib/harvest/month";
 import { CROP_IDS, type CropId } from "@/lib/crops/catalog";
 import { MONTHS_PER_YEAR, YEAR_STACKS } from "@/lib/scene/constants";
 import type { Revision } from "@/lib/timer/types";
@@ -38,6 +38,16 @@ export function summarizeYear(
     const date = new Date(year, index, 1);
     return { index, date, ...summarizeMonth(sessions, date, filter, now) };
   });
+}
+
+export function summarizeYearTotal(
+  sessions: Revision[],
+  year: number,
+  filter: HarvestFilter = {},
+  now = Date.now(),
+): MonthSummary {
+  const months = Array.from({ length: MONTHS_PER_YEAR }, (_, index) => new Date(year, index, 1));
+  return summarizeMonths(sessions, months, filter, now);
 }
 
 /** Splits `count` plants across crop types by their share, giving leftovers to the biggest remainders. */

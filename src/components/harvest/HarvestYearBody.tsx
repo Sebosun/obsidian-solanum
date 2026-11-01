@@ -2,10 +2,13 @@ import type { YearMonth, YearStacks } from "@/lib/harvest/year";
 import { formatFocus } from "@/lib/time";
 import { HarvestCaption, type HarvestCaptionAction } from "@/components/harvest/HarvestCaption";
 import { HarvestYearScene } from "@/components/scenes/HarvestYearScene";
+import { HarvestSummary } from "@/components/harvest/HarvestSummary";
+import type { MonthSummary } from "@/lib/harvest/month";
 
 interface HarvestYearBodyProps {
   year: number;
   months: YearMonth[];
+  summary: MonthSummary;
   layout: YearStacks;
   /** A tag or note filter is narrowing what shows. */
   filtered: boolean;
@@ -17,6 +20,7 @@ interface HarvestYearBodyProps {
 export function HarvestYearBody({
   year,
   months,
+  summary,
   layout,
   filtered,
   onClearFilters,
@@ -37,6 +41,7 @@ export function HarvestYearBody({
   }
   return (
     <>
+      {summary.harvests > 0 && <HarvestSummary summary={summary} period="year" />}
       <HarvestYearScene year={year} months={months} layout={layout} onOpenMonth={onOpenMonth} />
       <HarvestCaption text={caption} action={action} />
     </>

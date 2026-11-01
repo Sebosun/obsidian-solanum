@@ -9,6 +9,61 @@ async function expectBlocksLoaded(page: Page) {
   await expect(page.getByText("Farm unavailable")).toBeHidden();
 }
 
+for (const width of [240, 560]) {
+  test(`harvest filters share a wrapping header and summaries precede crops at ${width}px`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width, height: 800 });
+    if (width === 240) await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    if (width === 560) {
+      await page.addStyleTag({
+        content:
+          "body { --text-normal:#34352e; --text-muted:#606355; --background-primary:#f6f4ec; --background-secondary:#ebe8de; --background-modifier-border:#cbc8bc; }",
+      });
+    }
+    const header = page.getByRole("group", { name: "Harvest controls", exact: true });
+    const tag = header.getByRole("combobox", { name: "Filter by tag" });
+    await expect(tag).toBeVisible();
+    await expect(header.getByRole("combobox", { name: "Filter by note" })).toBeVisible();
+    for (const period of ["Month", "Year"]) {
+      if (period === "Year") {
+        await header.getByRole("button", { name: "Year", exact: true }).focus();
+        await page.keyboard.press("Enter");
+      }
+      await expectBlocksLoaded(page);
+      const summary = page.getByRole("region", { name: `${period} summary` });
+      await expect(summary.getByText("Focused", { exact: true })).toBeVisible();
+      await expect(summary.getByText("Harvests", { exact: true })).toBeVisible();
+      await expect(summary.getByText("Active days", { exact: true })).toBeVisible();
+      const summaryBox = await summary.boundingBox();
+      const scene = await page.locator(".solanum-harvest-scene").boundingBox();
+      expect(summaryBox!.y + summaryBox!.height).toBeLessThanOrEqual(scene!.y);
+      await tag.selectOption("demo");
+      if (period === "Year") await expect(page.locator(".solanum-stack-label")).toHaveCount(12);
+      await expectBlocksLoaded(page);
+      await settle(page);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+        width,
+      );
+      await page.screenshot({
+        path: testInfo.outputPath(`${period.toLowerCase()}-details.png`),
+        fullPage: true,
+      });
+    }
+    const filters = await page.locator(".solanum-filters").boundingBox();
+    const toggle = await page
+      .getByRole("group", { name: "Harvest range", exact: true })
+      .boundingBox();
+    if (width === 560) {
+      expect(filters!.x + filters!.width).toBeLessThanOrEqual(toggle!.x);
+      expect(Math.abs(filters!.y - toggle!.y)).toBeLessThan(4);
+    } else {
+      expect(filters!.y + filters!.height).toBeLessThanOrEqual(toggle!.y);
+    }
+  });
+}
+
 test("a populated month finishes loading real GLBs in the real renderer", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));

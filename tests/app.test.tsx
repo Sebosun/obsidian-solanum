@@ -688,7 +688,7 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(within(summary).getByRole("list", { name: "Most used tags" }).textContent).toContain(
         "study",
       );
-      expect(within(summary).getByText(/One block per harvest/)).toBeTruthy();
+      expect(screen.getByText(/One block per harvest/)).toBeTruthy();
       expect(screen.queryByRole("button", { name: /^2026-10-\d\d/ })).toBeNull();
       expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
     });

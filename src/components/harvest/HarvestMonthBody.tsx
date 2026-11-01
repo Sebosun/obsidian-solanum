@@ -2,7 +2,7 @@ import type { HarvestBlocks, MonthSummary } from "@/lib/harvest/month";
 import { isEmptyMonth } from "@/lib/harvest/empty";
 import type { SeasonId } from "@/lib/scene/seasons";
 import { HarvestCaption } from "@/components/harvest/HarvestCaption";
-import { HarvestMonthSummary } from "@/components/harvest/HarvestMonthSummary";
+import { HarvestSummary } from "@/components/harvest/HarvestSummary";
 import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
 
 interface HarvestMonthBodyProps {
@@ -16,7 +16,7 @@ interface HarvestMonthBodyProps {
   onStartFocus(): void;
 }
 
-/** The month's blocks, with its summary beneath, or a caption when nothing was harvested. */
+/** The month's summary and blocks, or a caption when nothing was harvested. */
 export function HarvestMonthBody({
   month,
   layout,
@@ -34,12 +34,17 @@ export function HarvestMonthBody({
     caption = <HarvestCaption text="No matching harvests this month." action={clearAction} />;
   return (
     <>
+      {!isEmptyMonth(layout) && <HarvestSummary summary={summary} period="month" />}
       <HarvestMonthScene layout={layout} season={season} />
       {/* An empty month still shows its plinth, with nothing on it, rather than giving way to a message. */}
       {isEmptyMonth(layout) ? (
         caption
       ) : (
-        <HarvestMonthSummary summary={summary} shown={layout.blocks.length} total={layout.total} />
+        <p className="solanum-hint">
+          One block per harvest; longer sessions are taller.
+          {layout.blocks.length < layout.total &&
+            ` Showing ${layout.blocks.length} of ${layout.total}, spread evenly across the month.`}
+        </p>
       )}
     </>
   );

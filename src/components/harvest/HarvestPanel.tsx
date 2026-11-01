@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore, useServices } from "@/state/hooks";
 import { harvestFilterOptions } from "@/lib/harvest/filters";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
-import { layoutYearStacks, summarizeYear } from "@/lib/harvest/year";
+import { layoutYearStacks, summarizeYear, summarizeYearTotal } from "@/lib/harvest/year";
 import { MONTHS_PER_YEAR } from "@/lib/scene/constants";
 import { resolveSeason } from "@/lib/scene/seasons";
 import { HarvestFilters } from "@/components/harvest/HarvestFilters";
@@ -46,7 +46,11 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
   const yearData = useMemo(() => {
     if (view !== "year") return null;
     const months = summarizeYear(sessions, year, filter);
-    return { months, layout: layoutYearStacks(months) };
+    return {
+      months,
+      layout: layoutYearStacks(months),
+      summary: summarizeYearTotal(sessions, year, filter),
+    };
   }, [view, sessions, year, filter]);
   const { tags, notes } = useMemo(() => harvestFilterOptions(sessions), [sessions]);
 
@@ -90,14 +94,16 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         onPrevious={previous}
         onNext={next}
         onToday={backToToday}
-      />
-      <HarvestFilters
-        tags={tags}
-        notes={notes}
-        tag={tag}
-        notePath={notePath}
-        onTag={setTag}
-        onNote={setNotePath}
+        filters={
+          <HarvestFilters
+            tags={tags}
+            notes={notes}
+            tag={tag}
+            notePath={notePath}
+            onTag={setTag}
+            onNote={setNotePath}
+          />
+        }
       />
       {monthData && (
         <HarvestMonthBody
@@ -114,6 +120,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
         <HarvestYearBody
           year={year}
           months={yearData.months}
+          summary={yearData.summary}
           layout={yearData.layout}
           filtered={!!tag || !!notePath}
           onClearFilters={clearFilters}
