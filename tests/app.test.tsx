@@ -775,8 +775,9 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByRole("button", { name: "March 2026, 0 focused minutes" })).toBeTruthy();
       expect(screen.queryByText(/Each crate stands for|Busiest:/)).toBeNull();
       expect(
-        within(screen.getByRole("region", { name: "Year summary" })).getByText("5 min"),
-      ).toBeTruthy();
+        within(screen.getByRole("region", { name: "Year summary" })).getAllByRole("definition")[0]
+          .textContent,
+      ).toBe("5 min");
     });
 
     it("opens a month from the year grid and returns with the Year button", async () => {

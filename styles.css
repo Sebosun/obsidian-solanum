@@ -1308,6 +1308,9 @@
   padding-bottom: calc(var(--sol-spacing) * 3);
   color: var(--text-muted);
 }
+.solanum-year-comparison {
+  margin-top: calc(var(--sol-spacing) * 7);
+}
 @property --tw-ordinal {
   syntax: "*";
   inherits: false;

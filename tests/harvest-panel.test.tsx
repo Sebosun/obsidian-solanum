@@ -164,3 +164,58 @@ describe("period details", () => {
     release();
   });
 });
+
+describe("comparisons finish each period's summary", () => {
+  it("places month comparison after notes and compares the year with filtered prior-year totals", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 10, 1));
+    const release = await mount([
+      focusSession("boundary", new Date(2025, 11, 31, 23, 50), 30, {
+        tags: ["study"],
+        notePath: "A.md",
+      }),
+      focusSession("current", new Date(2026, 9, 3, 9), 40, { tags: ["study"], notePath: "A.md" }),
+      focusSession("prior", new Date(2025, 9, 3, 9), 60, { tags: ["study"], notePath: "A.md" }),
+      focusSession("work", new Date(2025, 5, 3, 9), 200, { tags: ["work"], notePath: "B.md" }),
+      focusSession("cancelled", new Date(2025, 9, 4, 9), 1000, {
+        status: "cancelled",
+        tags: ["study"],
+      }),
+    ]);
+    try {
+      const monthSummary = screen.getByRole("region", { name: "Month summary" });
+      const monthHeadings = within(monthSummary).getAllByRole("heading");
+      expect(monthHeadings[monthHeadings.length - 1].textContent).toBe("Month comparison");
+      fireEvent.click(screen.getByRole("button", { name: "Year" }));
+      const yearSummary = screen.getByRole("region", { name: "Year summary" });
+      const yearHeadings = within(yearSummary).getAllByRole("heading");
+      expect(yearHeadings[yearHeadings.length - 1].textContent).toBe("Year comparison");
+      const comparison = within(yearSummary).getByRole("table");
+      function expectRow(name: string, values: string[]) {
+        const row = within(comparison).getByRole("rowheader", { name }).closest("tr");
+        if (!row) throw new Error("Missing comparison row");
+        expect(
+          within(row)
+            .getAllByRole("cell")
+            .map((cell) => cell.textContent),
+        ).toEqual(values);
+      }
+      expect(within(comparison).getByRole("columnheader", { name: "2026" })).toBeTruthy();
+      expect(within(comparison).getByRole("columnheader", { name: "2025" })).toBeTruthy();
+      expect(within(yearSummary).getByText("Year to date vs full previous year")).toBeTruthy();
+      expectRow("Focused", ["1 h", "4 h 30 min"]);
+      expectRow("Harvests", ["2", "3"]);
+      expectRow("Active days", ["2", "3"]);
+      fireEvent.change(screen.getByLabelText("Filter by tag"), { target: { value: "study" } });
+      expectRow("Focused", ["1 h", "1 h 10 min"]);
+      expectRow("Harvests", ["2", "2"]);
+      expectRow("Active days", ["2", "2"]);
+      expect(within(yearSummary).getByText("14% less focused time")).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("Filter by note"), { target: { value: "A.md" } });
+      expectRow("Focused", ["1 h", "1 h 10 min"]);
+    } finally {
+      release();
+      vi.useRealTimers();
+    }
+  });
+});

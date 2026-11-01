@@ -622,3 +622,7 @@
 .solanum-app .solanum-comparison thead th {
   @apply sol:text-(--text-muted) sol:pb-3;
 }
+
+.solanum-year-comparison {
+  @apply sol:mt-7;
+}

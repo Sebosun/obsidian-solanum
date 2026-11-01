@@ -3,7 +3,7 @@ import type { MonthSummary } from "@/lib/harvest/month";
 import { DailyFocusChart } from "@/components/harvest/DailyFocusChart";
 import { FocusDistribution } from "@/components/harvest/FocusDistribution";
 import { FocusPatterns } from "@/components/harvest/FocusPatterns";
-import { MonthComparison } from "@/components/harvest/MonthComparison";
+import { HarvestComparison } from "@/components/harvest/HarvestComparison";
 
 interface HarvestMonthInsightsProps {
   month: Date;
@@ -15,7 +15,6 @@ export function HarvestMonthInsights({ month, summary, insights }: HarvestMonthI
   return (
     <div className="solanum-month-insights">
       <DailyFocusChart days={insights.days} />
-      <MonthComparison month={month} current={summary} previous={insights.previous} />
       <div className="solanum-insight-grid">
         <FocusPatterns title="Most focused weekdays" amounts={insights.weekdays} />
         <FocusPatterns title="Most focused time of day" amounts={insights.periods} />
@@ -34,6 +33,12 @@ export function HarvestMonthInsights({ month, summary, insights }: HarvestMonthI
           description="Share of focused time by linked note."
         />
       </div>
+      <HarvestComparison
+        date={month}
+        period="month"
+        current={summary}
+        previous={insights.previous}
+      />
     </div>
   );
 }

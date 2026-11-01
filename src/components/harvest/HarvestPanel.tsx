@@ -52,6 +52,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
       months,
       layout: layoutYearStacks(months),
       summary: summarizeYearTotal(sessions, year, filter),
+      previous: summarizeYearTotal(sessions, year - 1, filter),
     };
   }, [view, sessions, year, filter]);
   const { tags, notes } = useMemo(() => harvestFilterOptions(sessions), [sessions]);
@@ -124,6 +125,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           year={year}
           months={yearData.months}
           summary={yearData.summary}
+          previous={yearData.previous}
           layout={yearData.layout}
           filtered={!!tag || !!notePath}
           onClearFilters={clearFilters}

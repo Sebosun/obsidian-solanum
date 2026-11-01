@@ -36,6 +36,7 @@ for (const width of [240, 560]) {
       await expect(summary.getByRole("term").filter({ hasText: /^Focused$/ })).toBeVisible();
       await expect(summary.getByRole("term").filter({ hasText: /^Harvests$/ })).toBeVisible();
       await expect(summary.getByRole("term").filter({ hasText: /^Active days$/ })).toBeVisible();
+      await expect(summary.getByRole("heading").last()).toHaveText(`${period} comparison`);
       const summaryBox = await summary.boundingBox();
       const stats = summary.locator(".solanum-summary-stats");
       const statsBox = await stats.boundingBox();
@@ -63,6 +64,12 @@ for (const width of [240, 560]) {
       await page.screenshot({
         path: testInfo.outputPath(`${period.toLowerCase()}-details.png`),
         fullPage: true,
+      });
+      const comparison = summary.locator(".solanum-comparison");
+      await comparison.scrollIntoViewIfNeeded();
+      await expect(comparison).toBeVisible();
+      await page.screenshot({
+        path: testInfo.outputPath(`${period.toLowerCase()}-comparison.png`),
       });
     }
     const filters = await page.locator(".solanum-filters").boundingBox();

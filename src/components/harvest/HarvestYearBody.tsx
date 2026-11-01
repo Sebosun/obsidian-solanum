@@ -1,3 +1,4 @@
+import { HarvestComparison } from "@/components/harvest/HarvestComparison";
 import type { YearMonth, YearStacks } from "@/lib/harvest/year";
 import { HarvestCaption, type HarvestCaptionAction } from "@/components/harvest/HarvestCaption";
 import { HarvestYearScene } from "@/components/scenes/HarvestYearScene";
@@ -8,6 +9,7 @@ interface HarvestYearBodyProps {
   year: number;
   months: YearMonth[];
   summary: MonthSummary;
+  previous: MonthSummary;
   layout: YearStacks;
   /** A tag or note filter is narrowing what shows. */
   filtered: boolean;
@@ -20,6 +22,7 @@ export function HarvestYearBody({
   year,
   months,
   summary,
+  previous,
   layout,
   filtered,
   onClearFilters,
@@ -36,7 +39,14 @@ export function HarvestYearBody({
     <>
       <HarvestYearScene year={year} months={months} layout={layout} onOpenMonth={onOpenMonth} />
       {summary.harvests > 0 ? (
-        <HarvestSummary summary={summary} period="year" />
+        <HarvestSummary summary={summary} period="year">
+          <HarvestComparison
+            date={new Date(year, 0, 1)}
+            period="year"
+            current={summary}
+            previous={previous}
+          />
+        </HarvestSummary>
       ) : (
         <HarvestCaption text={caption} action={action} />
       )}
