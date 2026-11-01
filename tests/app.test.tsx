@@ -688,7 +688,7 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(within(summary).getByRole("list", { name: "Most used tags" }).textContent).toContain(
         "study",
       );
-      expect(screen.getByText(/One block per harvest/)).toBeTruthy();
+      expect(screen.queryByText(/One block per harvest/)).toBeNull();
       expect(screen.queryByRole("button", { name: /^2026-10-\d\d/ })).toBeNull();
       expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
     });
@@ -765,7 +765,7 @@ describe("sidebar workflows backed by the real timer service", () => {
     const monthButtons = () =>
       screen.getAllByRole("button", { name: /^[A-Z][a-z]+ \d{4}, \d+ focused minutes$/ });
 
-    it("shows every month of the year with its focused minutes, and says what a crate means", async () => {
+    it("shows every month of the year with focused minutes and a summary without explanatory copy", async () => {
       const f = await plantedFixture();
       render(<App host={f.host} screen="harvest" initialMonth={new Date(2026, 9, 1)} />);
       fireEvent.click(screen.getByRole("button", { name: "Year" }));
@@ -774,8 +774,10 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(screen.getByText("5 min this year")).toBeTruthy();
       expect(screen.getByRole("button", { name: "October 2026, 5 focused minutes" })).toBeTruthy();
       expect(screen.getByRole("button", { name: "March 2026, 0 focused minutes" })).toBeTruthy();
-      expect(screen.getByText(/Each crate stands for 2 h of focus/)).toBeTruthy();
-      expect(screen.getByText(/Busiest: October, 5 min/)).toBeTruthy();
+      expect(screen.queryByText(/Each crate stands for|Busiest:/)).toBeNull();
+      expect(
+        within(screen.getByRole("region", { name: "Year summary" })).getByText("5 min"),
+      ).toBeTruthy();
     });
 
     it("opens a month from the year grid and returns with the Year button", async () => {
@@ -798,7 +800,7 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(monthButtons()).toHaveLength(12);
       expect(screen.getByText("No harvests in 2027 yet.")).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Previous year" }));
-      expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
+      expect(screen.getByRole("region", { name: "Year summary" })).toBeTruthy();
     });
 
     it("offers a way back to the current year or month from any other one", async () => {
@@ -840,8 +842,8 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(monthButtons()).toHaveLength(12);
       expect(screen.getByText(/No matching harvests this year/)).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: "Clear filters" }));
-      expect(screen.getByText(/Each crate stands for/)).toBeTruthy();
-      expect(screen.getByText(/Busiest: October/)).toBeTruthy();
+      expect(screen.getByRole("region", { name: "Year summary" })).toBeTruthy();
+      expect(screen.getByText("5 min this year")).toBeTruthy();
     });
   });
 

@@ -34,18 +34,9 @@ export function HarvestMonthBody({
     caption = <HarvestCaption text="No matching harvests this month." action={clearAction} />;
   return (
     <>
-      {!isEmptyMonth(layout) && <HarvestSummary summary={summary} period="month" />}
       <HarvestMonthScene layout={layout} season={season} />
       {/* An empty month still shows its plinth, with nothing on it, rather than giving way to a message. */}
-      {isEmptyMonth(layout) ? (
-        caption
-      ) : (
-        <p className="solanum-hint">
-          One block per harvest; longer sessions are taller.
-          {layout.blocks.length < layout.total &&
-            ` Showing ${layout.blocks.length} of ${layout.total}, spread evenly across the month.`}
-        </p>
-      )}
+      {isEmptyMonth(layout) ? caption : <HarvestSummary summary={summary} period="month" />}
     </>
   );
 }

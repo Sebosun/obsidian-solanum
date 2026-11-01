@@ -1,4 +1,4 @@
-import type { ChangeEvent } from "react";
+import { useEffect, type ChangeEvent } from "react";
 
 interface HarvestFiltersProps {
   tags: string[];
@@ -10,6 +10,10 @@ interface HarvestFiltersProps {
 }
 
 export function HarvestFilters({ tags, notes, tag, notePath, onTag, onNote }: HarvestFiltersProps) {
+  const showNotes = notes.length > 1;
+  useEffect(() => {
+    if (!showNotes && notePath) onNote("");
+  }, [showNotes, notePath, onNote]);
   function changeTag(event: ChangeEvent<HTMLSelectElement>) {
     onTag(event.target.value);
   }
@@ -26,12 +30,14 @@ export function HarvestFilters({ tags, notes, tag, notePath, onTag, onNote }: Ha
           </option>
         ))}
       </select>
-      <select aria-label="Filter by note" value={notePath} onChange={changeNote}>
-        <option value="">All notes</option>
-        {notes.map((value) => (
-          <option key={value}>{value}</option>
-        ))}
-      </select>
+      {showNotes && (
+        <select aria-label="Filter by note" value={notePath} onChange={changeNote}>
+          <option value="">All notes</option>
+          {notes.map((value) => (
+            <option key={value}>{value}</option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

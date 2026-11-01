@@ -10,7 +10,7 @@ async function expectBlocksLoaded(page: Page) {
 }
 
 for (const width of [240, 560]) {
-  test(`harvest filters share a wrapping header and summaries precede crops at ${width}px`, async ({
+  test(`harvest filters stay compact and summaries follow crops at ${width}px`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 800 });
@@ -25,7 +25,7 @@ for (const width of [240, 560]) {
     const header = page.getByRole("group", { name: "Harvest controls", exact: true });
     const tag = header.getByRole("combobox", { name: "Filter by tag" });
     await expect(tag).toBeVisible();
-    await expect(header.getByRole("combobox", { name: "Filter by note" })).toBeVisible();
+    await expect(header.getByRole("combobox", { name: "Filter by note" })).toHaveCount(0);
     for (const period of ["Month", "Year"]) {
       if (period === "Year") {
         await header.getByRole("button", { name: "Year", exact: true }).focus();
@@ -38,7 +38,10 @@ for (const width of [240, 560]) {
       await expect(summary.getByText("Active days", { exact: true })).toBeVisible();
       const summaryBox = await summary.boundingBox();
       const scene = await page.locator(".solanum-harvest-scene").boundingBox();
-      expect(summaryBox!.y + summaryBox!.height).toBeLessThanOrEqual(scene!.y);
+      expect(scene!.y + scene!.height).toBeLessThanOrEqual(summaryBox!.y);
+      const tagBox = await tag.boundingBox();
+      expect(tagBox!.width).toBeLessThanOrEqual(112);
+      expect(tagBox!.height).toBeLessThanOrEqual(28);
       await tag.selectOption("demo");
       if (period === "Year") await expect(page.locator(".solanum-stack-label")).toHaveCount(12);
       await expectBlocksLoaded(page);
@@ -55,12 +58,8 @@ for (const width of [240, 560]) {
     const toggle = await page
       .getByRole("group", { name: "Harvest range", exact: true })
       .boundingBox();
-    if (width === 560) {
-      expect(filters!.x + filters!.width).toBeLessThanOrEqual(toggle!.x);
-      expect(Math.abs(filters!.y - toggle!.y)).toBeLessThan(4);
-    } else {
-      expect(filters!.y + filters!.height).toBeLessThanOrEqual(toggle!.y);
-    }
+    expect(filters!.x + filters!.width).toBeLessThanOrEqual(toggle!.x);
+    expect(Math.abs(filters!.y - toggle!.y)).toBeLessThan(4);
   });
 }
 
@@ -109,7 +108,7 @@ test("the month is blocks and numbers, with no calendar days to pick", async ({ 
   await expectBlocksLoaded(page);
   await expect(page.locator(".solanum-calendar")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^2026-10-\d\d/ })).toHaveCount(0);
-  await expect(page.getByText(/One block per harvest/)).toBeVisible();
+  await expect(page.getByText(/One block per harvest/)).toHaveCount(0);
 });
 
 test("the year is a stack of crates per month, and a stack opens its month", async ({ page }) => {
@@ -121,7 +120,7 @@ test("the year is a stack of crates per month, and a stack opens its month", asy
   await expectBlocksLoaded(page);
   await expect(page.locator(".solanum-stack-label")).toHaveCount(12);
   await expect(page.locator(".solanum-stack-label.is-busiest")).toHaveCount(1);
-  await expect(page.getByText(/Each crate stands for/)).toBeVisible();
+  await expect(page.getByText(/Each crate stands for/)).toHaveCount(0);
   // Keyboard: January, then across to October (nine presses right and down) and open it.
   await page.getByRole("group", { name: "Harvest by month" }).focus();
   for (const key of ["ArrowRight", "ArrowDown", "ArrowDown", "ArrowRight"])

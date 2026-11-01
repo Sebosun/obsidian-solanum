@@ -125,10 +125,10 @@ describe("working out only the view on show", () => {
 });
 
 describe("period details", () => {
-  it("keeps filters in the range header and shows filtered month and year totals before the crops", async () => {
+  it("keeps filters in the range header and shows filtered month and year totals below the crops", async () => {
     const release = await mount([
-      focusSession("october", new Date(2026, 9, 3, 9), 25, { tags: ["study"] }),
-      focusSession("march", new Date(2026, 2, 3, 9), 40, { tags: ["work"] }),
+      focusSession("october", new Date(2026, 9, 3, 9), 25, { tags: ["study"], notePath: "A.md" }),
+      focusSession("march", new Date(2026, 2, 3, 9), 40, { tags: ["work"], notePath: "B.md" }),
       focusSession("march-study", new Date(2026, 2, 4, 9), 20, { tags: ["study"] }),
     ]);
     const header = screen.getByRole("group", { name: "Harvest controls" });
@@ -144,7 +144,7 @@ describe("period details", () => {
       expect(values).toEqual([focused, harvests, days]);
       const scene = screen.getByTestId(`${period.toLowerCase()}-scene`);
       expect(
-        summary.compareDocumentPosition(scene) & Node.DOCUMENT_POSITION_FOLLOWING,
+        scene.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       return summary;
     }

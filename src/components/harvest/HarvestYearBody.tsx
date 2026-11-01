@@ -1,5 +1,4 @@
 import type { YearMonth, YearStacks } from "@/lib/harvest/year";
-import { formatFocus } from "@/lib/time";
 import { HarvestCaption, type HarvestCaptionAction } from "@/components/harvest/HarvestCaption";
 import { HarvestYearScene } from "@/components/scenes/HarvestYearScene";
 import { HarvestSummary } from "@/components/harvest/HarvestSummary";
@@ -16,7 +15,7 @@ interface HarvestYearBodyProps {
   onOpenMonth(index: number): void;
 }
 
-/** The year's crates, with a caption on what a crate means, or on why there are none. */
+/** The year's crates and summary, or a recovery action when there are none. */
 export function HarvestYearBody({
   year,
   months,
@@ -27,23 +26,20 @@ export function HarvestYearBody({
   onOpenMonth,
 }: HarvestYearBodyProps) {
   // An empty year still shows its twelve crates, just empty ones.
-  const busiest = layout.stacks.find((stack) => stack.busiest);
-  let caption = `Each crate stands for ${formatFocus(layout.crateMinutes)} of focus.`;
+  let caption = `No harvests in ${year} yet.`;
   let action: HarvestCaptionAction | undefined;
-  if (busiest) {
-    const name = months[busiest.index].date.toLocaleDateString(undefined, { month: "long" });
-    caption += ` Busiest: ${name}, ${formatFocus(busiest.minutes)}.`;
-  } else if (filtered) {
+  if (filtered) {
     caption = "No matching harvests this year.";
     action = { label: "Clear filters", run: onClearFilters };
-  } else {
-    caption = `No harvests in ${year} yet.`;
   }
   return (
     <>
-      {summary.harvests > 0 && <HarvestSummary summary={summary} period="year" />}
       <HarvestYearScene year={year} months={months} layout={layout} onOpenMonth={onOpenMonth} />
-      <HarvestCaption text={caption} action={action} />
+      {summary.harvests > 0 ? (
+        <HarvestSummary summary={summary} period="year" />
+      ) : (
+        <HarvestCaption text={caption} action={action} />
+      )}
     </>
   );
 }
