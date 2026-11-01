@@ -74,7 +74,7 @@ for (const width of [240, 560]) {
   });
 }
 
-test("month crops show custom details on hover and keyboard inspection, without native tooltips", async ({
+test("month crops show persistent details below the scene on hover and keyboard inspection", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
@@ -82,7 +82,7 @@ test("month crops show custom details on hover and keyboard inspection, without 
   await settle(page);
   const scene = page.getByRole("group", { name: "Harvest by session", exact: true });
   const bounds = await scene.boundingBox();
-  const detail = page.getByRole("tooltip");
+  const detail = page.getByRole("region", { name: "Harvest details" });
   await expect(detail).toHaveCount(0);
   // Hit actual crop geometry rather than a DOM stand-in or an invisible hotspot.
   for (const y of [0.6, 0.5, 0.7, 0.4]) {
@@ -98,10 +98,13 @@ test("month crops show custom details on hover and keyboard inspection, without 
   await expect(detail).toContainText(/\d+ min|\d+ h/);
   await expect(detail.locator("[title], [aria-label]")).toHaveCount(0);
   const card = await detail.boundingBox();
+  expect(card!.y).toBeGreaterThanOrEqual(bounds!.y + bounds!.height);
   expect(card!.x).toBeGreaterThanOrEqual(bounds!.x);
   expect(card!.x + card!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
   await page.screenshot({ path: testInfo.outputPath("harvest-hover.png") });
   await page.mouse.move(0, 0);
+  await expect(detail).toBeVisible();
+  await page.getByRole("button", { name: "Month summary", exact: true }).click();
   await expect(detail).toHaveCount(0);
   await scene.focus();
   await page.keyboard.press("ArrowRight");
@@ -112,13 +115,15 @@ test("month crops show custom details on hover and keyboard inspection, without 
 
 test.describe("touch harvest inspection", () => {
   test.use({ hasTouch: true });
-  test("tapping a crop reveals its details and tapping empty space dismisses them", async ({ page }) => {
+  test("tapping a crop reveals persistent details and panel controls browse without targeting geometry", async ({
+    page,
+  }) => {
     await page.goto("/");
     await expectBlocksLoaded(page);
     await settle(page);
     const scene = page.getByRole("group", { name: "Harvest by session", exact: true });
     const bounds = await scene.boundingBox();
-    const detail = page.getByRole("tooltip");
+    const detail = page.getByRole("region", { name: "Harvest details" });
     for (const y of [0.6, 0.5, 0.7, 0.4]) {
       for (const x of [0.5, 0.35, 0.65]) {
         await page.touchscreen.tap(bounds!.x + bounds!.width * x, bounds!.y + bounds!.height * y);
@@ -129,9 +134,56 @@ test.describe("touch harvest inspection", () => {
     await expect(detail).toBeVisible();
     await expect(detail.locator("time")).toHaveAttribute("datetime", /^2026-10-/);
     await page.touchscreen.tap(bounds!.x + 5, bounds!.y + 5);
+    await expect(detail).toBeVisible();
+    const date = await detail.locator("time").getAttribute("datetime");
+    await page.getByRole("button", { name: "Next harvest" }).tap();
+    await expect(detail.locator("time")).not.toHaveAttribute("datetime", date!);
+    await page.getByRole("button", { name: "Month summary", exact: true }).tap();
     await expect(detail).toHaveCount(0);
   });
 });
+
+for (const width of [240, 560]) {
+  test(`panel browsing works without hovering crops at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    if (width === 560) {
+      await page.addStyleTag({
+        content:
+          "body { --text-normal:#34352e; --text-muted:#606355; --background-primary:#f6f4ec; --background-secondary:#ebe8de; --background-modifier-border:#cbc8bc; }",
+      });
+    }
+    await expectBlocksLoaded(page);
+    await settle(page);
+    const canvas = await page.locator(".solanum-month-scene canvas").elementHandle();
+    const next = page.getByRole("button", { name: "Next harvest" });
+    await next.focus();
+    await page.keyboard.press("Enter");
+    const detail = page.getByRole("region", { name: "Harvest details" });
+    await expect(detail).toBeVisible();
+    const firstDate = await detail.locator("time").getAttribute("datetime");
+    await page.keyboard.press("Enter");
+    await expect(detail.locator("time")).not.toHaveAttribute("datetime", firstDate!);
+    await page.getByRole("button", { name: "Previous harvest" }).click();
+    await expect(detail.locator("time")).toHaveAttribute("datetime", firstDate!);
+    const scene = await page.locator(".solanum-month-scene").boundingBox();
+    const panel = await detail.boundingBox();
+    expect(panel!.y).toBeGreaterThanOrEqual(scene!.y + scene!.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    );
+    await page.screenshot({ path: testInfo.outputPath("harvest-panel.png"), fullPage: true });
+    await page.keyboard.press("Escape");
+    await expect(detail).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Month summary" })).toBeVisible();
+    expect(await canvas!.evaluate((element) => element.isConnected)).toBe(true);
+    await page.getByRole("button", { name: "Next harvest" }).click();
+    await page.getByRole("button", { name: "Next month", exact: true }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Next harvest" })).toHaveCount(0);
+  });
+}
 
 test("a populated month finishes loading real GLBs in the real renderer", async ({ page }) => {
   const errors: string[] = [];

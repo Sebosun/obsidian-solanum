@@ -1,3 +1,5 @@
+import { useId } from "react";
+import { SrLabel } from "@/components/app/SrLabel";
 import type { HarvestBlock } from "@/lib/harvest/month";
 import { CROPS } from "@/lib/crops/catalog";
 import { formatFocus } from "@/lib/time";
@@ -7,12 +9,19 @@ interface HarvestDetailProps {
   id: string;
 }
 
-/** A custom inspection card, never a native title or Obsidian hover label. */
+/** Session details in the panel below the harvest, shared by pointer and keyboard inspection. */
 export function HarvestDetail({ block, id }: HarvestDetailProps) {
+  const labelId = useId();
   const crop = CROPS[block.crop];
   const date = new Date(block.startedAt);
   return (
-    <div id={id} role="tooltip" className="solanum-harvest-detail">
+    <section
+      id={id}
+      aria-labelledby={labelId}
+      className="solanum-harvest-detail"
+      aria-live="polite"
+    >
+      <SrLabel id={labelId}>Harvest details</SrLabel>
       <strong>
         <span aria-hidden="true">{crop.emoji} </span>
         {crop.name}
@@ -39,6 +48,6 @@ export function HarvestDetail({ block, id }: HarvestDetailProps) {
         </span>
       )}
       {block.notePath && <span className="solanum-harvest-detail-note">{block.notePath}</span>}
-    </div>
+    </section>
   );
 }

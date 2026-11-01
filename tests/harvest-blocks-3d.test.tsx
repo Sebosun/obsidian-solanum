@@ -60,7 +60,7 @@ describe("a block for each harvest", () => {
     focusSession("carrots", at(4), 50, { crop: "carrot" }),
   ];
 
-  it("identifies the pointed or tapped harvest and clears it on pointer out", async () => {
+  it("identifies the pointed or tapped harvest and keeps it selected on pointer out", async () => {
     const { layout } = mount(sessions);
     const onInspect = vi.fn();
     const renderer = await ReactThreeTestRenderer.create(
@@ -70,11 +70,10 @@ describe("a block for each harvest", () => {
     const stopPropagation = vi.fn();
     await renderer.fireEvent(group, "pointerOver", { stopPropagation });
     expect(onInspect).toHaveBeenLastCalledWith("short");
-    await renderer.fireEvent(group, "pointerOut", { stopPropagation });
-    expect(onInspect).toHaveBeenLastCalledWith(null);
+    expect(group.props.onPointerOut).toBeUndefined();
     await renderer.fireEvent(group, "click", { stopPropagation });
     expect(onInspect).toHaveBeenLastCalledWith("short");
-    expect(stopPropagation).toHaveBeenCalledTimes(3);
+    expect(stopPropagation).toHaveBeenCalledTimes(2);
     await renderer.unmount();
   });
 

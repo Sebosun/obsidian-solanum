@@ -1,6 +1,8 @@
+import { useId, useState, type KeyboardEvent } from "react";
 import type { HarvestBlocks, MonthSummary } from "@/lib/harvest/month";
 import { isEmptyMonth } from "@/lib/harvest/empty";
 import type { SeasonId } from "@/lib/scene/seasons";
+import { HarvestDetail } from "@/components/harvest/HarvestDetail";
 import { HarvestCaption } from "@/components/harvest/HarvestCaption";
 import { HarvestSummary } from "@/components/harvest/HarvestSummary";
 import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
@@ -26,6 +28,30 @@ export function HarvestMonthBody({
   onClearFilters,
   onStartFocus,
 }: HarvestMonthBodyProps) {
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const detailId = useId();
+  const inspectedIndex = layout.blocks.findIndex((block) => block.sessionId === inspectedId);
+  const inspected = layout.blocks[inspectedIndex];
+  function clearInspection() {
+    setInspectedId(null);
+  }
+  function browse(direction: number) {
+    const count = layout.blocks.length;
+    if (count === 0) return;
+    let next = inspectedIndex + direction;
+    if (inspectedIndex < 0) next = direction > 0 ? 0 : count - 1;
+    next = (next + count) % count;
+    setInspectedId(layout.blocks[next].sessionId);
+  }
+  function navigatePanel(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") clearInspection();
+  }
+  function previousHarvest() {
+    browse(-1);
+  }
+  function nextHarvest() {
+    browse(1);
+  }
   const clearAction = { label: "Clear filters", run: onClearFilters };
   const startAction = { label: "Start focus", run: onStartFocus };
   const monthName = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
@@ -34,9 +60,41 @@ export function HarvestMonthBody({
     caption = <HarvestCaption text="No matching harvests this month." action={clearAction} />;
   return (
     <>
-      <HarvestMonthScene layout={layout} season={season} />
+      <HarvestMonthScene
+        layout={layout}
+        season={season}
+        inspectedId={inspectedId}
+        detailId={detailId}
+        onInspect={setInspectedId}
+      />
       {/* An empty month still shows its plinth, with nothing on it, rather than giving way to a message. */}
-      {isEmptyMonth(layout) ? caption : <HarvestSummary summary={summary} period="month" />}
+      {isEmptyMonth(layout) ? (
+        caption
+      ) : (
+        <div className="solanum-month-panel" onKeyDown={navigatePanel}>
+          <div className="solanum-harvest-browse">
+            <button aria-label="Previous harvest" onClick={previousHarvest}>
+              ‹
+            </button>
+            <span className="solanum-harvest-position">
+              {inspected
+                ? `${inspectedIndex + 1} / ${layout.blocks.length}`
+                : `${layout.blocks.length} harvests`}
+            </span>
+            <button aria-label="Next harvest" onClick={nextHarvest}>
+              ›
+            </button>
+            <button className="solanum-subtle" disabled={!inspected} onClick={clearInspection}>
+              Month summary
+            </button>
+          </div>
+          {inspected ? (
+            <HarvestDetail block={inspected} id={detailId} />
+          ) : (
+            <HarvestSummary summary={summary} period="month" />
+          )}
+        </div>
+      )}
     </>
   );
 }

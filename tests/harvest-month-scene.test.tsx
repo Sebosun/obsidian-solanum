@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { HarvestMonthScene } from "@/components/scenes/HarvestMonthScene";
+import { HarvestMonthBody } from "@/components/harvest/HarvestMonthBody";
 import { AppStoreProvider } from "@/components/app/AppStoreProvider";
 import { getAppStore, releaseAppStore } from "@/state/appStore";
 import { DEFAULT_SETTINGS } from "@/lib/settings";
-import { layoutHarvestBlocks } from "@/lib/harvest/month";
+import { summarizeMonth, layoutHarvestBlocks } from "@/lib/harvest/month";
 import { emptyTimer } from "./helpers/timerEnvironment";
 import { canvasStub, resetCanvasStub } from "./helpers/fiberStub";
 import type { SolanumHost } from "@/types/host";
@@ -46,7 +46,20 @@ function mount(sessions: Revision[] = []) {
   );
   render(
     <AppStoreProvider store={getAppStore(host)}>
-      <HarvestMonthScene layout={layout} season="summer" />
+      <HarvestMonthBody
+        month={new Date(2026, 9, 1)}
+        layout={layout}
+        summary={summarizeMonth(
+          sessions,
+          new Date(2026, 9, 1),
+          {},
+          new Date(2026, 10, 1).getTime(),
+        )}
+        season="summer"
+        filtered={false}
+        onClearFilters={vi.fn()}
+        onStartFocus={vi.fn()}
+      />
     </AppStoreProvider>,
   );
   return () => releaseAppStore(timer);
@@ -66,7 +79,7 @@ describe("month scene recovery", () => {
   });
 });
 
-it("shows session details with arrow keys and dismisses them with Escape or when focus leaves", () => {
+it("browses sessions below the scene without targeting crops, preserves details on leave, and restores totals", () => {
   resetCanvasStub("ready");
   const release = mount([
     focusSession("tomato", new Date(2026, 9, 3, 9), 25, {
@@ -76,9 +89,14 @@ it("shows session details with arrow keys and dismisses them with Escape or when
     focusSession("carrot", new Date(2026, 9, 4, 10), 40, { crop: "carrot" }),
   ]);
   const scene = screen.getByRole("group", { name: "Harvest by session" });
-  expect(screen.queryByRole("tooltip")).toBeNull();
-  fireEvent.keyDown(scene, { key: "ArrowRight" });
-  let detail = screen.getByRole("tooltip");
+  expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Next harvest" }));
+  let detail = screen.getByRole("region", { name: "Harvest details" });
+  expect(scene.contains(detail)).toBe(false);
+  expect(screen.queryByRole("region", { name: "Month summary" })).toBeNull();
+  fireEvent.pointerLeave(scene);
+  fireEvent.blur(scene);
+  expect(screen.getByRole("region", { name: "Harvest details" })).toBe(detail);
   expect(detail.textContent).toContain("Tomato");
   expect(detail.textContent).toContain("25 min");
   expect(detail.textContent).toContain("study");
@@ -87,14 +105,17 @@ it("shows session details with arrow keys and dismisses them with Escape or when
     new Date(2026, 9, 3, 9).toISOString(),
   );
   fireEvent.keyDown(scene, { key: "ArrowRight" });
-  detail = screen.getByRole("tooltip");
+  detail = screen.getByRole("region", { name: "Harvest details" });
   expect(detail.textContent).toContain("Carrot");
   expect(detail.textContent).toContain("40 min");
   expect(detail.textContent).not.toContain("Project.md");
   fireEvent.keyDown(scene, { key: "Escape" });
-  expect(screen.queryByRole("tooltip")).toBeNull();
-  fireEvent.keyDown(scene, { key: "ArrowRight" });
-  fireEvent.blur(scene);
-  expect(screen.queryByRole("tooltip")).toBeNull();
+  expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Month summary" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Previous harvest" }));
+  expect(screen.getByRole("region", { name: "Harvest details" }).textContent).toContain("Carrot");
+  fireEvent.click(screen.getByRole("button", { name: "Month summary" }));
+  expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Month summary" })).toBeTruthy();
   release();
 });

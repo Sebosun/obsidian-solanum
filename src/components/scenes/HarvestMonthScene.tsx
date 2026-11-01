@@ -1,4 +1,4 @@
-import { useId, useState, type KeyboardEvent } from "react";
+import { useId, type KeyboardEvent } from "react";
 import type { HarvestBlocks } from "@/lib/harvest/month";
 import { isEmptyMonth } from "@/lib/harvest/empty";
 import { HARVEST_BLOCKS, HARVEST_SCENE } from "@/lib/scene/constants";
@@ -14,12 +14,14 @@ import { EmptyPlots } from "@/components/models/EmptyPlots";
 import { HarvestBlockMesh } from "@/components/models/HarvestBlockMesh";
 import { Plinth } from "@/components/models/Plinth";
 import { HarvestUnavailable } from "@/components/harvest/HarvestUnavailable";
-import { HarvestDetail } from "@/components/harvest/HarvestDetail";
 import { adjacentBed } from "@/lib/harvest/navigation";
 
 interface HarvestMonthSceneProps {
   layout: HarvestBlocks;
   season: SeasonId;
+  inspectedId: string | null;
+  detailId: string;
+  onInspect(sessionId: string | null): void;
 }
 
 /** How far the plinth reaches past the outermost blocks, in world units. */
@@ -27,12 +29,16 @@ const PLINTH_MARGIN = 0.5;
 /** Tallest block plus the plants above it, so the camera always fits the full height. */
 const SPACER_HEIGHT = 2.6;
 
-export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
+export function HarvestMonthScene({
+  layout,
+  season,
+  inspectedId,
+  detailId,
+  onInspect,
+}: HarvestMonthSceneProps) {
   const reduced = useReducedMotion();
   const labelId = useId();
   const groupId = useId();
-  const detailId = useId();
-  const [inspectedId, setInspectedId] = useState<string | null>(null);
   const inspected = layout.blocks.find((block) => block.sessionId === inspectedId);
   const { attempt, retry } = useHarvestRetry();
   const theme = SEASON_THEMES[season];
@@ -41,7 +47,7 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
   const style = { ...seasonStyle(theme), aspectRatio: HARVEST_SCENE.aspectRatio };
   const fallback = <HarvestUnavailable onRetry={retry} />;
   function clearInspection() {
-    setInspectedId(null);
+    onInspect(null);
   }
   function navigate(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -58,7 +64,7 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
     );
     if (next === null) return;
     event.preventDefault();
-    setInspectedId(layout.blocks[next].sessionId);
+    onInspect(layout.blocks[next].sessionId);
   }
 
   return (
@@ -71,9 +77,6 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
         aria-describedby={inspected ? detailId : undefined}
         tabIndex={layout.blocks.length > 0 ? 0 : -1}
         onKeyDown={navigate}
-        onBlur={clearInspection}
-        onPointerDown={clearInspection}
-        onPointerLeave={clearInspection}
       >
         <SrLabel id={groupId}>Harvest by session</SrLabel>
         <SrLabel id={labelId}>Blocks showing this month's harvests</SrLabel>
@@ -94,11 +97,10 @@ export function HarvestMonthScene({ layout, season }: HarvestMonthSceneProps) {
               block={block}
               index={index}
               reduced={reduced}
-              onInspect={setInspectedId}
+              onInspect={onInspect}
             />
           ))}
         </HarvestCanvas>
-        {inspected && <HarvestDetail block={inspected} id={detailId} />}
       </div>
     </SceneBoundary>
   );

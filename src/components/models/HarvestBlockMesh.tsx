@@ -1,3 +1,4 @@
+import type { ThreeEvent } from "@react-three/fiber";
 import type { HarvestBlock } from "@/lib/harvest/month";
 import { cropStage } from "@/lib/crops/growth";
 import { HARVEST_BLOCKS } from "@/lib/scene/constants";
@@ -35,16 +36,11 @@ export function HarvestBlockMesh({ block, index, reduced, onInspect }: HarvestBl
     event.stopPropagation();
     onInspect?.(block.sessionId);
   }
-  function leave(event: ThreeEvent<PointerEvent>) {
-    event.stopPropagation();
-    onInspect?.(null);
-  }
   return (
     <group
       name={`block-${block.sessionId}`}
       position={[x, 0, z]}
       onPointerOver={inspect}
-      onPointerOut={leave}
       onClick={inspect}
     >
       <RiseGroup index={Math.min(index, MAX_STAGGER_INDEX)} reduced={reduced}>
@@ -65,4 +61,3 @@ export function HarvestBlockMesh({ block, index, reduced, onInspect }: HarvestBl
     </group>
   );
 }
-import type { ThreeEvent } from "@react-three/fiber";

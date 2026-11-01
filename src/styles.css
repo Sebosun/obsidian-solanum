@@ -413,8 +413,31 @@
 .solanum-summary-stats div {
   @apply sol:flex sol:flex-1 sol:flex-col sol:items-center sol:text-center sol:gap-0.5 sol:min-w-0;
 }
+.solanum-month-panel {
+  @apply sol:mt-3 sol:p-3.5 sol:rounded-xl sol:bg-(--background-secondary);
+}
+.solanum-month-panel .solanum-harvest-summary {
+  @apply sol:m-0 sol:p-0;
+}
+.solanum-harvest-browse {
+  @apply sol:flex sol:items-center sol:gap-1 sol:mb-3 sol:pb-2 sol:border-0 sol:border-b sol:border-solid sol:border-(--background-modifier-border);
+}
+.solanum-app .solanum-harvest-browse button {
+  @apply sol:min-h-9 sol:min-w-9 sol:shrink-0;
+}
+.solanum-app .solanum-harvest-browse .solanum-subtle {
+  @apply sol:ml-auto sol:text-[11px] sol:shrink sol:min-w-0;
+}
+.solanum-harvest-position {
+  @apply sol:text-[11px] sol:text-(--text-muted) sol:tabular-nums sol:whitespace-nowrap;
+}
+@media (pointer: coarse) {
+  .solanum-app .solanum-harvest-browse button {
+    @apply sol:min-h-11;
+  }
+}
 .solanum-harvest-detail {
-  @apply sol:absolute sol:left-3 sol:right-3 sol:bottom-3 sol:z-10 sol:flex sol:flex-col sol:gap-1 sol:p-3 sol:rounded-lg sol:border sol:border-solid sol:border-(--background-modifier-border) sol:bg-(--background-primary)/95 sol:text-(--text-normal) sol:text-[11px] sol:shadow-lg sol:pointer-events-none;
+  @apply sol:flex sol:flex-col sol:gap-2 sol:text-(--text-normal) sol:text-xs sol:min-w-0 sol:break-words;
 }
 .solanum-harvest-detail time,
 .solanum-harvest-detail-note {
