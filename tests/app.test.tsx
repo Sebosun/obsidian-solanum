@@ -680,14 +680,13 @@ describe("sidebar workflows backed by the real timer service", () => {
       expect(blocks.getAttribute("data-blocks")).toBe("1");
       expect(blocks.getAttribute("data-crops")).toBe("carrot");
       const summary = screen.getByRole("region", { name: "Month summary" });
-      expect(within(summary).getByText("5 min")).toBeTruthy();
-      expect(within(summary).getByText("Harvests").nextSibling?.textContent).toBe("1");
-      expect(within(summary).getByRole("list", { name: "Crops grown" }).textContent).toContain(
-        "Carrot",
-      );
-      expect(within(summary).getByRole("list", { name: "Most used tags" }).textContent).toContain(
-        "study",
-      );
+      expect(
+        within(summary)
+          .getAllByRole("definition")
+          .map((item) => item.textContent),
+      ).toEqual(["5 min", "1", "1"]);
+      expect(within(summary).getByRole("img", { name: "Daily focus" })).toBeTruthy();
+      expect(within(summary).getByRole("list", { name: "Tags" }).textContent).toContain("study");
       expect(screen.queryByText(/One block per harvest/)).toBeNull();
       expect(screen.queryByRole("button", { name: /^2026-10-\d\d/ })).toBeNull();
       expect(screen.queryByRole("region", { name: "Harvest details" })).toBeNull();

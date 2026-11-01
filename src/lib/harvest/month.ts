@@ -11,8 +11,6 @@ export interface HarvestBlock {
   /** Focused minutes this harvest contributed to the month. */
   minutes: number;
   startedAt: number;
-  tags: string[];
-  notePath: string | null;
   /** 1 for a harvested crop, less for one still growing. */
   progress: number;
   height: number;
@@ -117,8 +115,6 @@ export function layoutHarvestBlocks(
       crop: session.crop,
       minutes,
       startedAt: session.startedAt,
-      tags: [...session.tags],
-      notePath: session.notePath,
       progress: growthProgress(session, now),
       height: blockHeight(minutes),
       position: [

@@ -889,10 +889,11 @@
   background: radial-gradient(circle at 85% 8%, var(--season-sun, transparent), transparent 42%), radial-gradient(ellipse at 50% 55%, var(--season-glow, #8eaf7f24), transparent 75%), var(--background-secondary);
 }
 .solanum-harvest-summary {
-  margin-top: calc(var(--sol-spacing) * 3);
+  container-type: inline-size;
+  margin-top: calc(var(--sol-spacing) * 5);
   border-radius: var(--sol-radius-xl);
   background-color: var(--background-secondary);
-  padding: calc(var(--sol-spacing) * 3.5);
+  padding: calc(var(--sol-spacing) * 5);
 }
 .solanum-summary-label {
   margin-top: calc(var(--sol-spacing) * 2);
@@ -902,10 +903,11 @@
 }
 .solanum-summary-stats {
   margin: 0px;
-  margin-bottom: calc(var(--sol-spacing) * 3);
+  margin-bottom: calc(var(--sol-spacing) * 5);
   display: flex;
   justify-content: space-around;
-  gap: calc(var(--sol-spacing) * 2);
+  gap: 0px;
+  padding-block: calc(var(--sol-spacing) * 3);
 }
 .solanum-summary-stats div {
   display: flex;
@@ -913,83 +915,14 @@
   flex: 1;
   flex-direction: column;
   align-items: center;
-  gap: calc(var(--sol-spacing) * 0.5);
+  gap: calc(var(--sol-spacing) * 2);
   text-align: center;
 }
-.solanum-month-panel {
-  margin-top: calc(var(--sol-spacing) * 3);
-  border-radius: var(--sol-radius-xl);
-  background-color: var(--background-secondary);
-  padding: calc(var(--sol-spacing) * 3.5);
-}
-.solanum-month-panel .solanum-harvest-summary {
-  margin: 0px;
-  padding: 0px;
-}
-.solanum-harvest-browse {
-  margin-bottom: calc(var(--sol-spacing) * 3);
-  display: flex;
-  align-items: center;
-  gap: var(--sol-spacing);
-  border-style: var(--tw-border-style);
-  border-width: 0px;
-  border-bottom-style: var(--tw-border-style);
-  border-bottom-width: 1px;
-  --tw-border-style: solid;
-  border-style: solid;
-  border-color: var(--background-modifier-border);
-  padding-bottom: calc(var(--sol-spacing) * 2);
-}
-.solanum-app .solanum-harvest-browse button {
-  min-height: calc(var(--sol-spacing) * 9);
-  min-width: calc(var(--sol-spacing) * 9);
-  flex-shrink: 0;
-}
-.solanum-app .solanum-harvest-browse .solanum-subtle {
-  margin-left: auto;
-  min-width: 0px;
-  flex-shrink: 1;
-  font-size: 11px;
-}
-.solanum-harvest-position {
-  font-size: 11px;
-  white-space: nowrap;
-  color: var(--text-muted);
-  --tw-numeric-spacing: tabular-nums;
-  font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
-}
-@media (pointer: coarse) {
-  .solanum-app .solanum-harvest-browse button {
-    min-height: calc(var(--sol-spacing) * 11);
-  }
-}
-.solanum-harvest-detail {
-  display: flex;
-  min-width: 0px;
-  flex-direction: column;
-  gap: calc(var(--sol-spacing) * 2);
-  font-size: var(--sol-text-xs);
-  line-height: var(--tw-leading, var(--sol-text-xs--line-height));
-  overflow-wrap: break-word;
-  color: var(--text-normal);
-}
-.solanum-harvest-detail time, .solanum-harvest-detail-note {
-  overflow-wrap: break-word;
-  color: var(--text-muted);
-}
-.solanum-harvest-detail-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sol-spacing);
-}
-.solanum-month-scene canvas {
-  cursor: pointer;
-}
-.solanum-month-scene:focus-visible {
-  --tw-shadow: inset 0 0 0 2px var(--tw-shadow-color, var(--crop-green));
-  box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-}
 .solanum-summary-stats dt {
+  display: flex;
+  min-height: calc(var(--sol-spacing) * 7);
+  align-items: center;
+  justify-content: center;
   font-size: 10px;
   --tw-tracking: var(--sol-tracking-wider);
   letter-spacing: var(--sol-tracking-wider);
@@ -1192,6 +1125,188 @@
   to {
     transform: rotate(360deg);
   }
+}
+.solanum-month-insights {
+  container-type: inline-size;
+  display: flex;
+  min-width: 0px;
+  flex-direction: column;
+  gap: calc(var(--sol-spacing) * 7);
+}
+.solanum-insight-block {
+  min-width: 0px;
+}
+.solanum-insight-block h3 {
+  margin: 0px;
+  margin-bottom: calc(var(--sol-spacing) * 3);
+  font-size: var(--sol-text-xs);
+  line-height: var(--tw-leading, var(--sol-text-xs--line-height));
+  --tw-font-weight: var(--sol-font-weight-semibold);
+  font-weight: var(--sol-font-weight-semibold);
+  color: var(--text-normal);
+}
+.solanum-insight-heading {
+  margin-bottom: calc(var(--sol-spacing) * 2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sol-spacing);
+}
+.solanum-insight-heading span, .solanum-insight-caption {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.solanum-insight-caption {
+  margin-top: 0px;
+  margin-bottom: calc(var(--sol-spacing) * 4);
+  --tw-leading: var(--sol-leading-relaxed);
+  line-height: var(--sol-leading-relaxed);
+}
+.solanum-daily-chart {
+  display: block;
+  height: calc(var(--sol-spacing) * 28);
+  width: 100%;
+  overflow: visible;
+}
+.solanum-daily-ticks {
+  margin-top: calc(var(--sol-spacing) * 2);
+  display: grid;
+  font-size: 10px;
+  color: var(--text-muted);
+  --tw-numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
+}
+.solanum-daily-ticks span {
+  min-width: 0px;
+  text-align: center;
+}
+.solanum-daily-bar {
+  fill: var(--crop-green);
+}
+.solanum-daily-zero {
+  fill: var(--background-modifier-border);
+}
+.solanum-insight-details {
+  margin-top: calc(var(--sol-spacing) * 3);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.solanum-insight-details summary {
+  cursor: pointer;
+  padding-block: calc(var(--sol-spacing) * 2);
+}
+.solanum-daily-totals, .solanum-patterns, .solanum-distribution {
+  margin: 0px;
+  list-style-type: none;
+  padding: 0px;
+}
+.solanum-daily-totals {
+  margin-top: calc(var(--sol-spacing) * 2);
+  display: grid;
+  gap: calc(var(--sol-spacing) * 2);
+}
+.solanum-daily-totals li, .solanum-patterns li > div:first-child, .solanum-distribution-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: calc(var(--sol-spacing) * 3);
+  font-size: 11px;
+  --tw-leading: var(--sol-leading-relaxed);
+  line-height: var(--sol-leading-relaxed);
+}
+.solanum-patterns, .solanum-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--sol-spacing) * 3);
+}
+.solanum-patterns li, .solanum-distribution li {
+  margin: 0px;
+  min-width: 0px;
+}
+.solanum-patterns li > div:first-child, .solanum-distribution-label {
+  margin-bottom: calc(var(--sol-spacing) * 1.5);
+}
+.solanum-distribution-label > span:first-child {
+  min-width: 0px;
+  overflow-wrap: anywhere;
+}
+.solanum-distribution-label > span:last-child {
+  flex-shrink: 0;
+  --tw-numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
+}
+.solanum-distribution-label small {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.solanum-distribution-track {
+  height: var(--sol-spacing);
+  overflow: hidden;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--background-modifier-border);
+}
+.solanum-distribution-track span {
+  display: block;
+  height: 100%;
+  border-radius: calc(infinity * 1px);
+  background-color: var(--crop-green);
+}
+.solanum-patterns li {
+  color: var(--text-muted);
+}
+.solanum-patterns li.is-peak {
+  color: var(--text-normal);
+}
+.solanum-pattern-leader, .solanum-comparison-change {
+  margin-top: 0px;
+  margin-bottom: calc(var(--sol-spacing) * 4);
+  font-size: var(--sol-text-sm);
+  line-height: var(--tw-leading, var(--sol-text-sm--line-height));
+  --tw-leading: var(--sol-leading-relaxed);
+  line-height: var(--sol-leading-relaxed);
+  color: var(--text-normal);
+}
+.solanum-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: calc(var(--sol-spacing) * 7);
+}
+@container (min-width: 400px) {
+  .solanum-insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: calc(var(--sol-spacing) * 6);
+  }
+}
+.solanum-app table.solanum-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  --tw-numeric-spacing: tabular-nums;
+  font-variant-numeric: var(--tw-ordinal,) var(--tw-slashed-zero,) var(--tw-numeric-figure,) var(--tw-numeric-spacing,) var(--tw-numeric-fraction,);
+}
+.solanum-app .solanum-comparison caption {
+  margin-bottom: calc(var(--sol-spacing) * 3);
+  text-align: left;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.solanum-app .solanum-comparison th, .solanum-app .solanum-comparison td {
+  border-style: var(--tw-border-style);
+  border-width: 0px;
+  padding-inline: 0px;
+  padding-block: calc(var(--sol-spacing) * 2);
+  text-align: right;
+  --tw-font-weight: var(--sol-font-weight-normal);
+  font-weight: var(--sol-font-weight-normal);
+}
+.solanum-app .solanum-comparison th:first-child {
+  text-align: left;
+  color: var(--text-muted);
+}
+.solanum-app .solanum-comparison thead th {
+  padding-bottom: calc(var(--sol-spacing) * 3);
+  color: var(--text-muted);
 }
 @property --tw-ordinal {
   syntax: "*";

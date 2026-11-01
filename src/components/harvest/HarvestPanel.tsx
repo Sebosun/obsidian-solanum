@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, useServices } from "@/state/hooks";
 import { harvestFilterOptions } from "@/lib/harvest/filters";
+import { monthInsights } from "@/lib/harvest/insights";
 import { layoutHarvestBlocks, summarizeMonth } from "@/lib/harvest/month";
 import { layoutYearStacks, summarizeYear, summarizeYearTotal } from "@/lib/harvest/year";
 import { MONTHS_PER_YEAR } from "@/lib/scene/constants";
@@ -41,6 +42,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
     return {
       layout: layoutHarvestBlocks(sessions, month, filter),
       summary: summarizeMonth(sessions, month, filter),
+      insights: monthInsights(sessions, month, filter),
     };
   }, [view, sessions, month, filter]);
   const yearData = useMemo(() => {
@@ -110,6 +112,7 @@ export function HarvestPanel({ initialMonth }: HarvestPanelProps) {
           month={month}
           layout={monthData.layout}
           summary={monthData.summary}
+          insights={monthData.insights}
           season={resolveSeason(seasonChoice, month)}
           filtered={!!tag || !!notePath}
           onClearFilters={clearFilters}

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { SrLabel } from "@/components/app/SrLabel";
 import { CROPS, CROP_IDS } from "@/lib/crops/catalog";
 import type { MonthSummary } from "@/lib/harvest/month";
@@ -7,9 +7,10 @@ import { formatFocus } from "@/lib/time";
 interface HarvestSummaryProps {
   summary: MonthSummary;
   period: "month" | "year";
+  children?: ReactNode;
 }
 
-export function HarvestSummary({ summary, period }: HarvestSummaryProps) {
+export function HarvestSummary({ summary, period, children }: HarvestSummaryProps) {
   const summaryId = useId();
   const cropsId = useId();
   const tagsId = useId();
@@ -31,7 +32,7 @@ export function HarvestSummary({ summary, period }: HarvestSummaryProps) {
           <dd>{summary.activeDays}</dd>
         </div>
       </dl>
-      {grown.length > 0 && (
+      {period === "year" && grown.length > 0 && (
         <>
           <SrLabel id={cropsId}>Crops grown</SrLabel>
           <ul className="solanum-summary-crops" aria-labelledby={cropsId}>
@@ -44,7 +45,7 @@ export function HarvestSummary({ summary, period }: HarvestSummaryProps) {
           </ul>
         </>
       )}
-      {summary.tags.length > 0 && (
+      {period === "year" && summary.tags.length > 0 && (
         <>
           <p id={tagsId} className="solanum-summary-label">
             Most used tags
@@ -59,6 +60,7 @@ export function HarvestSummary({ summary, period }: HarvestSummaryProps) {
           </ul>
         </>
       )}
+      {children}
     </section>
   );
 }
